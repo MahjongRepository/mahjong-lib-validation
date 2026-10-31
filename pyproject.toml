@@ -1,7 +1,7 @@
 [project]
 name = "mahjong-lib-validation"
 version = "0.0.1"
-description = "Suite to verify the mahjong library"
+description = "Validation and benchmarking tools for the mahjong library."
 authors = [
     { name = "Alexey Lisikhin", email = "alexey@nihisil.com" },
     { name = "Apricot S." },
