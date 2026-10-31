@@ -38,7 +38,8 @@ uv workspace で複数の Python パッケージを管理する。
 | validation | `mahjong` の検証・計測・比較・プロファイル | `mahjong` |
 | majsoul-converter（将来） | 雀魂牌譜から共通コーパスへの変換 | `protobuf` など |
 
-上記は役割名であり、配布名、import 名、CLI 名は実装時に確定する。
+corpus の配布名・import 名は、ともに `corpus` とする。
+その他は役割名であり、配布名、import 名、CLI 名は実装時に確定する。
 
 ### 分割の理由と依存方向
 
@@ -78,7 +79,7 @@ mahjong-lib-validation/
 ├── packages/
 │   ├── corpus/
 │   │   ├── pyproject.toml
-│   │   ├── src/mahjong_corpus/
+│   │   ├── src/corpus/
 │   │   │   ├── models.py
 │   │   │   ├── readers.py
 │   │   │   ├── writers.py
@@ -247,7 +248,7 @@ scoring コーパスの出力、`mahjong` の正誤検証までを通す。
 corpus に関する決定事項と残る未決事項は
 [corpus パッケージの設計](corpus-design.md) に記録する。
 
-- 配布名、import 名、CLI 名、オプション。
+- corpus 以外の配布名・import 名、CLI 名、オプション。
 - コーパススキーマ、manifest、互換性のルール。
 - mjlog 入力の探索方法、圧縮入力の対応範囲。
 - houou-logs SQLite 入力を実装する時期と対応スキーマ。

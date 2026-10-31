@@ -10,7 +10,7 @@ corpus パッケージの決定事項を記録する。
 ## パッケージと開発環境
 
 - ディレクトリは `packages/corpus/`、配布名は `corpus`、
-  import 名は `mahjong_corpus` とする。
+  import 名は `corpus` とする。
 - このプロジェクト内で利用し、PyPI への公開は予定しない。
 - 対応 Python は `mahjong` に合わせて 3.10〜3.15 とする。
 - `src/` レイアウトと `uv_build` を採用する。
