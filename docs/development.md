@@ -2,6 +2,38 @@
 
 決定日: 2026-11-01
 
+## workspace の開発環境
+
+ルートは開発ツールを管理する非パッケージのプロジェクトとし、
+`packages/corpus` を uv workspace のメンバーとしている。
+ロックファイルと開発用の仮想環境はルートで共有する。
+corpus の配布名・import 名は、ともに `corpus` である。
+
+ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
+
+```console
+uv sync --all-packages
+uv run --no-sync python -c "import corpus; print(corpus.__file__)"
+```
+
+静的検査とパッケージのビルドもルートから実行する。
+`references/` は前身の参考コードなので静的検査の対象外とする。
+
+```console
+uv run --no-sync ruff check
+uv run --no-sync ruff format --check
+uv run --no-sync ty check
+uv build --package corpus
+```
+
+単体テストはパッケージの `tests/` に追加し、
+ルートの pytest を使用する。現時点ではパッケージの雛形のみで、
+単体テストはまだ追加していない。
+今後、設定する Python は対応範囲の 3.10〜3.15 から選択する。
+
+workspace での import 確認に加え、機能追加時にはビルドした wheel を
+クリーンな環境へインストールして、未宣言依存がないことも確認する。
+
 ## 基本方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。

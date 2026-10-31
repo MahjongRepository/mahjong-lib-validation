@@ -9,7 +9,7 @@ authors = [
 license = "MIT"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">= 3.10"
+requires-python = ">=3.10"
 classifiers = [
     "Intended Audience :: Developers",
     "Programming Language :: Python",
@@ -27,10 +27,6 @@ classifiers = [
 
 [project.urls]
 Repository = "https://github.com/MahjongRepository/mahjong-lib-validation"
-
-[build-system]
-requires = ["uv_build>=0.13.6,<0.14.0"]
-build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
@@ -52,8 +48,15 @@ test = [
     "pytest>=9.2.0,<10",
 ]
 
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/corpus"]
+
 [tool.ruff]
 line-length = 79
+extend-exclude = ["references"]
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -73,7 +76,10 @@ ignore-overlong-task-comments = true
 convention = "pep257"
 
 [tool.ruff.lint.extend-per-file-ignores]
-"./tests/*" = [
+"**/tests/**" = [
     "D",       # pydocstyle
     "S101",    # assert
 ]
+
+[tool.ty.src]
+include = ["packages"]

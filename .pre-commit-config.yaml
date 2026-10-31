@@ -1,5 +1,5 @@
 fail_fast: true
-files: '\.pyi?$|^(pyproject\.toml|uv\.lock|\.pre-commit-config\.yaml)$'
+files: '\.pyi?$|(^|/)pyproject\.toml$|^(uv\.lock|\.pre-commit-config\.yaml)$'
 
 repos:
   - repo: local
