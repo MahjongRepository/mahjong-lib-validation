@@ -1,6 +1,6 @@
 # mahjong-lib-validation
 
-Validation and benchmarking tools for the mahjong library.
+Validation and benchmarking tools for the [mahjong](https://github.com/MahjongRepository/mahjong) library.
 
 > 🚧 **Work in Progress**
 >
