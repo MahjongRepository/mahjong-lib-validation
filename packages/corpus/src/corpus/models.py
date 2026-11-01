@@ -2,6 +2,13 @@
 
 from typing import Literal, TypedDict
 
+Tile = Literal[
+    "0m", "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
+    "0p", "1p", "2p", "3p", "4p", "5p", "6p", "7p", "8p", "9p",
+    "0s", "1s", "2s", "3s", "4s", "5s", "6s", "7s", "8s", "9s",
+    "1z", "2z", "3z", "4z", "5z", "6z", "7z",
+]  # fmt: skip
+
 
 class Source(TypedDict):
     platform: Literal["tenhou", "majsoul"]
@@ -21,7 +28,7 @@ class Round(TypedDict):
 
 class Meld(TypedDict):
     type: Literal["chii", "pon", "daiminkan", "ankan", "kakan"]
-    tiles: list[str]
+    tiles: list[Tile]
     called_tile_index: int | None
     from_seat: int | None
 
@@ -42,12 +49,12 @@ class Situation(TypedDict):
 class ScoringInput(TypedDict):
     winner_seat: int
     discarder_seat: int | None
-    concealed_tiles: list[str]
-    winning_tile: str
+    concealed_tiles: list[Tile]
+    winning_tile: Tile
     melds: list[Meld]
     nuki_count: int
-    dora_indicators: list[str]
-    ura_dora_indicators: list[str]
+    dora_indicators: list[Tile]
+    ura_dora_indicators: list[Tile]
     situation: Situation
 
 

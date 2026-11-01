@@ -3,7 +3,6 @@
 from collections import Counter
 from functools import cache
 from math import isfinite
-from re import fullmatch
 from types import UnionType
 from typing import (
     Literal,
@@ -173,11 +172,6 @@ def _seats(case: ScoringCase) -> None:
         _fail("input.discarder_seat", "ron needs another player's seat")
 
 
-def _tile(value: str, field: str) -> None:
-    if not fullmatch(r"(?:[0-9][mps]|[1-7]z)", value):
-        _fail(field, "expected an mpsz tile (red five is 0m/0p/0s)")
-
-
 def _kind(tile: str) -> str:
     return tile.replace("0", "5")
 
@@ -209,13 +203,7 @@ def _tiles(case: ScoringCase) -> None:
         _fail("input.melds", "at most four melds are allowed")
     if len(hand["concealed_tiles"]) != 13 - 3 * len(hand["melds"]):
         _fail("input.concealed_tiles", "wrong count excluding win/melds")
-    _tile(hand["winning_tile"], "input.winning_tile")
-    for name in ("concealed_tiles", "dora_indicators", "ura_dora_indicators"):
-        for index, value in enumerate(hand[name]):
-            _tile(value, f"input.{name}[{index}]")
     for index, meld in enumerate(hand["melds"]):
-        for position, value in enumerate(meld["tiles"]):
-            _tile(value, f"input.melds[{index}].tiles[{position}]")
         _meld(meld, f"input.melds[{index}]")
     tiles = [*hand["concealed_tiles"], hand["winning_tile"]]
     for meld in hand["melds"]:
