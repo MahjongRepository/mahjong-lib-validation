@@ -9,6 +9,16 @@ Tile = Literal[
     "1z", "2z", "3z", "4z", "5z", "6z", "7z",
 ]  # fmt: skip
 
+Title = Literal[
+    "below_mangan",
+    "mangan",
+    "haneman",
+    "baiman",
+    "sanbaiman",
+    "yakuman",
+    "kazoe_yakuman",
+]
+
 
 class Source(TypedDict):
     platform: Literal["tenhou", "majsoul"]
@@ -70,6 +80,7 @@ class Yaku(TypedDict):
 
 
 class Expected(TypedDict):
+    title: Title | None
     yaku: list[Yaku]
     han: int | None
     fu: int | None

@@ -8,6 +8,7 @@
     "event_index": 112,
     "winner_index": 0,
     "scoring_values": {
+      "title_id": 0,
       "point_rong": 2600,
       "point_zimo_qin": 1300,
       "point_zimo_xian": 700,
@@ -78,6 +79,7 @@
     ]
   },
   "expected": {
+    "title": "below_mangan",
     "yaku": [
       {
         "id": "riichi",

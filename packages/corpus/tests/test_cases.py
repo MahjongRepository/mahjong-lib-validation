@@ -19,6 +19,80 @@ def test_parse_scoring_example(example: dict[str, Any]) -> None:
     assert case["expected"]["winner_gain"] == 3600
 
 
+def test_title_below_mangan(example: dict[str, Any]) -> None:
+    example["expected"]["title"] = "below_mangan"
+    assert parse_case(example)["expected"]["title"] == "below_mangan"
+
+
+@pytest.mark.parametrize("title", ["mangan", "haneman", "baiman", "sanbaiman"])
+def test_title_is_preserved_without_recalculating_points(
+    example: dict[str, Any], title: str
+) -> None:
+    example["expected"]["title"] = title
+    assert parse_case(example)["expected"]["title"] == title
+
+
+def test_compound_yakuman_title_and_multiplier(
+    example: dict[str, Any],
+) -> None:
+    example["expected"].update(
+        {
+            "title": "yakuman",
+            "han": None,
+            "yakuman_multiplier": 2,
+            "yaku": [
+                {"id": "daisangen", "han": None, "yakuman_multiplier": 1},
+                {"id": "tsuuiisou", "han": None, "yakuman_multiplier": 1},
+            ],
+            "base_points": 64000,
+            "winner_gain": 65000,
+            "payments_by_seat": [64000, 0, 0, 0],
+            "event_score_deltas": [-64000, 0, 65000, 0],
+        }
+    )
+    case = parse_case(example)
+    assert case["expected"]["title"] == "yakuman"
+    assert case["expected"]["yakuman_multiplier"] == 2
+
+
+def test_counted_yakuman_has_no_true_yakuman_multiplier(
+    example: dict[str, Any],
+) -> None:
+    example["expected"].update(
+        {
+            "title": "kazoe_yakuman",
+            "han": 13,
+            "yaku": [{"id": "dora", "han": 13, "yakuman_multiplier": 0}],
+            "base_points": 32000,
+            "winner_gain": 33000,
+            "payments_by_seat": [32000, 0, 0, 0],
+            "event_score_deltas": [-32000, 0, 33000, 0],
+        }
+    )
+    case = parse_case(example)
+    assert case["expected"]["title"] == "kazoe_yakuman"
+    assert case["expected"]["yakuman_multiplier"] == 0
+    assert case["expected"]["han"] == 13
+
+
+@pytest.mark.parametrize("title", ["double_yakuman", "", 5])
+def test_invalid_title(example: dict[str, Any], title: object) -> None:
+    example["expected"]["title"] = title
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == "expected.title"
+
+
+def test_unknown_title_requires_reason(example: dict[str, Any]) -> None:
+    example["expected"]["title"] = None
+    with pytest.raises(CorpusError, match=r"expected\.title"):
+        parse_case(example)
+    example["comparison"]["excluded_fields"] = [
+        {"field": "title", "reason": "not_recorded"}
+    ]
+    assert parse_case(example)["expected"]["title"] is None
+
+
 def test_reject_unsupported_version(example: dict[str, Any]) -> None:
     example["schema_version"] = "v2"
 
@@ -174,6 +248,7 @@ def test_yakuman_keeps_ippatsu_and_recorded_fu(
     expected.update(
         {
             "yaku": [{"id": "suuankou", "han": None, "yakuman_multiplier": 1}],
+            "title": "yakuman",
             "han": None,
             "yakuman_multiplier": 1,
             "base_points": 32000,

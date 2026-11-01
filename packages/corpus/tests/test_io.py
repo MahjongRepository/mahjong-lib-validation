@@ -108,6 +108,17 @@ def test_gzip_reads_and_writes_explicit_json(
     assert json.loads(gzip.decompress(output_path.read_bytes())) == example
 
 
+@pytest.mark.parametrize("suffix", [".jsonl", ".jsonl.gz"])
+def test_title_survives_jsonl_round_trip(
+    tmp_path: Path, example: dict[str, Any], suffix: str
+) -> None:
+    example["expected"]["title"] = "mangan"
+    path = tmp_path / ("titles" + suffix)
+    write_cases(path, [parse_case(example)])
+    cases = list(read_cases(path))
+    assert cases[0]["expected"]["title"] == "mangan"
+
+
 def test_invalid_utf8_reports_the_line(
     tmp_path: Path, example: dict[str, Any]
 ) -> None:
