@@ -22,6 +22,9 @@ corpus パッケージの開発では [corpus パッケージの設計](docs/cor
 corpus の初期実装と API の確認事項は
 [corpus 初期実装のテストリスト](docs/corpus-implementation.md) に記録する。
 
+データセット単位の保存・検査は
+[manifest とデータセット](docs/corpus-manifest.md) を参照する。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。

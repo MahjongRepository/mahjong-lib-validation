@@ -2,7 +2,7 @@
 
 import gzip
 import json
-from collections.abc import Iterator
+from collections.abc import Generator
 from pathlib import Path
 
 from corpus.checks import parse_case
@@ -10,7 +10,7 @@ from corpus.errors import CorpusError
 from corpus.models import ScoringCase
 
 
-def read_cases(path: str | Path) -> Iterator[ScoringCase]:
+def read_cases(path: str | Path) -> Generator[ScoringCase, None, None]:
     path = Path(path)
     opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rb") as stream:

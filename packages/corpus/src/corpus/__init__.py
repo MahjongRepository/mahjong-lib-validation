@@ -1,15 +1,24 @@
 """Shared corpus models and I/O for mahjong library validation."""
 
 from corpus.checks import parse_case
+from corpus.datasets import check_dataset, read_dataset, write_dataset
 from corpus.errors import CorpusError
-from corpus.models import ScoringCase
+from corpus.manifests import parse_manifest, read_manifest, write_manifest
+from corpus.models import Manifest, ScoringCase
 from corpus.readers import read_cases
 from corpus.writers import write_cases
 
 __all__ = [
     "CorpusError",
+    "Manifest",
     "ScoringCase",
+    "check_dataset",
     "parse_case",
+    "parse_manifest",
     "read_cases",
+    "read_dataset",
+    "read_manifest",
     "write_cases",
+    "write_dataset",
+    "write_manifest",
 ]
