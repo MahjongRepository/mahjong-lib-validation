@@ -103,10 +103,7 @@ def test_reject_unsupported_version(example: dict[str, Any]) -> None:
 
 
 def test_majsoul_example_preserves_red_tile() -> None:
-    path = (
-        Path(__file__).resolve().parents[3]
-        / "docs/examples/corpus/majsoul-scoring.json"
-    )
+    path = Path(__file__).parent / "fixtures/majsoul-scoring.json"
     case = parse_case(json.loads(path.read_text(encoding="utf-8")))
 
     assert "0s" in case["input"]["concealed_tiles"]

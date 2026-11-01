@@ -7,8 +7,5 @@ import pytest
 
 @pytest.fixture
 def example() -> dict[str, Any]:
-    path = (
-        Path(__file__).resolve().parents[3]
-        / "docs/examples/corpus/tenhou-scoring.json"
-    )
+    path = Path(__file__).parent / "fixtures/tenhou-scoring.json"
     return json.loads(path.read_text(encoding="utf-8"))
