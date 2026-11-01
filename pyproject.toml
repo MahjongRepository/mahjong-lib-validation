@@ -79,7 +79,12 @@ convention = "pep257"
 "**/tests/**" = [
     "D",       # pydocstyle
     "S101",    # assert
+    "PLR2004", # magic-value-comparison
 ]
 
 [tool.ty.src]
 include = ["packages"]
+
+[tool.pytest]
+testpaths = ["packages"]
+addopts = ["--import-mode=importlib"]

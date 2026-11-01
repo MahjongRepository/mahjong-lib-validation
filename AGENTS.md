@@ -19,6 +19,9 @@ corpus パッケージの開発では [corpus パッケージの設計](docs/cor
 [scoring コーパスの JSON 例](docs/corpus-json-examples.md) を参照する。
 この文書の未確定項目は、確定済みの仕様と区別する。
 
+corpus の初期実装と API の確認事項は
+[corpus 初期実装のテストリスト](docs/corpus-implementation.md) に記録する。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。

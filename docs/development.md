@@ -27,9 +27,16 @@ uv build --package corpus
 ```
 
 単体テストはパッケージの `tests/` に追加し、
-ルートの pytest を使用する。現時点ではパッケージの雛形のみで、
-単体テストはまだ追加していない。
-今後、設定する Python は対応範囲の 3.10〜3.15 から選択する。
+ルートの pytest を使用する。ルートから次を実行すると、
+`packages/` のテストを収集する。
+
+```console
+uv run --no-sync pytest
+```
+
+一時ディレクトリが制限される環境では、
+`--basetemp=.cache/pytest` を指定して workspace 内に作成できる。
+設定する Python は対応範囲の 3.10〜3.15 から選択する。
 
 workspace での import 確認に加え、機能追加時にはビルドした wheel を
 クリーンな環境へインストールして、未宣言依存がないことも確認する。
