@@ -116,3 +116,36 @@ Python 3.11〜3.14 での全テストと、大規模コーパスの読み込み�
 今回確認していない。後続の manifest 実装と確認結果は
 [manifest とデータセット](corpus-manifest.md) に記録する。
 変換器との結合テストは引き続き後続の作業とする。
+
+## Refactor の記録（2026-11-02）
+
+manifest 実装後の Green を確認し、仕様を追加せず内部の責務を整理した。
+公開 API の名前・引数・戻り値、JSON の形式、検査順序、
+例外の項目・位置情報は維持する。
+
+| モジュール | 責務 |
+| --- | --- |
+| `_validation.py` | ケースと manifest に共通する型・JSON 値・下限の検査 |
+| `checks.py` | scoring ケース固有の牌・席・期待値の整合性検査 |
+| `_fileio.py` | UTF-8 JSON のデコード、位置付き構文エラー、一時ファイルからの置換 |
+| `readers.py` / `writers.py` | JSONL・gzip の逐次読み書き |
+| `manifests.py` | manifest の整合性検査と一ファイル単位の読み書き |
+| `datasets.py` | manifest に従うファイル処理とデータセットの公開 |
+| `models.py` / `errors.py` | 共通のデータ型と例外 |
+
+共通の検査を `checks.py` から分離し、manifest や dataset が
+scoring 固有の検査モジュールの private 関数に依存する構成を解消した。
+JSON のデコードと安全なファイル置換の重複は `_fileio.py` に集約した。
+全ファイルを読む場合の改行正規化と、JSONL の物理行番号の違いは保持する。
+
+書き込み件数は内部の `_write_cases` がシリアライズ時に数える。
+dataset 側の `_write_shard` とカウント用のジェネレータを廃止し、
+公開 `write_cases` の戻り値は従来どおり `None` に保った。
+dataset の一ファイル分のパス・ハッシュ・件数の検査は `_read_file` に分けた。
+各ファイルの検査と dataset 全体の処理を別々に読める構造にした。
+
+既存テストや期待値は変更していない。各段階で 117 件成功、
+実 symlink のテスト 1 件スキップを確認した。
+変更前コードとの比較でも、公開関数のシグネチャ、JSONL の出力バイト列、
+例外の項目・理由・行番号・原因、CR/CRLF の manifest のエラー位置、
+生成したデータセットの manifest が一致することを確認した。

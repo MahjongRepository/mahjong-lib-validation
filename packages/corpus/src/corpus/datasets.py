@@ -7,7 +7,7 @@ from itertools import chain, islice
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from corpus.checks import _fail, _shape
+from corpus._validation import fail, validate_type
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
@@ -22,7 +22,7 @@ from corpus.models import (
     ScoringCase,
 )
 from corpus.readers import read_cases
-from corpus.writers import write_cases
+from corpus.writers import _write_cases
 
 
 def read_dataset(directory: str | Path) -> Generator[ScoringCase, None, None]:
@@ -50,10 +50,10 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
 ) -> Manifest:
     directory = Path(directory)
     _new_directory(directory)
-    _shape(conversion, ConversionSummary, "conversion")
+    validate_type(conversion, ConversionSummary, "conversion")
     _complete(conversion, directory / "manifest.json")
     if type(cases_per_file) is not int or cases_per_file <= 0:
-        _fail("cases_per_file", "expected a positive integer")
+        fail("cases_per_file", "expected a positive integer")
     with TemporaryDirectory(
         dir=directory.parent, prefix=".corpus-"
     ) as temporary:
@@ -100,24 +100,11 @@ def _write_files(
         suffix = ".jsonl.gz" if compress else ".jsonl"
         name = f"scoring-{len(files) + 1:06d}{suffix}"
         path = directory / name
-        count = _write_shard(path, chain((first,), islice(cases, limit - 1)))
+        count = _write_cases(path, chain((first,), islice(cases, limit - 1)))
         files.append(
             {"path": name, "record_count": count, "sha256": _sha256(path)}
         )
     return files
-
-
-def _write_shard(path: Path, cases: Iterable[ScoringCase]) -> int:
-    count = 0
-
-    def counted() -> Iterator[ScoringCase]:
-        nonlocal count
-        for case in cases:
-            count += 1
-            yield case
-
-    write_cases(path, counted())
-    return count
 
 
 def _read_dataset(
@@ -125,29 +112,33 @@ def _read_dataset(
 ) -> Generator[ScoringCase, None, None]:
     _ready(manifest, directory / "manifest.json")
     for index, entry in enumerate(manifest["files"]):
-        field = f"files[{index}]"
-        path = directory / entry["path"]
-        if path.resolve().parent != directory.resolve():
-            raise CorpusError(
-                field + ".path",
-                "data file leaves dataset directory",
-                path=path,
-            )
-        if not path.is_file():
-            raise CorpusError(
-                field + ".path", "data file is missing", path=path
-            )
-        if _sha256(path) != entry["sha256"]:
-            raise CorpusError(field + ".sha256", "hash mismatch", path=path)
-        count = 0
-        with closing(read_cases(path)) as cases:
-            for case in cases:
-                count += 1
-                yield case
-        if count != entry["record_count"]:
-            raise CorpusError(
-                field + ".record_count", "record count mismatch", path=path
-            )
+        yield from _read_file(directory, entry, index)
+
+
+def _read_file(
+    directory: Path, entry: DataFile, index: int
+) -> Generator[ScoringCase, None, None]:
+    field = f"files[{index}]"
+    path = directory / entry["path"]
+    if path.resolve().parent != directory.resolve():
+        raise CorpusError(
+            field + ".path",
+            "data file leaves dataset directory",
+            path=path,
+        )
+    if not path.is_file():
+        raise CorpusError(field + ".path", "data file is missing", path=path)
+    if _sha256(path) != entry["sha256"]:
+        raise CorpusError(field + ".sha256", "hash mismatch", path=path)
+    count = 0
+    with closing(read_cases(path)) as cases:
+        for case in cases:
+            count += 1
+            yield case
+    if count != entry["record_count"]:
+        raise CorpusError(
+            field + ".record_count", "record count mismatch", path=path
+        )
 
 
 def _complete(summary: ConversionSummary, path: Path) -> None:
