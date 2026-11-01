@@ -59,7 +59,8 @@
       "haitei": false,
       "houtei": false,
       "tenhou": false,
-      "chiihou": false
+      "chiihou": false,
+      "renhou": false
     }
   },
   "situation_provenance": {
