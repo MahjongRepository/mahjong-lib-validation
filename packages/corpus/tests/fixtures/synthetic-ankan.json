@@ -1,0 +1,108 @@
+{
+  "schema_version": "v1",
+  "case_type": "scoring",
+  "case_id": "tenhou:synthetic-ankan:east:1:0:1",
+  "source": {
+    "platform": "tenhou",
+    "log_id": "synthetic-ankan",
+    "event_index": 0,
+    "winner_index": 0,
+    "scoring_values": {
+      "fixture_kind": "synthetic"
+    }
+  },
+  "ruleset": "tenhou-ranked-match",
+  "player_count": 4,
+  "round": {
+    "wind": "east",
+    "number": 1,
+    "honba": 0,
+    "riichi_sticks": 0,
+    "dealer_seat": 0
+  },
+  "win_number": 1,
+  "input": {
+    "winner_seat": 2,
+    "discarder_seat": 0,
+    "concealed_tiles": [
+      "5m",
+      "5m",
+      "6m",
+      "6m",
+      "6m",
+      "5p",
+      "6p",
+      "7p",
+      "6s",
+      "7s"
+    ],
+    "winning_tile": "8s",
+    "melds": [
+      {
+        "type": "ankan",
+        "tiles": [
+          "5z",
+          "5z",
+          "5z",
+          "5z"
+        ],
+        "called_tile_index": null,
+        "from_seat": null
+      }
+    ],
+    "nuki_count": 0,
+    "dora_indicators": [
+      "8m"
+    ],
+    "ura_dora_indicators": [],
+    "situation": {
+      "tsumo": false,
+      "riichi": "none",
+      "ippatsu": false,
+      "rinshan": false,
+      "chankan": false,
+      "haitei": false,
+      "houtei": false,
+      "tenhou": false,
+      "chiihou": false,
+      "renhou": false
+    }
+  },
+  "situation_provenance": {
+    "method": "event_reconstruction",
+    "event_indices": [],
+    "unknown_fields": {}
+  },
+  "expected": {
+    "title": "below_mangan",
+    "yaku": [
+      {
+        "id": "yakuhai_haku",
+        "han": 1,
+        "yakuman_multiplier": 0
+      }
+    ],
+    "han": 1,
+    "fu": 70,
+    "yakuman_multiplier": 0,
+    "base_points": 2300,
+    "honba_points": 0,
+    "riichi_stick_points": 0,
+    "winner_gain": 2300,
+    "payments_by_seat": [
+      2300,
+      0,
+      0,
+      0
+    ],
+    "event_score_deltas": [
+      -2300,
+      0,
+      2300,
+      0
+    ]
+  },
+  "comparison": {
+    "excluded_fields": []
+  }
+}

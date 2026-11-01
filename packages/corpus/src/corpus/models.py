@@ -71,6 +71,7 @@ class ScoringInput(TypedDict):
 class SituationProvenance(TypedDict):
     method: Literal["event_reconstruction"]
     event_indices: list[int]
+    unknown_fields: dict[str, str]
 
 
 class Yaku(TypedDict):

@@ -1,0 +1,142 @@
+{
+  "schema_version": "v1",
+  "case_type": "scoring",
+  "case_id": "majsoul:<masked-log-id>:south:1:1:1",
+  "source": {
+    "platform": "majsoul",
+    "log_id": "<masked-log-id>",
+    "event_index": 577,
+    "winner_index": 0,
+    "scoring_values": {
+      "title_id": 0,
+      "point_rong": 2600,
+      "point_sum": 12600,
+      "point_zimo_qin": 1300,
+      "point_zimo_xian": 700,
+      "old_scores": [
+        24500,
+        20600,
+        25000,
+        28900
+      ],
+      "delta_scores": [
+        12000,
+        -14900,
+        0,
+        3900
+      ],
+      "scores": [
+        36500,
+        5700,
+        25000,
+        32800
+      ]
+    }
+  },
+  "ruleset": "majsoul-ranked-match",
+  "player_count": 4,
+  "round": {
+    "wind": "south",
+    "number": 1,
+    "honba": 1,
+    "riichi_sticks": 1,
+    "dealer_seat": 0
+  },
+  "win_number": 1,
+  "input": {
+    "winner_seat": 3,
+    "discarder_seat": 1,
+    "concealed_tiles": [
+      "0m",
+      "5m",
+      "5m",
+      "8p",
+      "8p",
+      "5s",
+      "6s",
+      "5z",
+      "5z",
+      "5z"
+    ],
+    "winning_tile": "7s",
+    "melds": [
+      {
+        "type": "chii",
+        "tiles": [
+          "2s",
+          "3s",
+          "4s"
+        ],
+        "called_tile_index": 2,
+        "from_seat": 2
+      }
+    ],
+    "nuki_count": 0,
+    "dora_indicators": [
+      "6p"
+    ],
+    "ura_dora_indicators": [],
+    "situation": {
+      "tsumo": false,
+      "riichi": "none",
+      "ippatsu": false,
+      "rinshan": false,
+      "chankan": false,
+      "haitei": false,
+      "houtei": false,
+      "tenhou": false,
+      "chiihou": false,
+      "renhou": false
+    }
+  },
+  "situation_provenance": {
+    "method": "event_reconstruction",
+    "event_indices": [
+      469,
+      534,
+      535,
+      555,
+      575,
+      576,
+      577
+    ],
+    "unknown_fields": {}
+  },
+  "expected": {
+    "title": "below_mangan",
+    "yaku": [
+      {
+        "id": "yakuhai_haku",
+        "han": 1,
+        "yakuman_multiplier": 0
+      },
+      {
+        "id": "aka_dora",
+        "han": 1,
+        "yakuman_multiplier": 0
+      }
+    ],
+    "han": 2,
+    "fu": 40,
+    "yakuman_multiplier": 0,
+    "base_points": 2600,
+    "honba_points": 300,
+    "riichi_stick_points": 1000,
+    "winner_gain": 3900,
+    "payments_by_seat": [
+      0,
+      2900,
+      0,
+      0
+    ],
+    "event_score_deltas": [
+      12000,
+      -14900,
+      0,
+      3900
+    ]
+  },
+  "comparison": {
+    "excluded_fields": []
+  }
+}

@@ -16,9 +16,29 @@ def parse_case(value: object) -> ScoringCase:
     _tiles(case)
     _seats(case)
     _bounds(case)
+    _situation(case)
     _expected(case)
     validate_json(case["source"]["scoring_values"], "source.scoring_values")
     return case
+
+
+def _situation(case: ScoringCase) -> None:
+    situation = case["input"]["situation"]
+    reasons = case["situation_provenance"]["unknown_fields"]
+    for name, reason in reasons.items():
+        field = "situation_provenance.unknown_fields." + name
+        if name not in situation:
+            fail(field, "unknown situation field")
+        if situation.get(name) is not None:
+            fail(field, "a known value must not have an unknown reason")
+        if not reason.strip():
+            fail(field, "reason must not be empty")
+    for name, value in situation.items():
+        if value is None and name not in reasons:
+            fail(
+                "situation_provenance.unknown_fields." + name,
+                "unknown value needs a reason",
+            )
 
 
 def _bounds(case: ScoringCase) -> None:
@@ -127,6 +147,11 @@ def _seats(case: ScoringCase) -> None:
     }
     for index, meld in enumerate(hand["melds"]):
         seats[f"input.melds[{index}].from_seat"] = meld["from_seat"]
+        if meld["from_seat"] == hand["winner_seat"]:
+            fail(
+                f"input.melds[{index}].from_seat",
+                "open meld needs another player's seat",
+            )
     for field, seat in seats.items():
         if seat is not None and not 0 <= seat < case["player_count"]:
             fail(field, "seat outside player count")
@@ -143,6 +168,7 @@ def _kind(tile: str) -> str:
 
 
 def _meld(meld: Meld, field: str) -> None:
+    _meld_origin(meld, field)
     tiles = meld["tiles"]
     size = 3 if meld["type"] in ("chii", "pon") else 4
     if len(tiles) != size:
@@ -161,6 +187,22 @@ def _meld(meld: Meld, field: str) -> None:
             fail(field + ".tiles", "chii needs three consecutive tiles")
     elif len(set(kinds)) != 1:
         fail(field + ".tiles", "pon/kan needs matching tile kinds")
+
+
+def _meld_origin(meld: Meld, field: str) -> None:
+    for name in ("called_tile_index", "from_seat"):
+        value = meld[name]
+        if meld["type"] == "ankan":
+            if value is not None:
+                fail(
+                    field + "." + name,
+                    "ankan has no called tile or source seat",
+                )
+        elif value is None:
+            fail(
+                field + "." + name,
+                "open meld needs called tile and source seat",
+            )
 
 
 def _tiles(case: ScoringCase) -> None:

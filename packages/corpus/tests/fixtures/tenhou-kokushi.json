@@ -1,0 +1,112 @@
+{
+  "schema_version": "v1",
+  "case_type": "scoring",
+  "case_id": "tenhou:<masked-log-id>:south:4:1:1",
+  "source": {
+    "platform": "tenhou",
+    "log_id": "<masked-log-id>",
+    "event_index": 1136,
+    "winner_index": 0,
+    "scoring_values": {
+      "ten": "0,32000,5",
+      "ba": "1,1",
+      "sc": "129,-323,531,0,246,333,84,0",
+      "yakuman": "47"
+    }
+  },
+  "ruleset": "tenhou-ranked-match",
+  "player_count": 4,
+  "round": {
+    "wind": "south",
+    "number": 4,
+    "honba": 1,
+    "riichi_sticks": 1,
+    "dealer_seat": 3
+  },
+  "win_number": 1,
+  "input": {
+    "winner_seat": 2,
+    "discarder_seat": 0,
+    "concealed_tiles": [
+      "1m",
+      "9m",
+      "1p",
+      "9p",
+      "1s",
+      "9s",
+      "1z",
+      "2z",
+      "2z",
+      "3z",
+      "5z",
+      "6z",
+      "7z"
+    ],
+    "winning_tile": "4z",
+    "melds": [],
+    "nuki_count": 0,
+    "dora_indicators": [
+      "9s"
+    ],
+    "ura_dora_indicators": [],
+    "situation": {
+      "tsumo": false,
+      "riichi": "none",
+      "ippatsu": false,
+      "rinshan": false,
+      "chankan": false,
+      "haitei": false,
+      "houtei": false,
+      "tenhou": false,
+      "chiihou": false,
+      "renhou": false
+    }
+  },
+  "situation_provenance": {
+    "method": "event_reconstruction",
+    "event_indices": [
+      1059,
+      1134,
+      1135,
+      1136
+    ],
+    "unknown_fields": {}
+  },
+  "expected": {
+    "title": "yakuman",
+    "yaku": [
+      {
+        "id": "kokushi_musou",
+        "han": null,
+        "yakuman_multiplier": 1
+      }
+    ],
+    "han": null,
+    "fu": 0,
+    "yakuman_multiplier": 1,
+    "base_points": 32000,
+    "honba_points": 300,
+    "riichi_stick_points": 1000,
+    "winner_gain": 33300,
+    "payments_by_seat": [
+      32300,
+      0,
+      0,
+      0
+    ],
+    "event_score_deltas": [
+      -32300,
+      0,
+      33300,
+      0
+    ]
+  },
+  "comparison": {
+    "excluded_fields": [
+      {
+        "field": "fu",
+        "reason": "kokushi_fu_not_comparable"
+      }
+    ]
+  }
+}

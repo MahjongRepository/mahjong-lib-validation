@@ -1,0 +1,131 @@
+{
+  "schema_version": "v1",
+  "case_type": "scoring",
+  "case_id": "tenhou:synthetic-liability:east:1:1:1",
+  "source": {
+    "platform": "tenhou",
+    "log_id": "synthetic-liability",
+    "event_index": 0,
+    "winner_index": 0,
+    "scoring_values": {
+      "fixture_kind": "synthetic",
+      "paoWho": 2
+    }
+  },
+  "ruleset": "tenhou-ranked-match",
+  "player_count": 4,
+  "round": {
+    "wind": "east",
+    "number": 1,
+    "honba": 1,
+    "riichi_sticks": 2,
+    "dealer_seat": 0
+  },
+  "win_number": 1,
+  "input": {
+    "winner_seat": 1,
+    "discarder_seat": 0,
+    "concealed_tiles": [
+      "1m",
+      "2m",
+      "3m",
+      "2p"
+    ],
+    "winning_tile": "2p",
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "5z",
+          "5z",
+          "5z"
+        ],
+        "called_tile_index": 2,
+        "from_seat": 3
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "6z",
+          "6z",
+          "6z"
+        ],
+        "called_tile_index": 2,
+        "from_seat": 0
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ],
+        "called_tile_index": 2,
+        "from_seat": 2
+      }
+    ],
+    "nuki_count": 0,
+    "dora_indicators": [
+      "8m"
+    ],
+    "ura_dora_indicators": [],
+    "situation": {
+      "tsumo": false,
+      "riichi": "none",
+      "ippatsu": false,
+      "rinshan": false,
+      "chankan": false,
+      "haitei": false,
+      "houtei": false,
+      "tenhou": false,
+      "chiihou": false,
+      "renhou": false
+    }
+  },
+  "situation_provenance": {
+    "method": "event_reconstruction",
+    "event_indices": [],
+    "unknown_fields": {}
+  },
+  "expected": {
+    "title": "yakuman",
+    "yaku": [
+      {
+        "id": "daisangen",
+        "han": null,
+        "yakuman_multiplier": 1
+      }
+    ],
+    "han": null,
+    "fu": null,
+    "yakuman_multiplier": 1,
+    "base_points": 32000,
+    "honba_points": 300,
+    "riichi_stick_points": 2000,
+    "winner_gain": 34300,
+    "payments_by_seat": [
+      16000,
+      0,
+      16300,
+      0
+    ],
+    "event_score_deltas": [
+      -16000,
+      34300,
+      -16300,
+      0
+    ]
+  },
+  "comparison": {
+    "excluded_fields": [
+      {
+        "field": "fu",
+        "reason": "not_recorded"
+      },
+      {
+        "field": "payments_by_seat",
+        "reason": "liability_payment"
+      }
+    ]
+  }
+}

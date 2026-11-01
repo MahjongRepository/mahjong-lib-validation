@@ -262,6 +262,9 @@ def test_yakuman_keeps_ippatsu_and_recorded_fu(
 
 def test_unknown_situation_and_missing_fu(example: dict[str, Any]) -> None:
     example["input"]["situation"]["ippatsu"] = None
+    example["situation_provenance"]["unknown_fields"] = {
+        "ippatsu": "missing_events"
+    }
     example["expected"]["fu"] = None
     example["comparison"]["excluded_fields"] = [
         {"field": "fu", "reason": "not_recorded"}
