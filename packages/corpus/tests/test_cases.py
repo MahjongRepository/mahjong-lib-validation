@@ -403,3 +403,136 @@ def test_recorded_kokushi_fu_is_kept_when_excluded(
         {"field": "fu", "reason": "kokushi_fu_not_comparable"}
     ]
     assert parse_case(example)["expected"]["fu"] == 0
+
+
+def test_unknown_yaku_keeps_known_totals(example: dict[str, Any]) -> None:
+    example["expected"]["yaku"] = None
+    example["comparison"]["excluded_fields"] = [
+        {"field": "yaku", "reason": "not_recorded"}
+    ]
+    case = parse_case(example)
+    assert case["expected"]["yaku"] is None
+    assert case["expected"]["han"] == 2
+    assert case["expected"]["yakuman_multiplier"] == 0
+
+
+def test_unknown_multiplier_keeps_known_yaku(example: dict[str, Any]) -> None:
+    example["expected"]["yakuman_multiplier"] = None
+    example["comparison"]["excluded_fields"] = [
+        {"field": "yakuman_multiplier", "reason": "not_recorded"}
+    ]
+    case = parse_case(example)
+    assert case["expected"]["yakuman_multiplier"] is None
+    assert case["expected"]["han"] == 2
+    assert case["expected"]["yaku"] == example["expected"]["yaku"]
+
+
+@pytest.mark.parametrize("excluded", [False, True])
+def test_winner_cannot_pay_own_win(
+    example: dict[str, Any], *, excluded: bool
+) -> None:
+    example["expected"]["payments_by_seat"] = [0, 0, 2600, 0]
+    if excluded:
+        example["expected"]["base_points"] = None
+        example["comparison"]["excluded_fields"] = [
+            {"field": "payments_by_seat", "reason": "liability_payment"},
+            {"field": "base_points", "reason": "not_recorded"},
+        ]
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == "expected.payments_by_seat[2]"
+
+
+@pytest.mark.parametrize(
+    ("nuki", "north_in", "field"),
+    [
+        (5, "none", "input.nuki_count"),
+        (4, "concealed", "input"),
+        (4, "winning", "input"),
+        (2, "meld", "input"),
+        (4, "none", None),
+        (3, "concealed", None),
+        (3, "winning", None),
+        (1, "meld", None),
+    ],
+)
+def test_nuki_and_hand_share_four_north_limit(
+    example: dict[str, Any], nuki: int, north_in: str, field: str | None
+) -> None:
+    example["player_count"] = 3
+    example["expected"]["payments_by_seat"].pop()
+    example["expected"]["event_score_deltas"].pop()
+    hand = example["input"]
+    hand["nuki_count"] = nuki
+    if north_in == "concealed":
+        hand["concealed_tiles"][0] = "4z"
+    elif north_in == "winning":
+        hand["winning_tile"] = "4z"
+    elif north_in == "meld":
+        hand["concealed_tiles"] = hand["concealed_tiles"][3:]
+        hand["melds"] = [
+            {
+                "type": "pon",
+                "tiles": ["4z"] * 3,
+                "called_tile_index": 1,
+                "from_seat": 1,
+            }
+        ]
+    if field is None:
+        assert parse_case(example)["input"]["nuki_count"] == nuki
+        return
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == field
+
+
+@pytest.mark.parametrize("field", ["yaku", "yakuman_multiplier"])
+@pytest.mark.parametrize("reason", [None, " "])
+def test_unknown_yaku_values_require_exclusion_reason(
+    example: dict[str, Any], field: str, reason: str | None
+) -> None:
+    example["expected"][field] = None
+    if reason is not None:
+        example["comparison"]["excluded_fields"] = [
+            {"field": field, "reason": reason}
+        ]
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == (
+        "expected." + field
+        if reason is None
+        else "comparison.excluded_fields[0].reason"
+    )
+
+
+@pytest.mark.parametrize("multiplier", [0, None])
+def test_known_han_is_checked_even_when_yaku_is_excluded(
+    example: dict[str, Any], multiplier: int | None
+) -> None:
+    example["expected"].update(han=3, yakuman_multiplier=multiplier)
+    example["comparison"]["excluded_fields"] = [
+        {"field": "yaku", "reason": "not_comparable"},
+        {"field": "yakuman_multiplier", "reason": "not_comparable"},
+    ]
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == "expected.han"
+
+
+def test_known_multiplier_is_checked_even_when_excluded(
+    example: dict[str, Any],
+) -> None:
+    example["expected"]["yakuman_multiplier"] = 1
+    example["comparison"]["excluded_fields"] = [
+        {"field": "yakuman_multiplier", "reason": "not_comparable"}
+    ]
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+    assert error.value.field == "expected.yakuman_multiplier"
+
+
+def test_empty_yaku_is_known_zero_not_unknown(example: dict[str, Any]) -> None:
+    example["expected"].update(yaku=[], han=0)
+    case = parse_case(example)
+    assert case["expected"]["yaku"] == []
+    assert case["expected"]["yakuman_multiplier"] == 0

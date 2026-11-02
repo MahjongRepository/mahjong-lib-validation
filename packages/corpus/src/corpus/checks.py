@@ -81,7 +81,7 @@ def _exclusions(case: ScoringCase) -> None:
         excluded.add(exclusion["field"])
     for field, value in expected.items():
         if value is None and field not in excluded:
-            if field == "han" and expected["yakuman_multiplier"] > 0:
+            if field == "han" and (expected["yakuman_multiplier"] or 0) > 0:
                 continue
             fail("expected." + field, "missing value needs an exclusion")
 
@@ -90,18 +90,23 @@ def _expected(case: ScoringCase) -> None:
     _exclusions(case)
     expected = case["expected"]
     _yaku(expected)
-    if expected["han"] is not None and expected["yakuman_multiplier"] == 0:
-        total = sum(yaku["han"] or 0 for yaku in expected["yaku"])
-        if expected["han"] != total:
-            fail("expected.han", "does not equal the yaku han sum")
     _points(expected)
     for name in ("payments_by_seat", "event_score_deltas"):
         values = expected[name]
         if values is not None and len(values) != case["player_count"]:
             fail("expected." + name, "one entry per seat is required")
+    payments = expected["payments_by_seat"]
+    winner = case["input"]["winner_seat"]
+    if payments is not None and payments[winner] != 0:
+        fail(
+            f"expected.payments_by_seat[{winner}]",
+            "winner must not pay their own win",
+        )
 
 
 def _yaku(expected: Expected) -> None:
+    if expected["yaku"] is None:
+        return
     for index, yaku in enumerate(expected["yaku"]):
         field = f"expected.yaku[{index}]"
         multiplier = yaku["yakuman_multiplier"]
@@ -114,11 +119,18 @@ def _yaku(expected: Expected) -> None:
         elif han is None or han <= 0:
             fail(field + ".han", "regular yaku needs positive han")
     total = sum(yaku["yakuman_multiplier"] for yaku in expected["yaku"])
-    if expected["yakuman_multiplier"] != total:
+    if (
+        expected["yakuman_multiplier"] is not None
+        and expected["yakuman_multiplier"] != total
+    ):
         fail(
             "expected.yakuman_multiplier",
             "does not equal the yaku multiplier sum",
         )
+    if total == 0 and expected["han"] is not None:
+        han = sum(yaku["han"] or 0 for yaku in expected["yaku"])
+        if expected["han"] != han:
+            fail("expected.han", "does not equal the yaku han sum")
 
 
 def _points(expected: Expected) -> None:
@@ -207,6 +219,8 @@ def _meld_origin(meld: Meld, field: str) -> None:
 
 def _tiles(case: ScoringCase) -> None:
     hand = case["input"]
+    if hand["nuki_count"] > MAX_TILE_COPIES:
+        fail("input.nuki_count", "at most four extracted norths are allowed")
     if len(hand["melds"]) > MAX_MELDS:
         fail("input.melds", "at most four melds are allowed")
     if len(hand["concealed_tiles"]) != 13 - 3 * len(hand["melds"]):
@@ -216,8 +230,7 @@ def _tiles(case: ScoringCase) -> None:
     tiles = [*hand["concealed_tiles"], hand["winning_tile"]]
     for meld in hand["melds"]:
         tiles.extend(meld["tiles"])
-    if any(
-        count > MAX_TILE_COPIES
-        for count in Counter(_kind(tile) for tile in tiles).values()
-    ):
+    counts = Counter(_kind(tile) for tile in tiles)
+    counts["4z"] += hand["nuki_count"]
+    if any(count > MAX_TILE_COPIES for count in counts.values()):
         fail("input", "a tile kind has more than four copies")

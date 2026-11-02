@@ -1,3 +1,4 @@
+import gzip
 import json
 from pathlib import Path
 from typing import Any
@@ -242,3 +243,42 @@ def test_unknown_reason_survives_jsonl(
         values[0]["situation_provenance"]["unknown_fields"]["ippatsu"]
         == "missing_events"
     )
+
+
+@pytest.mark.parametrize("compress", [False, True])
+def test_unknown_yaku_values_survive_files_and_dataset(
+    tmp_path: Path, example: dict[str, Any], *, compress: bool
+) -> None:
+    example["expected"].update(yaku=None, yakuman_multiplier=None)
+    example["comparison"]["excluded_fields"] = [
+        {"field": "yaku", "reason": "not_recorded"},
+        {"field": "yakuman_multiplier", "reason": "not_recorded"},
+    ]
+    case = parse_case(example)
+    path = tmp_path / ("unknown.jsonl.gz" if compress else "unknown.jsonl")
+    write_cases(path, [case])
+    assert list(read_cases(path)) == [example]
+    content = path.read_bytes()
+    if compress:
+        content = gzip.decompress(content)
+    saved = json.loads(content)
+    assert saved["expected"]["yaku"] is None
+    assert saved["expected"]["yakuman_multiplier"] is None
+    assert saved["expected"]["han"] == 2
+    assert saved["comparison"] == example["comparison"]
+
+    directory = tmp_path / "dataset"
+    write_dataset(
+        directory,
+        [case],
+        compress=compress,
+        generator={"name": "test", "version": "1", "settings": {}},
+        conversion={
+            "input_count": 1,
+            "converted_count": 1,
+            "failed_by_reason": {},
+            "excluded_by_reason": {},
+        },
+    )
+    assert check_dataset(directory)["record_count"] == 1
+    assert list(read_dataset(directory)) == [example]

@@ -37,7 +37,9 @@ def test_common_yaku_names_are_preserved(
 ) -> None:
     example["expected"]["yaku"][0]["id"] = name
 
-    assert parse_case(example)["expected"]["yaku"][0]["id"] == name
+    yaku = parse_case(example)["expected"]["yaku"]
+    assert yaku is not None
+    assert yaku[0]["id"] == name
 
 
 @pytest.mark.parametrize(
@@ -63,5 +65,7 @@ def test_special_yakuman_forms_keep_their_own_names(
 
     case = parse_case(example)
 
-    assert case["expected"]["yaku"][0]["id"] == name
+    yaku = case["expected"]["yaku"]
+    assert yaku is not None
+    assert yaku[0]["id"] == name
     assert case["expected"]["yakuman_multiplier"] == 1

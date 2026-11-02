@@ -149,10 +149,10 @@ class Yaku(TypedDict):
 
 class Expected(TypedDict):
     title: Title | None
-    yaku: list[Yaku]
+    yaku: list[Yaku] | None
     han: int | None
     fu: int | None
-    yakuman_multiplier: int
+    yakuman_multiplier: int | None
     base_points: int | None
     honba_points: int | None
     riichi_stick_points: int | None
