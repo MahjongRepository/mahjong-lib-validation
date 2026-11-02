@@ -5,7 +5,7 @@ from corpus import CorpusError, parse_case
 
 
 @pytest.mark.parametrize(
-    "name", ["unknown_yaku", "", "riichi ", "daburu_riichi"]
+    "name", ["unknown_yaku", "", "riichi ", "daburu_riichi", "ittsu"]
 )
 def test_undefined_yaku_name_is_rejected(
     example: dict[str, Any], name: str
@@ -26,6 +26,7 @@ def test_undefined_yaku_name_is_rejected(
         "yakuhai_chun",
         "double_riichi",
         "chiitoitsu",
+        "ittsuu",
         "ura_dora",
         "nuki_dora",
         "renhou",

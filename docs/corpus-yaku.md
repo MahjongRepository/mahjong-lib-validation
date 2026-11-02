@@ -32,7 +32,7 @@
 | 両立直（ダブル立直） | `double_riichi` |
 | 七対子 | `chiitoitsu` |
 | 混全帯幺九 | `chanta` |
-| 一気通貫 | `ittsu` |
+| 一気通貫 | `ittsuu` |
 | 三色同順 | `sanshoku_doujun` |
 | 三色同刻 | `sanshoku_doukou` |
 | 三槓子 | `sankantsu` |

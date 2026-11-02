@@ -20,6 +20,7 @@ Title = Literal[
 ]
 
 YakuId = Literal[
+    # 1 Han
     "menzen_tsumo",
     "riichi",
     "ippatsu",
@@ -41,10 +42,11 @@ YakuId = Literal[
     "yakuhai_haku",
     "yakuhai_hatsu",
     "yakuhai_chun",
+    # 2 Han
     "double_riichi",
     "chiitoitsu",
     "chanta",
-    "ittsu",
+    "ittsuu",
     "sanshoku_doujun",
     "sanshoku_doukou",
     "sankantsu",
@@ -52,10 +54,13 @@ YakuId = Literal[
     "sanankou",
     "shousangen",
     "honroutou",
+    # 3 Han
     "ryanpeikou",
     "junchan",
     "honitsu",
+    # 6 Han
     "chinitsu",
+    # Mangan
     "renhou",
     # Yakuman
     "tenhou",
