@@ -39,7 +39,14 @@ uv workspace で複数の Python パッケージを管理する。
 | majsoul-converter（将来） | 雀魂牌譜から共通コーパスへの変換 | `protobuf` など |
 
 corpus の配布名・import 名は、ともに `corpus` とする。
-その他は役割名であり、配布名、import 名、CLI 名は実装時に確定する。
+validation と将来の雀魂変換器は役割名であり、
+配布名、import 名、CLI 名は実装時に確定する。
+
+天鳳変換器の名前・初期対応範囲・変換フローは
+[天鳳 converter の設計](tenhou-converter-design.md) で具体化した。
+配布名・CLI 名は `tenhou-converter`、import 名は `tenhou_converter` とする。
+同文書の API・CLI は実装前の設計である。
+初期実装から四麻・三麻に対応し、SQLite 入力は後続段階とする。
 
 ### 分割の理由と依存方向
 
@@ -87,7 +94,7 @@ mahjong-lib-validation/
 │   │   └── tests/
 │   ├── tenhou-converter/
 │   │   ├── pyproject.toml
-│   │   ├── src/mahjong_tenhou_converter/
+│   │   ├── src/tenhou_converter/
 │   │   │   ├── cli.py
 │   │   │   ├── sources.py
 │   │   │   ├── parser.py
@@ -133,11 +140,12 @@ SQLite 入力経路は牌譜 ID と牌譜内容の読み出しを担い、
 天鳳の XML 応答を並べた形式の扱いも天鳳解析部分に閉じ込める。
 houou-logs のコードへの依存は必須としない。
 
-以下は CLI の使用イメージであり、未実装の仮名称である。
+以下は CLI の使用イメージであり、未実装である。
+天鳳の CLI 名は `tenhou-converter` に確定し、その他の CLI 名は仮名称とする。
 
 ```text
-tenhou-to-corpus mjlog <input-directory> --output <corpus-directory>
-tenhou-to-corpus houou-db <database> --output <corpus-directory>
+tenhou-converter mjlog <input-directory> --output <corpus-directory>
+tenhou-converter houou-db <database> --output <corpus-directory>
 majsoul-to-corpus ...
 
 mjvalidate corpus check <corpus-directory>
@@ -249,9 +257,8 @@ scoring コーパスの出力、`mahjong` の正誤検証までを通す。
 corpus に関する決定事項と残る未決事項は
 [corpus パッケージの設計](corpus-design.md) に記録する。
 
-- corpus 以外の配布名・import 名、CLI 名、オプション。
+- validation と将来の雀魂変換器の配布名・import 名、CLI 名、オプション。
 - コーパススキーマ、manifest、互換性のルール。
-- mjlog 入力の探索方法、圧縮入力の対応範囲。
 - houou-logs SQLite 入力を実装する時期と対応スキーマ。
 - コーパスの分割単位とファイルサイズの目安。
 - ルール差、役満、複数ロン、責任払いなどの具体的な比較条件。

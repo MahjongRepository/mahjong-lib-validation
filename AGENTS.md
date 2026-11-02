@@ -30,6 +30,11 @@ corpus の初期実装と API の確認事項は
 
 共通の役名は [共通の役 ID](docs/corpus-yaku.md) を参照する。
 
+天鳳牌譜の変換器は [天鳳 converter の設計](docs/tenhou-converter-design.md)
+を参照する。入力・局面復元・期待値の抽出・出力と、対応段階を記録する。
+実装は [天鳳 converter のテストリスト](docs/tenhou-converter-implementation.md)
+から一件ずつ進める。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。
