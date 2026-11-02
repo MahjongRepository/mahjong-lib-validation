@@ -110,12 +110,10 @@ corpus 自体は ID を生成・再構成せず、渡された ID を読み書�
 複数ロンの可否と精算の優先順位は変換器のルール解釈に属する。
 天鳳段位戦では三家和了は流局になるため、三人分の和了ケースを捏造しない。
 
-役の ID は文字列として保持し、corpus は全役の閉じた enum を持たない。
-今回の例では `menzen_tsumo`、`pinfu`、`tanyao`、`iipeikou`、
-`yakuhai_haku`、`dora`、`aka_dora`、`nuki_dora`、`riichi`、
-`kokushi_musou`、`daisangen` を使用する。
-全役の出典 ID との対応表は変換器で実際の対応を実装する際に定める。
-これは corpus の読み書きを妨げる未実装の形式制約ではない。
+役の ID は `corpus.models.YakuId` の `Literal` で定義する。
+共通名は [共通の役 ID](corpus-yaku.md) に従い、未定義名は拒否する。
+これまでの fixture の名前は維持している。
+出典の数値 ID と corpus の役 ID との対応は、変換器で実装する。
 
 初期 v1 は未知の版・フィールドを拒否し、不足する必須フィールドを
 黙って補完しない。今後、公開後の形式を変更する場合は版を更新し、

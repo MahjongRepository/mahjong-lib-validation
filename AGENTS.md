@@ -28,6 +28,8 @@ corpus の初期実装と API の確認事項は
 副露・不明な状況・三麻・複数ロンなどの具体例と補完仕様は
 [scoring ケースの補完](docs/corpus-edge-cases.md) に記録する。
 
+共通の役名は [共通の役 ID](docs/corpus-yaku.md) を参照する。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。

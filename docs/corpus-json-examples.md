@@ -106,8 +106,9 @@ Git にコミットするドキュメントや examples では牌譜 ID をマ�
 `expected` は和了記録から取得する。`yaku` の各要素には、
 共通の文字列 ID、翻数、役満倍率を独立して持たせる。
 通常役・ドラは `yakuman_multiplier=0`、役満は `han=null` とする。
-今回の共通 ID は `riichi`、`ippatsu`、`aka_dora` の三つを定め、
-全役の対応表はまだ定めない。0 翻の裏ドラ項目は有効な役一覧に入れない。
+共通 ID は `corpus.models.YakuId` の `Literal` で定義する。
+一覧は [共通の役 ID](corpus-yaku.md) を参照する。
+0 翻の裏ドラ項目は有効な役一覧に入れない。
 
 ### 和了点の区分（title）
 

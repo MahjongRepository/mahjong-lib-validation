@@ -19,6 +19,65 @@ Title = Literal[
     "kazoe_yakuman",
 ]
 
+YakuId = Literal[
+    "menzen_tsumo",
+    "riichi",
+    "ippatsu",
+    "chankan",
+    "rinshan",
+    "haitei",
+    "houtei",
+    "pinfu",
+    "tanyao",
+    "iipeikou",
+    "jikaze_ton",
+    "jikaze_nan",
+    "jikaze_sha",
+    "jikaze_pei",
+    "bakaze_ton",
+    "bakaze_nan",
+    "bakaze_sha",
+    "bakaze_pei",
+    "yakuhai_haku",
+    "yakuhai_hatsu",
+    "yakuhai_chun",
+    "daburu_riichi",
+    "chiitoitsu",
+    "chanta",
+    "ittsu",
+    "sanshoku_doujun",
+    "sanshoku_doukou",
+    "sankantsu",
+    "toitoi",
+    "sanankou",
+    "shousangen",
+    "honroutou",
+    "ryanpeikou",
+    "junchan",
+    "honitsu",
+    "chinitsu",
+    "renhou",
+    "tenhou",
+    "chiihou",
+    "daisangen",
+    "suuankou",
+    "suuankou_tanki",
+    "tsuuiisou",
+    "ryuuiisou",
+    "chinroutou",
+    "chuuren_poutou",
+    "junsei_chuuren_poutou",
+    "kokushi_musou",
+    "kokushi_musou_13men",
+    "daisuushii",
+    "shousuushii",
+    "suukantsu",
+    "dora",
+    "ura_dora",
+    "aka_dora",
+    "nuki_dora",
+]
+
 
 class Source(TypedDict):
     platform: Literal["tenhou", "majsoul"]
@@ -75,7 +134,7 @@ class SituationProvenance(TypedDict):
 
 
 class Yaku(TypedDict):
-    id: str
+    id: YakuId
     han: int | None
     yakuman_multiplier: int
 
