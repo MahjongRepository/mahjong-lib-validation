@@ -29,7 +29,7 @@
 | 自風 東・南・西・北 | `jikaze_ton`・`jikaze_nan`・`jikaze_sha`・`jikaze_pei` |
 | 場風 東・南・西・北 | `bakaze_ton`・`bakaze_nan`・`bakaze_sha`・`bakaze_pei` |
 | 役牌 白・發・中 | `yakuhai_haku`・`yakuhai_hatsu`・`yakuhai_chun` |
-| 両立直（ダブル立直） | `daburu_riichi` |
+| 両立直（ダブル立直） | `double_riichi` |
 | 七対子 | `chiitoitsu` |
 | 混全帯幺九 | `chanta` |
 | 一気通貫 | `ittsu` |
@@ -49,17 +49,17 @@
 | 地和 | `chiihou` |
 | 大三元 | `daisangen` |
 | 四暗刻 | `suuankou` |
-| 四暗刻単騎 | `suuankou_tanki` |
 | 字一色 | `tsuuiisou` |
 | 緑一色 | `ryuuiisou` |
 | 清老頭 | `chinroutou` |
 | 九蓮宝燈 | `chuuren_poutou` |
-| 純正九蓮宝燈 | `junsei_chuuren_poutou` |
 | 国士無双 | `kokushi_musou` |
-| 国士無双13面 | `kokushi_musou_13men` |
-| 大四喜 | `daisuushii` |
 | 小四喜 | `shousuushii` |
 | 四槓子 | `suukantsu` |
+| 四暗刻単騎 | `suuankou_tanki` |
+| 純正九蓮宝燈 | `junsei_chuuren_poutou` |
+| 国士無双13面 | `kokushi_musou_13men` |
+| 大四喜 | `daisuushii` |
 | ドラ | `dora` |
 | 裏ドラ | `ura_dora` |
 | 赤ドラ | `aka_dora` |
@@ -70,8 +70,9 @@
 定義した名前が対象ルールで成立するか、何倍になるかは変換器が判断する。
 corpus は役名から倍率を補正したり、未定義の別名を自動変換したりしない。
 
-役名のダブル立直はローマ字の `daburu_riichi` とする。
-和了状況の `input.situation.riichi="double_riichi"` は既存の表現を維持する。
+ダブル立直は役名・和了状況とも `double_riichi` とする。
+定義順は単独役満、ダブル役満の四種類、ドラの順にまとめる。
+この分類は名前の整理であり、ルールによる役満倍率の決定は変換器の責務とする。
 数え役満は役名を追加せず、通常役の内訳と `expected.title="kazoe_yakuman"` で表す。
 
 ## テストリスト
@@ -89,8 +90,8 @@ corpus は役名から倍率を補正したり、未定義の別名を自動変�
 
 ## 確認結果
 
-- 開発環境: 155 件成功、従来の実 symlink のテスト 1 件スキップ。
+- 開発環境: 156 件成功、従来の実 symlink のテスト 1 件スキップ。
 - sdist・wheel の生成が成功。
 - wheel をインストールした Python 3.10.22・3.15.2 の独立環境で、
-  それぞれ 155 件成功、同じテスト 1 件スキップ。
+  それぞれ 156 件成功、同じテスト 1 件スキップ。
 - Ruff の lint・format、ty、差分の空白検査が成功。
