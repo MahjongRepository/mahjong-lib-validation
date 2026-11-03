@@ -76,16 +76,18 @@ def yaku_values(event: Event) -> list[Yaku]:
     yakuman = "yakuman" in event.attributes
     field = "yakuman" if yakuman else "yaku"
     values = event.numbers(field)
-    if (yakuman and "yaku" in event.attributes) or (
-        not yakuman and len(values) % 2
-    ):
-        msg = "invalid_attribute"
-        raise event.error(msg, "invalid yaku representation", field)
-    pairs = (
-        [(key, None) for key in values]
-        if yakuman
-        else list(zip(values[::2], values[1::2], strict=True))
-    )
+    pairs: list[tuple[int, int | None]]
+    if yakuman:
+        if "yaku" in event.attributes:
+            msg = "invalid_attribute"
+            raise event.error(msg, "invalid yaku representation", field)
+        pairs = [(key, None) for key in values]
+    else:
+        if len(values) % 2:
+            msg = "invalid_attribute"
+            raise event.error(msg, "invalid yaku representation", field)
+        pairs = list(zip(values[::2], values[1::2], strict=True))
+
     result: list[Yaku] = []
     seen: set[int] = set()
     for key, han in pairs:
@@ -141,29 +143,29 @@ def expected_values(
     who = event.integer("who")
     deltas = [value * 100 for value in sc[1 : players * 2 : 2]]
     multiplier = sum(value["yakuman_multiplier"] for value in yaku)
-    title = _score_title(
-        event, ten[2], multiplier, sum(value["han"] or 0 for value in yaku)
-    )
+    han = sum(value["han"] or 0 for value in yaku)
+    title = _score_title(event, ten[2], multiplier, han)
+
     payments = [-min(value, 0) for value in deltas]
+    total_paid = sum(payments)
     gain = deltas[who]
-    honba = sum(payments) - ten[1]
-    sticks = gain - sum(payments)
+    honba = total_paid - ten[1]
+    sticks = gain - total_paid
     other_gains = any(
         value > 0 for seat, value in enumerate(deltas) if seat != who
     )
     shared = multiple_ron and other_gains
-    if (
-        honba < 0
-        or (sticks < 0 and not shared)
-        or payments[who]
-        or (other_gains and not shared)
-    ):
+    # Shared deltas describe several wins, so individual gains cannot be
+    # reconciled with the total paid by all payers.
+    invalid_individual_allocation = not shared and (sticks < 0 or other_gains)
+    if honba < 0 or payments[who] or invalid_individual_allocation:
         msg = "inconsistent_events"
         raise event.error(
             msg,
             "score deltas cannot describe this win",
             "sc",
         )
+
     exclusions: list[ExcludedField] = []
     if any(
         value["id"] in ("kokushi_musou", "kokushi_musou_13men")
@@ -183,9 +185,7 @@ def expected_values(
     result: Expected = {
         "title": title,
         "yaku": yaku,
-        "han": None
-        if multiplier
-        else sum(value["han"] or 0 for value in yaku),
+        "han": None if multiplier else han,
         "fu": ten[0],
         "yakuman_multiplier": multiplier,
         "base_points": ten[1],
@@ -199,13 +199,15 @@ def expected_values(
         result["honba_points"] = None
         result["riichi_stick_points"] = None
         result["payments_by_seat"] = None
-        exclusions.extend(
-            {"field": field, "reason": "multiple_ron_allocation_unknown"}
-            for field in (
-                "honba_points",
-                "riichi_stick_points",
-                "payments_by_seat",
+        excluded_fields = {item["field"] for item in exclusions}
+        for field in (
+            "honba_points",
+            "riichi_stick_points",
+            "payments_by_seat",
+        ):
+            if field in excluded_fields:
+                continue
+            exclusions.append(
+                {"field": field, "reason": "multiple_ron_allocation_unknown"}
             )
-            if not any(item["field"] == field for item in exclusions)
-        )
     return result, exclusions

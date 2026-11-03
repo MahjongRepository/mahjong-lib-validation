@@ -56,6 +56,39 @@ def _check_paths(source: Path, output: Path, report_file: Path | None) -> None:
             raise FileExistsError(report_file)
 
 
+def _record_input_failure(
+    report: Report,
+    path: Path,
+    log_id: str,
+    error: ConversionError | OSError | EOFError | zlib.error,
+) -> None:
+    reason = "input_io_error"
+    event_index = None
+    field = None
+    if isinstance(error, ConversionError):
+        reason = error.reason
+        event_index = error.event_index
+        field = error.field
+
+    summary = report["conversion"]
+    if isinstance(error, UnsupportedLogError):
+        counts = summary["excluded_by_reason"]
+    else:
+        counts = summary["failed_by_reason"]
+    counts[reason] = counts.get(reason, 0) + 1
+
+    report["diagnostics"].append(
+        {
+            "path": str(path),
+            "log_id": log_id,
+            "reason": reason,
+            "message": str(error),
+            "event_index": event_index,
+            "field": field,
+        }
+    )
+
+
 def convert_files(  # noqa: PLR0913 -- explicit output controls
     input_path: str | Path,
     output_directory: str | Path,
@@ -120,31 +153,7 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
             try:
                 converted = convert_log(read_xml(path), log_id=identifier)
             except (ConversionError, OSError, EOFError, zlib.error) as error:
-                reason = (
-                    error.reason
-                    if isinstance(error, ConversionError)
-                    else "input_io_error"
-                )
-                category = (
-                    summary["excluded_by_reason"]
-                    if isinstance(error, UnsupportedLogError)
-                    else summary["failed_by_reason"]
-                )
-                category[reason] = category.get(reason, 0) + 1
-                report["diagnostics"].append(
-                    {
-                        "path": str(path),
-                        "log_id": identifier,
-                        "reason": reason,
-                        "message": str(error),
-                        "event_index": error.event_index
-                        if isinstance(error, ConversionError)
-                        else None,
-                        "field": error.field
-                        if isinstance(error, ConversionError)
-                        else None,
-                    }
-                )
+                _record_input_failure(report, path, identifier, error)
             else:
                 summary["converted_count"] += 1
                 report["record_count"] += len(converted)

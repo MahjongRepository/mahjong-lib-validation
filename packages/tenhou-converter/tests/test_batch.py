@@ -45,6 +45,12 @@ def test_corrupt_gzip_is_a_reported_input_failure(tmp_path: Path) -> None:
         "input_io_error": 1
     }
     assert caught.value.report["dataset_published"] is False
+    (diagnostic,) = caught.value.report["diagnostics"]
+    assert diagnostic["path"] == str(source)
+    assert diagnostic["log_id"] == "bad"
+    assert diagnostic["reason"] == "input_io_error"
+    assert diagnostic["event_index"] is None
+    assert diagnostic["field"] is None
 
 
 def test_successful_logs_without_wins_count_but_cannot_publish_empty_dataset(
@@ -80,6 +86,30 @@ def test_late_failure_reports_all_inputs_without_publishing(
         "excluded_by_reason": {},
     }
     assert report["diagnostics"][0]["log_id"] == "b"
+
+
+def test_attribute_failure_preserves_diagnostic_location(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "bad.xml"
+    source.write_bytes(
+        (FIXTURES / "four-ron.xml")
+        .read_bytes()
+        .replace(b'type="41"', b'type="x"')
+    )
+
+    with pytest.raises(BatchConversionError) as caught:
+        convert_files(source, tmp_path / "output")
+
+    report = caught.value.report
+    assert report["conversion"]["failed_by_reason"] == {"invalid_attribute": 1}
+    (diagnostic,) = report["diagnostics"]
+    assert diagnostic["reason"] == "invalid_attribute"
+    assert diagnostic["event_index"] == 1
+    assert diagnostic["field"] == "type"
+    assert diagnostic["message"] == (
+        "invalid_attribute: expected integer list (event=1, field=type)"
+    )
 
 
 @pytest.mark.parametrize(

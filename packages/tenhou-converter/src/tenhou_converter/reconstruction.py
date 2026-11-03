@@ -317,11 +317,7 @@ class RoundState:
                 if meld.kind in ("ankan", "nuki")
                 else meld.tiles[-1:]
             )
-            if meld.kind == "nuki" and (
-                len(self.players) != 3
-                or self.last is None
-                or self.last[0] != "draw"
-            ):
+            if meld.kind == "nuki" and len(self.players) != 3:
                 self.fail(event, "invalid north extraction")
             if meld.kind == "ankan":
                 self.interrupt()
@@ -359,10 +355,37 @@ class RoundState:
             or (tsumo and self.winners)
         ):
             self.fail(event, "win does not match tile provider")
+        self._check_agari_tiles(event, who, winning, tsumo=tsumo)
+
+        last_kind = self.last[0]
+        first_uninterrupted_draw = (
+            tsumo and player.draws == 1 and not self.interrupted
+        )
+        return {
+            "tsumo": tsumo,
+            "riichi": player.riichi,
+            "ippatsu": player.ippatsu,
+            "rinshan": tsumo and self.supplemental,
+            "chankan": not tsumo and last_kind in ("kakan", "nuki"),
+            "haitei": tsumo and self.remaining == 0 and not self.supplemental,
+            "houtei": not tsumo
+            and self.remaining == 0
+            and last_kind == "discard",
+            "tenhou": first_uninterrupted_draw and who == self.dealer,
+            "chiihou": first_uninterrupted_draw and who != self.dealer,
+            "renhou": False,
+        }
+
+    def _check_agari_tiles(
+        self, event: Event, who: int, winning: int, *, tsumo: bool
+    ) -> None:
+        """Check recorded tiles against the reconstructed round."""
+        player = self.players[who]
         hand = event.numbers("hai")
         actual = player.hand if tsumo else player.hand | {winning}
         if len(set(hand)) != len(hand) or set(hand) != actual:
             self.fail(event, "AGARI hand differs from reconstructed hand")
+
         melds = (
             [decode_meld(code, who, event) for code in event.numbers("m")]
             if "m" in event.attributes
@@ -377,26 +400,6 @@ class RoundState:
             != sorted(player.melds, key=lambda meld: meld.tiles)
         ):
             self.fail(event, "AGARI calls differ from reconstructed calls")
+
         if event.numbers("doraHai") != self.indicators:
             self.fail(event, "AGARI dora differs from revealed indicators")
-        last_kind = self.last[0]
-        return {
-            "tsumo": tsumo,
-            "riichi": player.riichi,
-            "ippatsu": player.ippatsu,
-            "rinshan": tsumo and self.supplemental,
-            "chankan": not tsumo and last_kind in ("kakan", "nuki"),
-            "haitei": tsumo and self.remaining == 0 and not self.supplemental,
-            "houtei": not tsumo
-            and self.remaining == 0
-            and last_kind == "discard",
-            "tenhou": tsumo
-            and who == self.dealer
-            and player.draws == 1
-            and not self.interrupted,
-            "chiihou": tsumo
-            and who != self.dealer
-            and player.draws == 1
-            and not self.interrupted,
-            "renhou": False,
-        }

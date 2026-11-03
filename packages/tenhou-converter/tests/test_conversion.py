@@ -85,6 +85,30 @@ def test_open_hand_preserves_decoded_melds() -> None:
     assert case["expected"]["han"] == 3
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("machi", "91", "win does not match tile provider"),
+        ("hai", "16,19,25,31,32,92,99", "AGARI hand differs"),
+        ("m", "24105", "AGARI calls differ"),
+        ("doraHai", "96", "AGARI dora differs"),
+    ],
+)
+def test_agari_tile_mismatches_keep_positioned_errors(
+    field: str, value: str, message: str
+) -> None:
+    root = ET.parse(FIXTURES / "four-melds.xml").getroot()
+    root[-1].set(field, value)
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-mismatch")
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.message.startswith(message)
+    assert caught.value.event_index == len(root) - 1
+    assert caught.value.field is None
+
+
 def test_kokushi_preserves_recorded_zero_fu_and_excludes_comparison() -> None:
     (case,) = convert_log(
         (FIXTURES / "four-kokushi.xml").read_bytes(), log_id="masked-kokushi"
