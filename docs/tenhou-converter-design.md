@@ -4,7 +4,8 @@
 
 [全体設計](architecture.md) に従い、天鳳の進行記録から
 [corpus v1](corpus-design.md) の scoring ケースを作る。
-本書は実装前の設計であり、API・CLI はまだ利用できない。
+ファイル入力・変換 API・CLI は実装済み。確認結果と残る検証項目は
+[実装記録](tenhou-converter-implementation.md) を参照する。
 以下の「採用する方針」と、末尾の「実牌譜で確認する事項」を区別する。
 実装は [テストリスト](tenhou-converter-implementation.md) から一件ずつ進める。
 
@@ -32,7 +33,7 @@
 ビルドは `uv_build`、対応 Python は corpus と同じ 3.10〜3.15 とする。
 実行時依存は workspace の `corpus` のみとし、XML・gzip・CLI は
 標準ライブラリを使用する。`mahjong`、validation、houou-logs に依存しない。
-パッケージ作成時に workspace メンバーとロックファイルを更新する。
+workspace メンバーとロックファイルに登録済み。
 
 ## 対応範囲と実装段階
 
@@ -43,7 +44,8 @@
 
 初期実装にもチー・ポン・各種槓、赤牌、複合役満・数え役満、
 ダブロン、責任払いの保存を含める。
-実牌譜 fixture がない項目は、確認を完了するまで対応済みとしない。
+実牌譜由来の確認と合成 fixture による確認を区別する。
+複数ロン・責任払い・特殊な状況の実牌譜照合は、残る検証項目として明記する。
 最初の縦の実装では単純な門前ロンから始め、初期実装全体へ広げる。
 
 四麻・三麻は同じ入力探索で受け取り、牌譜ごとに人数を判別する。
@@ -112,8 +114,9 @@ SQLite 対応時は DB の ID をそのまま使い、同じ変換コアへ渡�
 | `rules.py` | GO の解釈、対応範囲、段位戦のルール適用 |
 | `melds.py` | 天鳳の副露コードと物理牌 ID の復号 |
 | `reconstruction.py` | INIT からの局状態と和了状況の復元 |
-| `extraction.py` | AGARI から corpus の入力・期待値・比較条件を組み立てる |
-| `conversion.py` | 一牌譜の処理、集計、データセット出力の調整 |
+| `scoring.py` | 天鳳の役 ID、期待値と比較条件の正規化 |
+| `conversion.py` | 一牌譜の進行処理と AGARI からのケース抽出 |
+| `datasets.py` | 複数牌譜の集計、診断、データセット出力の調整 |
 | `cli.py` / `errors.py` | 引数、診断の表示、終了コード／変換エラー |
 
 これは責務の目安であり、各モジュールの内部関数はテストで固定しない。
@@ -235,7 +238,8 @@ SQLite 対応時は DB の ID をそのまま使い、同じ変換コアへ渡�
 
 ## 和了状況の復元
 
-全員の手牌を毎巡完全に再生することは必須としない。
+初期実装では全員の物理牌の所持も追跡する。
+和了形や行為の全合法性は判定せず、手番・所持牌・消費牌と記録の対応を検査する。
 局開始、ツモ・打牌回数、鳴き、立直、直前の牌と行為、
 槓・抜き北と補充ツモ、生牌の残数、ドラ表示の更新を追跡する。
 状況と矛盾する `AGARI` や、終局のない局を受理しない。
@@ -281,8 +285,9 @@ SQLite 対応時は DB の ID をそのまま使い、同じ変換コアへ渡�
 役満の翻は `null`、単独の倍率は 1、複合倍率は記録された役満の個数とする。
 単独ダブル役満用の corpus ID があっても、天鳳の倍率を 2 に補正しない。
 
-ローカル XML で確認できた ID は次のとおり。他の ID は実装前に
-対応表と fixture を追加し、全役の確認を初期実装の完了条件に含める。
+ローカル XML で確認できた ID は次のとおり。
+実装の `scoring.YAKU_IDS` には、参照資料の役配列を基に ID 0〜54 の
+対応表を定義した。全役の実牌譜照合は追加検証として残す。
 
 | 天鳳 ID | corpus ID |
 | --- | --- |
@@ -363,19 +368,29 @@ ID 部分は `urllib.parse.quote(log_id, safe="")` とし、
 
 ## Python API と CLI の方針
 
-公開 API の案は次の二つに絞る。正確な型は最初の利用側テストで確定する。
+公開する変換 API は次の二つとする。
+例外も `tenhou_converter` から import できる。
 
-| API 案 | 契約 |
+| API | 契約 |
 | --- | --- |
 | `convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]` | 展開済みの一牌譜を検査・変換する。正常な和了なしは空リスト。非対応は専用例外、不正は位置付きの変換エラー |
-| `convert_files(input_path, output_directory, *, log_id=None, cases_per_file=100000, compress=True)` | 探索・集計・公開を実行し、成功時に corpus の Manifest を返す。失敗時は集計・診断を持つ例外を通知する |
+| `convert_files(input_path, output_directory, *, log_id=None, cases_per_file=100000, compress=True, report_path=None)` | 探索・集計・公開を実行し、成功時に corpus の Manifest を返す。失敗時は集計・診断を持つ例外を通知する |
+
+`ConversionError` は `reason`・`message`・`event_index`・`field` を保持し、
+既知の対応外ルールはその派生の `UnsupportedLogError` とする。
+バッチの失敗は `BatchConversionError.report` に診断を保持する。
+引数や出力先の事前検査は `ValueError`・`FileExistsError` などを返す。
+
+ルートが閉じ、すべての局が `AGARI` または `RYUUKYOKU` で終了した XML を
+受理する。局単位の抜粋も扱うため、対局終了の `owari` は必須にしない。
+元の対局から局が丸ごと欠落しているかの検出は保証しない。
 
 `convert_log` は一牌譜の終端まで確認してから返す。
 途中の和了だけを成功として利用者へ渡さない。
 バッチは一牌譜分の XML・ケースを保持し、処理済み牌譜を順に解放する。
 全コーパス分のケースは保持しない。
 
-以下は予定するコマンドであり、未実装である。
+以下のコマンドを提供する。
 
 ```console
 tenhou-converter mjlog logs/tenhou --output data/tenhou-scoring
@@ -483,7 +498,8 @@ RYUUKYOKU は 2 件、抜き北の N は 19 件。
 3. 全副露のビットと牌スロット順、赤を含む鳴き、加槓・槍槓のイベント順。
 4. 槓による残数更新、海底・河底、ドラ追加と和了の順序。
 5. ダブロンの各 `sc`・`ba` と本場・供託の帰属、責任払いの記録。
-6. 正常な対局終端の形式。最終結果属性がない入力の受理条件と途中切断の区別。
+6. 対局全体が完結したかの厳密な判定が必要か。
+   現行 API は閉じた XML と各局の終了を確認し、`owari` は要求しない。
 7. 抜き北の補充ツモと海底・嶺上、抜いた北へのロンと槍槓の対応。
    一発を消すタイミングと和了打診、連続する抜き・槓の順序を fixture で確認する。
 8. houou-logs DB のスキーマ・行選択条件・BLOB 圧縮・XML 文書か断片列か。

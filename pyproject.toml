@@ -53,7 +53,10 @@ test = [
 package = false
 
 [tool.uv.workspace]
-members = ["packages/corpus"]
+members = [
+    "packages/corpus",
+    "packages/tenhou-converter",
+]
 
 [tool.ruff]
 line-length = 79

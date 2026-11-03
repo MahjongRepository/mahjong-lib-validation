@@ -1,0 +1,35 @@
+[project]
+name = "tenhou-converter"
+version = "0.0.1"
+description = "Convert Tenhou mjlog records to validation corpora."
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+classifiers = [
+    "Private :: Do Not Upload",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Games/Entertainment :: Board Games",
+    "Typing :: Typed",
+]
+dependencies = [
+    "corpus==0.0.1",
+]
+
+[project.scripts]
+tenhou-converter = "tenhou_converter.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+corpus = { workspace = true }

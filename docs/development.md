@@ -5,9 +5,12 @@
 ## workspace の開発環境
 
 ルートは開発ツールを管理する非パッケージのプロジェクトとし、
-`packages/corpus` を uv workspace のメンバーとしている。
+`packages/corpus` と `packages/tenhou-converter` を
+uv workspace のメンバーとしている。
 ロックファイルと開発用の仮想環境はルートで共有する。
 corpus の配布名・import 名は、ともに `corpus` である。
+天鳳変換器の配布名・CLI 名は `tenhou-converter`、import 名は
+`tenhou_converter` とする。
 
 ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
 
@@ -24,6 +27,7 @@ uv run --no-sync ruff check
 uv run --no-sync ruff format --check
 uv run --no-sync ty check
 uv build --package corpus
+uv build --package tenhou-converter
 ```
 
 単体テストはパッケージの `tests/` に追加し、

@@ -6,6 +6,7 @@ requires-python = ">=3.10"
 members = [
     "corpus",
     "mahjong-lib-validation",
+    "tenhou-converter",
 ]
 
 [[package]]
@@ -174,6 +175,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d0/a0/f08c1631bfd81faa6a90eaf70c37c786c11bed2046302b56bb506c25e1a0/ruff-0.17.3-py3-none-win_amd64.whl", hash = "sha256:56b8ffb3f3b3cbccb8b76b71b38261b7ed982ef5d20f5b447b1b61a7f4949b24", size = 10341333, upload-time = "2026-10-27T00:34:02.099Z" },
     { url = "https://files.pythonhosted.org/packages/99/d5/4ad4ed31413c301430918e70d3d38ae6f097af0766cb9ab8c9d502b2a4d6/ruff-0.17.3-py3-none-win_arm64.whl", hash = "sha256:81fce74bcd6be0e9da7c67c7553fd0f1f12964a2052cd728ef917b937a5ca1d9", size = 9854332, upload-time = "2026-10-27T00:34:03.847Z" },
 ]
+
+[[package]]
+name = "tenhou-converter"
+version = "0.0.1"
+source = { editable = "packages/tenhou-converter" }
+dependencies = [
+    { name = "corpus" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "corpus", editable = "packages/corpus" }]
 
 [[package]]
 name = "tomli"
