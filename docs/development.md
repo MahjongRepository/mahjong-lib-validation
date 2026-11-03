@@ -12,6 +12,13 @@ corpus の配布名・import 名は、ともに `corpus` である。
 天鳳変換器の配布名・CLI 名は `tenhou-converter`、import 名は
 `tenhou_converter` とする。
 
+次に実装する validator は `packages/validator/` に置き、配布名・CLI 名は
+`mahjong-validator`、import 名は `validator` とする。
+[設計](validator-design.md) に従い validator の最低 Python は 3.15 とし、
+追加後の全メンバー用開発環境には 3.15 を使う。
+corpus と tenhou-converter 自体の Python 3.10 以上の対応は維持する。
+validator は現時点では未実装・workspace 未登録である。
+
 ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
 
 ```console

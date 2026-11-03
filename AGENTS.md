@@ -35,6 +35,12 @@ corpus の初期実装と API の確認事項は
 実装は [天鳳 converter のテストリスト](docs/tenhou-converter-implementation.md)
 から一件ずつ進める。
 
+corpus を使った検証・計測・比較・プロファイルは
+[validator パッケージの設計](docs/validator-design.md) を参照する。
+実装先は `packages/validator/` とし、
+[validator の実装テストリスト](docs/validator-implementation.md) から
+一件ずつ進める。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。

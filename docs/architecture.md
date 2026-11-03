@@ -35,12 +35,19 @@ uv workspace で複数の Python パッケージを管理する。
 | --- | --- | --- |
 | corpus | 共通モデル、読み書き、形式・整合性の検査 | 当初は標準ライブラリを基本とする |
 | tenhou-converter | 天鳳牌譜から共通コーパスへの変換 | 当初は標準ライブラリを基本とする |
-| validation | `mahjong` の検証・計測・比較・プロファイル | `mahjong` |
+| mahjong-validator | `mahjong` の検証・計測・比較・プロファイル | `mahjong` |
 | majsoul-converter（将来） | 雀魂牌譜から共通コーパスへの変換 | `protobuf` など |
 
 corpus の配布名・import 名は、ともに `corpus` とする。
-validation と将来の雀魂変換器は役割名であり、
-配布名、import 名、CLI 名は実装時に確定する。
+validator の配布名・CLI 名は `mahjong-validator`、import 名は `validator` とする。
+実装先は `packages/validator/`、最低 Python は 3.15 とする。
+検証・計測・プロファイルは入力変換とライブラリ呼び出しを共有し、
+それぞれ独立した実行フローを持つ。
+具体的な境界・結果・実装段階は
+[validator パッケージの設計](validator-design.md) と
+[実装テストリスト](validator-implementation.md) に記録する。
+これは設計の決定であり、validator はまだ実装・workspace 登録していない。
+将来の雀魂変換器の配布名・import 名・CLI 名は、対応時に確定する。
 
 天鳳変換器の名前・初期対応範囲・変換フローは
 [天鳳 converter の設計](tenhou-converter-design.md) で具体化した。
@@ -58,16 +65,16 @@ validation と将来の雀魂変換器は役割名であり、
 ```text
 tenhou-converter ──→ corpus
 majsoul-converter ─→ corpus
-validation ────────→ corpus
+validator ────────→ corpus
 
 majsoul-converter ─→ protobuf
-validation ────────→ mahjong
+validator ────────→ mahjong
 ```
 
-- 変換器は validation に依存しない。
+- 変換器は validator に依存しない。
 - corpus は変換器、`protobuf`、`mahjong` に依存しない。
 - `Meld`、`HandConfig` などの `mahjong` 固有オブジェクトは
-  validation 内で生成する。
+  validator 内で生成する。
 - 期待値を検証対象の `mahjong` で計算して埋めない。
   牌譜の記録から取得し、欠落や解釈上の制約は明示する。
 
@@ -101,12 +108,13 @@ mahjong-lib-validation/
 │   │   │   ├── parser.py
 │   │   │   └── extraction.py
 │   │   └── tests/
-│   ├── validation/
+│   ├── validator/
 │   │   ├── pyproject.toml
-│   │   ├── src/mahjong_lib_validation/
+│   │   ├── src/validator/
 │   │   │   ├── cli.py
-│   │   │   ├── execution/
-│   │   │   ├── validation/
+│   │   │   ├── selection.py
+│   │   │   ├── adapter.py
+│   │   │   ├── validation.py
 │   │   │   ├── benchmark.py
 │   │   │   ├── comparison.py
 │   │   │   ├── profiling.py
@@ -142,19 +150,19 @@ SQLite 入力経路は牌譜 ID と牌譜内容の読み出しを担い、
 houou-logs のコードへの依存は必須としない。
 
 以下は CLI の使用イメージである。天鳳の `mjlog` は実装済みで、
-`houou-db`、雀魂、validation のコマンドは未実装。
-天鳳の CLI 名は `tenhou-converter` に確定し、その他の CLI 名は仮名称とする。
+`houou-db`、雀魂、validator のコマンドは未実装。
+天鳳の CLI 名は `tenhou-converter`、検証ツールは `mahjong-validator` に確定し、
+雀魂の CLI 名は仮名称とする。
 
 ```text
 tenhou-converter mjlog <input-directory> --output <corpus-directory>
 tenhou-converter houou-db <database> --output <corpus-directory>
 majsoul-to-corpus ...
 
-mjvalidate corpus check <corpus-directory>
-mjvalidate validate <corpus-directory>
-mjvalidate benchmark <corpus-directory>
-mjvalidate compare <corpus-directory> ...
-mjvalidate profile <corpus-directory>
+mahjong-validator validate <corpus-directory> --output <result-directory>
+mahjong-validator benchmark <corpus-directory> --limit 20000 --output <result-directory>
+mahjong-validator compare <corpus-directory> --limit 20000 ... --output <result-directory>
+mahjong-validator profile <corpus-directory> --limit 20000 --output <result-directory>
 ```
 
 ## コーパスの保存形式
@@ -252,14 +260,16 @@ SQLite 出力やバイナリ形式は、具体的な検索・性能要件が
 
 最初は三つのパッケージを用意し、天鳳 mjlog の読み込みから
 scoring コーパスの出力、`mahjong` の正誤検証までを通す。
-その後、計測・比較・プロファイルを移植・整理する。
+その後、計測・プロファイル・対象間比較を実装する。
+前身の内部構造の踏襲は要件としない。
 
 以下は後続の設計・実装で確定する。
 
 corpus に関する決定事項と残る未決事項は
 [corpus パッケージの設計](corpus-design.md) に記録する。
 
-- validation と将来の雀魂変換器の配布名・import 名、CLI 名、オプション。
+- 将来の雀魂変換器の配布名・import 名、CLI 名、オプション。
+- validator の段階別の詳細 API・追加オプションと、結果 JSON の厳密なスキーマ。
 - コーパススキーマ、manifest、互換性のルール。
 - houou-logs SQLite 入力を実装する時期と対応スキーマ。
 - コーパスの分割単位とファイルサイズの目安。
