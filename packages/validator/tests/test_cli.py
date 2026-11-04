@@ -1,18 +1,26 @@
 import json
+from typing import TYPE_CHECKING
 lazy from pathlib import Path
 
 import pytest
 
 from validator.cli import main
 
-from .helpers import load_case, save_dataset
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from corpus.models import ScoringCase
 
 
 @pytest.mark.parametrize(
     "kind", ["missing", "corrupt", "existing", "zero_limit"]
 )
 def test_cli_input_failures_are_code_two(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], kind: str
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    kind: str,
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
     output = tmp_path / "result"
@@ -37,7 +45,10 @@ def test_cli_input_failures_are_code_two(
 
 
 def test_cli_validates_and_reports_partial_coverage(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
     code = main(

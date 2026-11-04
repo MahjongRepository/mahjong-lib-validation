@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -9,11 +10,19 @@ from mahjong.hand_calculating.hand_response import HandResponse
 from validator import validate_dataset
 from validator.adapter import calculate, prepare_hand
 
-from .helpers import load_case, save_dataset
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from corpus.models import ScoringCase
 
 
 @pytest.mark.parametrize("kind", ["unknown", "unsupported", "no_expectations"])
-def test_all_unvalidated_cases_do_not_pass(tmp_path: Path, kind: str) -> None:
+def test_all_unvalidated_cases_do_not_pass(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    kind: str,
+) -> None:
     case = load_case()
     if kind == "unsupported":
         case = load_case("majsoul-scoring")
@@ -33,6 +42,8 @@ def test_all_unvalidated_cases_do_not_pass(tmp_path: Path, kind: str) -> None:
 
 
 def test_impossible_red_tile_allocation_is_a_case_error(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
 ) -> None:
     case = load_case()
@@ -61,7 +72,10 @@ def test_impossible_red_tile_allocation_is_a_case_error(
     "failure", [HandResponse(error="bad_hand"), RuntimeError("boom")]
 )
 def test_calculation_failure_is_saved_and_next_case_runs(
-    tmp_path: Path, failure: HandResponse | Exception
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    failure: HandResponse | Exception,
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case(), load_case()])
     case = load_case()
@@ -76,6 +90,8 @@ def test_calculation_failure_is_saved_and_next_case_runs(
 
 
 def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
 ) -> None:
     unknown = load_case()
@@ -101,7 +117,12 @@ def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
 @pytest.mark.parametrize(
     "name", ["tenhou-kokushi", "synthetic-yakuman-ippatsu"]
 )
-def test_kokushi_uses_recorded_fu_exclusion(tmp_path: Path, name: str) -> None:
+def test_kokushi_uses_recorded_fu_exclusion(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    name: str,
+) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case(name)])
     output = tmp_path / "result"
     summary = validate_dataset(dataset, output)
@@ -112,7 +133,11 @@ def test_kokushi_uses_recorded_fu_exclusion(tmp_path: Path, name: str) -> None:
     assert result["fields"]["yakuman_multiplier"]["actual"] == 1
 
 
-def test_sanma_tsumo_nuki_and_red_dora(tmp_path: Path) -> None:
+def test_sanma_tsumo_nuki_and_red_dora(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+) -> None:
     dataset = save_dataset(
         tmp_path / "corpus", [load_case("synthetic-sanma-tsumo")]
     )

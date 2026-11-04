@@ -1,12 +1,16 @@
 import json
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from tenhou_converter import convert_log
 
 from validator import validate_dataset
 
-from .helpers import save_dataset
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from corpus.models import ScoringCase
 
 
 @pytest.mark.parametrize(
@@ -19,7 +23,11 @@ from .helpers import save_dataset
         "sanma-three-nuki",
     ],
 )
-def test_xml_to_corpus_to_library(tmp_path: Path, fixture: str) -> None:
+def test_xml_to_corpus_to_library(
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    fixture: str,
+) -> None:
     source = (
         Path(__file__).parents[2]
         / "tenhou-converter/tests/fixtures"

@@ -10,14 +10,16 @@ from mahjong.meld import Meld
 from validator.adapter import calculate, normalize_result, prepare_hand
 from validator.validation import validate_case
 
-from .helpers import load_case
-
 if TYPE_CHECKING:
-    from corpus.models import Tile
+    from collections.abc import Callable
+
+    from corpus.models import ScoringCase, Tile
 
 
 @pytest.mark.parametrize("kazoe", [False, True])
-def test_normalize_composite_yakuman_and_kazoe(*, kazoe: bool) -> None:
+def test_normalize_composite_yakuman_and_kazoe(
+    load_case: Callable[..., ScoringCase], *, kazoe: bool
+) -> None:
     case = load_case()
     hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
     config = YakuConfig()
@@ -47,7 +49,9 @@ def test_normalize_composite_yakuman_and_kazoe(*, kazoe: bool) -> None:
     assert actual["yakuman_multiplier"] == (0 if kazoe else 2)
 
 
-def test_dealer_tsumo_payments_and_honba() -> None:
+def test_dealer_tsumo_payments_and_honba(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     case["input"].update(winner_seat=0, discarder_seat=None)
     case["input"]["situation"]["tsumo"] = True
@@ -72,7 +76,9 @@ def test_dealer_tsumo_payments_and_honba() -> None:
     assert actual["payments_by_seat"] == [0, 4200, 4200, 4200]
 
 
-def test_inputs_do_not_depend_on_expected_values() -> None:
+def test_inputs_do_not_depend_on_expected_values(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     before = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
     case["expected"].update(han=100, fu=100, yaku=[])
@@ -85,7 +91,9 @@ def test_inputs_do_not_depend_on_expected_values() -> None:
 
 
 @pytest.mark.parametrize("kind", ["unknown", "duplicate"])
-def test_uninterpretable_yaku_result_is_an_error(kind: str) -> None:
+def test_uninterpretable_yaku_result_is_an_error(
+    load_case: Callable[..., ScoringCase], kind: str
+) -> None:
     case = load_case()
     hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
     raw = calculate(hand)
@@ -103,6 +111,7 @@ def test_uninterpretable_yaku_result_is_an_error(kind: str) -> None:
     ["rinshan", "chankan", "haitei", "houtei", "tenhou", "chiihou", "renhou"],
 )
 def test_situation_flags_are_forwarded(
+    load_case: Callable[..., ScoringCase],
     flag: Literal[
         "rinshan", "chankan", "haitei", "houtei", "tenhou", "chiihou", "renhou"
     ],
@@ -124,6 +133,7 @@ def test_situation_flags_are_forwarded(
     ],
 )
 def test_meld_tiles_and_call_metadata(
+    load_case: Callable[..., ScoringCase],
     kind: Literal["chii", "pon", "daiminkan", "ankan", "kakan"],
     tiles: list[Tile],
     expected_type: str,

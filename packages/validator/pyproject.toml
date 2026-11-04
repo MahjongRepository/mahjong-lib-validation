@@ -34,7 +34,3 @@ corpus = { workspace = true }
 [tool.ruff]
 extend = "../../pyproject.toml"
 target-version = "py315"
-
-[tool.ruff.lint.extend-per-file-ignores]
-# Namespace tests avoid colliding with other members' `tests` packages.
-"tests/**" = ["INP001"]

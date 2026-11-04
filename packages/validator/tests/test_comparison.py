@@ -1,16 +1,19 @@
 from copy import deepcopy
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
 from validator.validation import compare_result, validate_case
 
-from .helpers import load_case
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from corpus.models import ScoringCase
 
 
-def test_later_ron_bonus_allocation_is_not_inferred_from_expectations() -> (
-    None
-):
+def test_later_ron_bonus_allocation_is_not_inferred_from_expectations(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     case["win_number"] = 2
     case["expected"].update(
@@ -28,7 +31,9 @@ def test_later_ron_bonus_allocation_is_not_inferred_from_expectations() -> (
     assert result["fields"]["base_points"]["status"] == "matched"
 
 
-def test_liability_and_shared_event_exclusions_keep_original_reasons() -> None:
+def test_liability_and_shared_event_exclusions_keep_original_reasons(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case("synthetic-liability")
     result = validate_case(case)
     assert result["fields"]["payments_by_seat"]["status"] == "excluded"
@@ -58,7 +63,9 @@ def test_liability_and_shared_event_exclusions_keep_original_reasons() -> None:
         "payments_by_seat",
     ],
 )
-def test_each_score_field_is_compared_independently(field: str) -> None:
+def test_each_score_field_is_compared_independently(
+    load_case: Callable[..., ScoringCase], field: str
+) -> None:
     case = load_case()
     actual = deepcopy(case["expected"])
     values = cast("dict[str, object]", actual)
@@ -68,7 +75,9 @@ def test_each_score_field_is_compared_independently(field: str) -> None:
     assert sum(item["status"] == "mismatched" for item in result.values()) == 1
 
 
-def test_yaku_order_and_compensating_han_errors() -> None:
+def test_yaku_order_and_compensating_han_errors(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case("synthetic-sanma-tsumo")
     actual = deepcopy(case["expected"])
     yaku = actual["yaku"]
@@ -80,7 +89,9 @@ def test_yaku_order_and_compensating_han_errors() -> None:
     assert compare_result(case, actual)["yaku"]["status"] == "mismatched"
 
 
-def test_real_yakuman_and_kazoe_are_distinct() -> None:
+def test_real_yakuman_and_kazoe_are_distinct(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     actual = deepcopy(case["expected"])
     actual["yaku"] = [
@@ -102,7 +113,9 @@ def test_real_yakuman_and_kazoe_are_distinct() -> None:
     assert compare_result(case, actual)["title"]["status"] == "mismatched"
 
 
-def test_all_expectations_excluded_is_skipped() -> None:
+def test_all_expectations_excluded_is_skipped(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     case["comparison"]["excluded_fields"] = [
         {"field": field, "reason": "test exclusion"}
@@ -115,7 +128,9 @@ def test_all_expectations_excluded_is_skipped() -> None:
     )
 
 
-def test_unknown_expected_yaku_is_not_inferred_from_total() -> None:
+def test_unknown_expected_yaku_is_not_inferred_from_total(
+    load_case: Callable[..., ScoringCase],
+) -> None:
     case = load_case()
     case["expected"]["yaku"] = None
     case["comparison"]["excluded_fields"] = [

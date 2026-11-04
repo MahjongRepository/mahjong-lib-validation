@@ -10,15 +10,15 @@ from corpus import CorpusError, read_dataset
 from validator import Selection, validate_dataset
 from validator.validation import validate_case
 
-from .helpers import load_case, save_dataset
-
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Callable, Iterator
 
     from corpus.models import ScoringCase
 
 
 def test_case_id_filter_keeps_duplicates_and_zero_selection_fails(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
 ) -> None:
     case = load_case()
@@ -39,7 +39,11 @@ def test_case_id_filter_keeps_duplicates_and_zero_selection_fails(
     assert empty["selected_count"] == 0
 
 
-def test_validation_consumes_cases_incrementally(tmp_path: Path) -> None:
+def test_validation_consumes_cases_incrementally(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case(), load_case()])
     with patch(
         "validator.validation.validate_case", wraps=validate_case
@@ -59,7 +63,10 @@ def test_validation_consumes_cases_incrementally(tmp_path: Path) -> None:
     "failure", [KeyboardInterrupt(), OSError("write failed")]
 )
 def test_interruption_and_write_failure_do_not_publish(
-    tmp_path: Path, failure: BaseException
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    failure: BaseException,
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
     output = tmp_path / "result"
@@ -81,6 +88,8 @@ def test_invalid_limit_is_rejected(limit: int) -> None:
 
 
 def test_summary_identifies_inputs_environment_and_partial_coverage(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case(), load_case()])
@@ -98,6 +107,8 @@ def test_summary_identifies_inputs_environment_and_partial_coverage(
 
 @pytest.mark.parametrize("kind", ["hash", "count"])
 def test_later_corruption_after_limit_never_publishes_result(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
     kind: str,
 ) -> None:
@@ -117,6 +128,8 @@ def test_later_corruption_after_limit_never_publishes_result(
 
 
 def test_filter_before_limit_retains_global_position_and_checks_all(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
 ) -> None:
     case = load_case("synthetic-sanma-tsumo")

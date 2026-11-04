@@ -8,6 +8,16 @@
 このリスト全体を先にテストコードへ変換しない。
 実装から得た知見で API・設計・リストを更新する。
 
+## テストの共通処理の整理（2026-11-04）
+
+共有処理を `tests/conftest.py` の factory fixture に移し、
+`tests/__init__.py` を追加した。`helpers.py` と相対 import、INP001 の除外を削除した。
+pytest の `consider_namespace_packages` を有効にし、全メンバーを一緒に収集した際の
+同名 `tests.conftest` の衝突を解消する。
+変更前後とも全体 317 件成功、既存の実 symlink 1 件スキップ。
+Ruff の lint・format と ty の型検査も成功した。
+実行時コード・配布設定の振る舞いは変更しない。
+
 ## 初期実装の確認記録（2026-11-03）
 
 - Python 3.15.2、mahjong 2.1.0 を使用。依存範囲は `>=2.1.0,<2.2`。

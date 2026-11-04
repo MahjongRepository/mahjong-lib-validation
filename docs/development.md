@@ -51,9 +51,12 @@ uv run --no-sync pytest
 `--basetemp=.cache/pytest` を指定して workspace 内に作成できる。
 全メンバーのテストには Python 3.15 を使う。
 
-validator のテストは importlib モードの namespace とし、他メンバーの
-同名 `tests` パッケージとの衝突を避ける。テスト用 helper は実行時パッケージに
-含めず、validator の Ruff 設定では `tests/**` の INP001 だけを除外する。
+各パッケージの `tests/` には `__init__.py` を置く。
+テスト間で共有する準備処理は `conftest.py` の fixture として提供する。
+pytest は importlib モードと `consider_namespace_packages = true` を使い、
+親ディレクトリを含めて同名の `tests`・`conftest` をメンバーごとに区別する。
+共有 fixture はテスト関数の引数で受け取り、テスト用モジュールの相対 import は
+使わない。テスト用コードは実行時パッケージに含めない。
 
 workspace での import 確認に加え、機能追加時にはビルドした wheel を
 クリーンな環境へインストールして、未宣言依存がないことも確認する。
