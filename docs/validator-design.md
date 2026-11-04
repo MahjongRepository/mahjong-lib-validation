@@ -4,7 +4,9 @@
 
 [全体設計](architecture.md) を具体化し、corpus を入力とする
 `mahjong` の正確性検証・性能計測・プロファイルの責務と境界を定める。
-本書は採用する設計であり、実装済みの API・コマンドを示すものではない。
+scoring の初期検証 API・CLI は実装済み。benchmark・profile・compare は未実装である。
+確認結果は [実装記録](validator-implementation.md)、出力と API は
+[初期版の結果形式](validator-results.md) を参照する。
 実装は [テストリスト](validator-implementation.md) から一件ずつ進める。
 前身の実装構造を互換性の要件としない。
 
@@ -14,12 +16,11 @@
   リポジトリ名 `mahjong-lib-validation` は変更しない。
 - 実装は `packages/validator/src/validator/`、テストは
   `packages/validator/tests/` に置く。設計資料はルートの `docs/` に置く。
-- `uv_build` と src レイアウトを採用し、uv workspace に追加する。
-  この設計段階では workspace・ロックファイル・依存設定を変更しない。
+- `uv_build` と src レイアウトを採用し、uv workspace に登録済み。
 - validator の最低 Python を 3.15 とする。corpus と tenhou-converter は
   3.10 以上の対応を維持する。全パッケージを導入する開発環境は 3.15 を使う。
 - 実行時依存は workspace の `corpus` と検証対象の `mahjong` とする。
-  対象 mahjong の初期バージョン範囲は、実装時の API 確認で確定する。
+  mahjong の初期バージョン範囲は `>=2.1.0,<2.2` とし、2.1.0 で確認した。
 - corpus は validator・mahjong に依存しない。validator は変換器に依存しない。
   元牌譜や天鳳固有の符号を実行時に解釈しない。
 - 検証対象は mahjong に限定し、他ライブラリ向けのプラグイン機構は設けない。
@@ -139,6 +140,9 @@ corpus の不正や出力の書込失敗は実行全体の失敗とする。
 除外はフィールド単位で適用し、元の理由を報告する。
 
 - 役 ID と各役の翻数・役満倍率を照合する。役の順序は比較しない。
+  mahjong 2.1.x は抜きドラを Dora に含めるため、比較時は期待値側の
+  `dora` と `nuki_dora` も合算する。この二者の内訳は検証できない。
+  元の期待値と正規化結果は保持し、合算の方針を summary に明示する。
 - 合計翻・符・合計役満倍率・和了点の区分をそれぞれ照合する。
   通常役の翻と役満倍率を相互に置き換えない。
 - 素点、本場分、供託分、和了者の収入、各席の支払いを分けて照合する。
@@ -147,6 +151,13 @@ corpus の不正や出力の書込失敗は実行全体の失敗とする。
 - `event_score_deltas` は局の複数和了を合わせた値を含む。
   一件の計算結果と直接比較しない。初期版は項目単位の `unsupported` とし、
   既知の他項目の比較を続ける。イベント単位の集約比較は後続設計とする。
+- 本場・供託のある後続ロン（`win_number > 1`）、または比較除外に
+  `multiple_ron_allocation_unknown` があるケースでは、入力に個別配分がない。
+  `honba_points`、`riichi_stick_points`、`winner_gain`、`payments_by_seat` を
+  項目単位の unsupported とする。記録された除外・期待値不足を優先する。
+  期待値や元牌譜から配分を逆算しない。素点・役・符等は比較する。
+  最初の一件だけでは複数ロンの有無を特定できない corpus v1 の制約があり、
+  任意の配分に対応済みとはしない。個別配分の入力表現は後続設計に残す。
 - 比較対象の `null` は期待値不足として扱い、0 や空配列と混同しない。
 - 役満の符を一律除外しない。国士無双の符、責任払いの支払い、複数ロンの
   制約は corpus に記録された除外条件に従う。
@@ -269,7 +280,7 @@ import ディレクトリを明示的に受け取る。
 候補名とし、具体的な引数と結果型は各段階のテストで確定する。
 API は標準出力や `sys.exit` に依存せず、CLI が表示と終了コードを担う。
 
-CLI の形は次を基本とする。下記は未実装の使用例である。
+CLI の形は次を基本とする。validate は実装済みで、その他は未実装の使用例である。
 
 ```text
 mahjong-validator validate <dataset> --output <new-result-directory>
@@ -293,7 +304,8 @@ profiling の時間・rate、compare の組数などの追加引数は各段階�
 - `timings.json`：benchmark / compare の生の計測値、worker 情報と検証結果。
 - プロファイラ固有の成果物：profile の HTML / pstats と収集情報。
 
-各ファイルの厳密な JSON スキーマは、その機能を実装する段階で例を作り確定する。
+validate の v1 結果形式は [初期版の結果形式](validator-results.md) に記録した。
+その他の JSON スキーマは、その機能を実装する段階で例を作り確定する。
 生のライブラリオブジェクトや pickle を共通の結果形式にしない。
 大量の一致結果の詳細や個別スタックの保存量は実データで評価する。
 

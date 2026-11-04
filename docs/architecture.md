@@ -46,7 +46,8 @@ validator の配布名・CLI 名は `mahjong-validator`、import 名は `validat
 具体的な境界・結果・実装段階は
 [validator パッケージの設計](validator-design.md) と
 [実装テストリスト](validator-implementation.md) に記録する。
-これは設計の決定であり、validator はまだ実装・workspace 登録していない。
+scoring の初期検証 API・CLI と workspace 登録は実装済み。
+benchmark・profile・compare は後続段階である。
 将来の雀魂変換器の配布名・import 名・CLI 名は、対応時に確定する。
 
 天鳳変換器の名前・初期対応範囲・変換フローは
@@ -149,8 +150,8 @@ SQLite 入力経路は牌譜 ID と牌譜内容の読み出しを担い、
 天鳳の XML 応答を並べた形式の扱いも天鳳解析部分に閉じ込める。
 houou-logs のコードへの依存は必須としない。
 
-以下は CLI の使用イメージである。天鳳の `mjlog` は実装済みで、
-`houou-db`、雀魂、validator のコマンドは未実装。
+以下は CLI の使用イメージである。天鳳の `mjlog` と validator の `validate` は
+実装済みで、`houou-db`、雀魂、benchmark・profile・compare は未実装。
 天鳳の CLI 名は `tenhou-converter`、検証ツールは `mahjong-validator` に確定し、
 雀魂の CLI 名は仮名称とする。
 

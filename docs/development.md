@@ -5,24 +5,25 @@
 ## workspace の開発環境
 
 ルートは開発ツールを管理する非パッケージのプロジェクトとし、
-`packages/corpus` と `packages/tenhou-converter` を
+`packages/corpus`、`packages/tenhou-converter`、`packages/validator` を
 uv workspace のメンバーとしている。
 ロックファイルと開発用の仮想環境はルートで共有する。
 corpus の配布名・import 名は、ともに `corpus` である。
 天鳳変換器の配布名・CLI 名は `tenhou-converter`、import 名は
 `tenhou_converter` とする。
 
-次に実装する validator は `packages/validator/` に置き、配布名・CLI 名は
+validator は `packages/validator/` に置き、配布名・CLI 名は
 `mahjong-validator`、import 名は `validator` とする。
 [設計](validator-design.md) に従い validator の最低 Python は 3.15 とし、
-追加後の全メンバー用開発環境には 3.15 を使う。
+全メンバー用開発環境と共通ロックファイルの最低 Python は 3.15 とする。
 corpus と tenhou-converter 自体の Python 3.10 以上の対応は維持する。
-validator は現時点では未実装・workspace 未登録である。
+corpus・tenhou-converter の旧 Python 対応は、workspace ではなく独立した
+wheel の環境で確認する。ルートの ty も開発環境の Python 3.15 を指定する。
 
 ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
 
 ```console
-uv sync --all-packages
+uv sync --all-packages --python 3.15
 uv run --no-sync python -c "import corpus; print(corpus.__file__)"
 ```
 
@@ -35,6 +36,7 @@ uv run --no-sync ruff format --check
 uv run --no-sync ty check
 uv build --package corpus
 uv build --package tenhou-converter
+uv build --package mahjong-validator
 ```
 
 単体テストはパッケージの `tests/` に追加し、
@@ -47,7 +49,11 @@ uv run --no-sync pytest
 
 一時ディレクトリが制限される環境では、
 `--basetemp=.cache/pytest` を指定して workspace 内に作成できる。
-設定する Python は対応範囲の 3.10〜3.15 から選択する。
+全メンバーのテストには Python 3.15 を使う。
+
+validator のテストは importlib モードの namespace とし、他メンバーの
+同名 `tests` パッケージとの衝突を避ける。テスト用 helper は実行時パッケージに
+含めず、validator の Ruff 設定では `tests/**` の INP001 だけを除外する。
 
 workspace での import 確認に加え、機能追加時にはビルドした wheel を
 クリーンな環境へインストールして、未宣言依存がないことも確認する。

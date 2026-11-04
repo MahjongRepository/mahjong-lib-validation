@@ -41,6 +41,9 @@ corpus を使った検証・計測・比較・プロファイルは
 [validator の実装テストリスト](docs/validator-implementation.md) から
 一件ずつ進める。
 
+validator の公開 API と保存する JSON の契約は
+[validator 初期版の API と結果形式](docs/validator-results.md) を参照する。
+
 ## 実装方針
 
 t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。
