@@ -1,6 +1,6 @@
 """Errors with record field and optional file position."""
 
-from pathlib import Path
+lazy from pathlib import Path
 
 
 class CorpusError(ValueError):

@@ -1,7 +1,7 @@
 from typing import Literal
 
 from tenhou_converter.errors import UnsupportedLogError
-from tenhou_converter.parser import Event
+lazy from tenhou_converter.parser import Event
 
 
 def player_count(go: Event) -> Literal[3, 4]:

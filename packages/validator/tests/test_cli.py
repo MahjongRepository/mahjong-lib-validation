@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 lazy from pathlib import Path
 
 import pytest
-
 from validator.cli import main
 
 if TYPE_CHECKING:

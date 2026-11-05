@@ -1,8 +1,8 @@
 import gzip
 import json
-from collections.abc import Iterator
-from pathlib import Path
 from typing import Any, cast
+lazy from collections.abc import Iterator
+lazy from pathlib import Path
 
 import pytest
 from corpus import (

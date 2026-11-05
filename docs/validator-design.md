@@ -17,15 +17,15 @@ scoring の初期検証 API・CLI は実装済み。benchmark・profile・compar
 - 実装は `packages/validator/src/validator/`、テストは
   `packages/validator/tests/` に置く。設計資料はルートの `docs/` に置く。
 - `uv_build` と src レイアウトを採用し、uv workspace に登録済み。
-- validator の最低 Python を 3.15 とする。corpus と tenhou-converter は
-  3.11 以上の対応を維持する。全パッケージを導入する開発環境は 3.15 を使う。
+- ルート・corpus・tenhou-converter とともに、最低 Python を 3.15 に統一する。
+  全パッケージを導入する開発環境も Python 3.15 以上を使う。
 - 実行時依存は workspace の `corpus` と検証対象の `mahjong` とする。
   mahjong の初期バージョン範囲は `>=2.1.0,<2.2` とし、2.1.0 で確認した。
 - corpus は validator・mahjong に依存しない。validator は変換器に依存しない。
   元牌譜や天鳳固有の符号を実行時に解釈しない。
 - 検証対象は mahjong に限定し、他ライブラリ向けのプラグイン機構は設けない。
 
-validator は corpus・tenhou-converter と異なり、Python 3.15 以上を必要とする。
+全パッケージは Python 3.15 以上を必要とする。
 Python 3.11〜3.14 上での mahjong の
 実行・計測は初期対応に含めない。将来必要になった場合は、制御側と対象側の
 worker の互換性を別途設計する。Tachyon で新しい Python から古い Python の

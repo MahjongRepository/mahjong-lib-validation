@@ -1,9 +1,9 @@
 import gzip
 import hashlib
 import json
-from collections.abc import Iterator
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+lazy from collections.abc import Iterator
 
 import pytest
 from corpus import (
@@ -13,7 +13,9 @@ from corpus import (
     read_dataset,
     write_dataset,
 )
-from corpus.models import ConversionSummary, ScoringCase
+
+if TYPE_CHECKING:
+    from corpus.models import ConversionSummary, ScoringCase
 
 
 @pytest.fixture

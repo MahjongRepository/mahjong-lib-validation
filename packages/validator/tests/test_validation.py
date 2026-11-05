@@ -6,7 +6,6 @@ from unittest.mock import patch
 import pytest
 from corpus import parse_case, write_dataset
 from mahjong.hand_calculating.hand_response import HandResponse
-
 from validator import validate_dataset
 from validator.adapter import calculate, prepare_hand
 

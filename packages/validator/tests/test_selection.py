@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import pytest
 from corpus import CorpusError, read_dataset
-
 from validator import Selection, validate_dataset
 from validator.validation import validate_case
 

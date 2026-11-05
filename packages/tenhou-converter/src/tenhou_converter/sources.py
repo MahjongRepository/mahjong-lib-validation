@@ -1,8 +1,8 @@
 import gzip
 import os
 import stat
-from collections.abc import Iterator
 from pathlib import Path
+lazy from collections.abc import Iterator
 
 SUFFIXES = (".xml.gz", ".mjlog.gz", ".xml", ".mjlog")
 

@@ -2,12 +2,12 @@
 
 import gzip
 import json
-from collections.abc import Iterable
 from pathlib import Path
+lazy from collections.abc import Iterable
 
 from corpus._fileio import atomic_path
 from corpus.checks import parse_case
-from corpus.models import ScoringCase
+lazy from corpus.models import ScoringCase
 
 
 def write_cases(path: str | Path, cases: Iterable[ScoringCase]) -> None:

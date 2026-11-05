@@ -1,16 +1,18 @@
 import json
 import zlib
-from collections.abc import Iterator
 from importlib.metadata import version
 from pathlib import Path
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+lazy from collections.abc import Iterator
 
 from corpus import CorpusError, Manifest, ScoringCase, write_dataset
-from corpus.models import ConversionSummary, GeneratorInfo
 
 from tenhou_converter.conversion import convert_log
 from tenhou_converter.errors import ConversionError, UnsupportedLogError
 from tenhou_converter.sources import discover, read_xml
+
+if TYPE_CHECKING:
+    from corpus.models import ConversionSummary, GeneratorInfo
 
 
 class Diagnostic(TypedDict):

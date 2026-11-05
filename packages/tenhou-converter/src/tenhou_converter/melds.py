@@ -1,11 +1,12 @@
 # Numeric constants below describe the mjlog wire layout.
 # ruff: noqa: PLR2004
 from dataclasses import dataclass
-from typing import Literal, NoReturn, cast
+from typing import TYPE_CHECKING, Literal, NoReturn, cast
 
-from corpus.models import Meld, Tile
+lazy from tenhou_converter.parser import Event
 
-from tenhou_converter.parser import Event
+if TYPE_CHECKING:
+    from corpus.models import Meld, Tile
 
 MeldKind = Literal["chii", "pon", "daiminkan", "ankan", "kakan", "nuki"]
 

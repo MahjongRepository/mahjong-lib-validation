@@ -1,8 +1,8 @@
 import argparse
 import json
 import sys
-from collections.abc import Sequence
 from importlib.metadata import version
+lazy from collections.abc import Sequence
 
 from tenhou_converter.datasets import BatchConversionError, convert_files
 

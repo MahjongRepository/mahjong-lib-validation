@@ -6,7 +6,6 @@ from mahjong.hand_calculating.hand_response import HandResponse
 from mahjong.hand_calculating.scores import ScoresResult
 from mahjong.hand_calculating.yaku_config import YakuConfig
 from mahjong.meld import Meld
-
 from validator.adapter import calculate, normalize_result, prepare_hand
 from validator.validation import validate_case
 

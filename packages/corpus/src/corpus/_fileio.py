@@ -1,10 +1,10 @@
 """Shared JSON decoding and atomic file replacement."""
 
 import json
-from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+lazy from collections.abc import Generator
 
 from corpus.errors import CorpusError
 
@@ -29,7 +29,7 @@ def decode_json(
 
 
 @contextmanager
-def atomic_path(path: Path) -> Generator[Path, None, None]:
+def atomic_path(path: Path) -> Generator[Path]:
     with NamedTemporaryFile(dir=path.parent, delete=False) as temporary:
         staging = Path(temporary.name)
     try:

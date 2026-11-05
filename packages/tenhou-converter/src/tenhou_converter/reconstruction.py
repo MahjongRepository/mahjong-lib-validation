@@ -1,12 +1,13 @@
 # Numeric constants below describe the mjlog wire layout.
 # ruff: noqa: PLR2004
 from dataclasses import dataclass, field
-from typing import Literal, NoReturn
-
-from corpus.models import Expected, Situation
+from typing import TYPE_CHECKING, Literal, NoReturn
 
 from tenhou_converter.melds import DecodedMeld, decode_meld
-from tenhou_converter.parser import Event
+lazy from tenhou_converter.parser import Event
+
+if TYPE_CHECKING:
+    from corpus.models import Expected, Situation
 
 
 @dataclass
@@ -78,7 +79,7 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, count: int) -> "RoundState":
+    def start(cls, event: Event, count: int) -> RoundState:
         seed = event.numbers("seed")
         if (
             len(seed) != 6

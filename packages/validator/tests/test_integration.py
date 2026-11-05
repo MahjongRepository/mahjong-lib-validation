@@ -4,7 +4,6 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tenhou_converter import convert_log
-
 from validator import validate_dataset
 
 if TYPE_CHECKING:

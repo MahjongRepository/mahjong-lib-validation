@@ -30,7 +30,7 @@
 ### 配置と依存
 
 配置は `packages/tenhou-converter/` の `src/tenhou_converter/`、
-ビルドは `uv_build`、対応 Python は corpus と同じ 3.11〜3.15 とする。
+ビルドは `uv_build`、最低 Python は corpus と同じ 3.15 とする。
 実行時依存は workspace の `corpus` のみとし、XML・gzip・CLI は
 標準ライブラリを使用する。`mahjong`、validator、houou-logs に依存しない。
 workspace メンバーとロックファイルに登録済み。

@@ -2,7 +2,6 @@ from copy import deepcopy
 from typing import TYPE_CHECKING, cast
 
 import pytest
-
 from validator.validation import compare_result, validate_case
 
 if TYPE_CHECKING:

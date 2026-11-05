@@ -1,16 +1,16 @@
 """Stream scoring cases from UTF-8 JSON Lines."""
 
 import gzip
-from collections.abc import Generator
 from pathlib import Path
+lazy from collections.abc import Generator
 
 from corpus._fileio import decode_json
 from corpus.checks import parse_case
 from corpus.errors import CorpusError
-from corpus.models import ScoringCase
+lazy from corpus.models import ScoringCase
 
 
-def read_cases(path: str | Path) -> Generator[ScoringCase, None, None]:
+def read_cases(path: str | Path) -> Generator[ScoringCase]:
     path = Path(path)
     opener = gzip.open if path.suffix == ".gz" else open
     with opener(path, "rb") as stream:

@@ -1,6 +1,6 @@
 import json
-from pathlib import Path
 from typing import Any
+lazy from pathlib import Path
 
 import pytest
 from corpus import CorpusError, parse_manifest, read_manifest, write_manifest

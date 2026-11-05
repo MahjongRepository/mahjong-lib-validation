@@ -14,11 +14,10 @@ corpus の配布名・import 名は、ともに `corpus` である。
 
 validator は `packages/validator/` に置き、配布名・CLI 名は
 `mahjong-validator`、import 名は `validator` とする。
-[設計](validator-design.md) に従い validator の最低 Python は 3.15 とし、
-全メンバー用開発環境と共通ロックファイルの最低 Python は 3.15 とする。
-corpus と tenhou-converter 自体の Python 3.11 以上の対応は維持する。
-corpus・tenhou-converter の旧 Python 対応は、workspace ではなく独立した
-wheel の環境で確認する。ルートの ty も開発環境の Python 3.15 を指定する。
+ルートと全パッケージの最低 Python は 3.15 に統一する。
+全メンバー用開発環境と共通ロックファイルも Python 3.15 以上を必要とする。
+Ruff はルートの `requires-python` から対象版を推定し、全パッケージで
+共通設定を使う。ルートの ty も Python 3.15 を指定する。
 
 ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
 

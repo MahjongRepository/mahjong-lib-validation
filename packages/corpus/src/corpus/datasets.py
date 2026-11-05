@@ -1,11 +1,11 @@
 """Read and publish datasets described by a manifest."""
 
 import hashlib
-from collections.abc import Generator, Iterable, Iterator
 from contextlib import closing
 from itertools import chain, islice
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import TYPE_CHECKING
 
 from corpus._validation import fail, validate_type
 from corpus.errors import CorpusError
@@ -24,8 +24,11 @@ from corpus.models import (
 from corpus.readers import read_cases
 from corpus.writers import _write_cases
 
+if TYPE_CHECKING:
+    from collections.abc import Generator, Iterable, Iterator
 
-def read_dataset(directory: str | Path) -> Generator[ScoringCase, None, None]:
+
+def read_dataset(directory: str | Path) -> Generator[ScoringCase]:
     directory = Path(directory)
     manifest = read_manifest(directory / "manifest.json")
     yield from _read_dataset(directory, manifest)
@@ -109,7 +112,7 @@ def _write_files(
 
 def _read_dataset(
     directory: Path, manifest: Manifest
-) -> Generator[ScoringCase, None, None]:
+) -> Generator[ScoringCase]:
     _ready(manifest, directory / "manifest.json")
     for index, entry in enumerate(manifest["files"]):
         yield from _read_file(directory, entry, index)
@@ -117,7 +120,7 @@ def _read_dataset(
 
 def _read_file(
     directory: Path, entry: DataFile, index: int
-) -> Generator[ScoringCase, None, None]:
+) -> Generator[ScoringCase]:
     field = f"files[{index}]"
     path = directory / entry["path"]
     if path.resolve().parent != directory.resolve():

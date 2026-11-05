@@ -1,8 +1,12 @@
 # Numeric constants below describe the mjlog wire layout.
 # ruff: noqa: PLR2004
-from corpus.models import ExcludedField, Expected, Title, Yaku, YakuId
 
-from tenhou_converter.parser import Event
+from typing import TYPE_CHECKING
+
+lazy from tenhou_converter.parser import Event
+
+if TYPE_CHECKING:
+    from corpus.models import ExcludedField, Expected, Title, Yaku, YakuId
 
 # Source IDs are positional and independent of the corpus Literal order.
 YAKU_IDS: tuple[YakuId, ...] = (
