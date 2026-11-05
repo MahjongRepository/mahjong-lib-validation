@@ -113,3 +113,94 @@ def test_shared_double_ron_deltas_do_not_become_individual_payments() -> None:
         assert {
             item["field"] for item in case["comparison"]["excluded_fields"]
         } == {"payments_by_seat", "honba_points", "riichi_stick_points"}
+
+
+@pytest.mark.parametrize("gain", [16, 36])
+def test_shared_double_ron_must_account_for_available_sticks(
+    gain: int,
+) -> None:
+    root = ET.parse(FIXTURES / "synthetic-double-ron.xml").getroot()  # noqa: S314 -- trusted fixture
+    for event in root.findall("AGARI"):
+        event.set("sc", f"250,-29,250,{gain},250,13,250,0")
+
+    with pytest.raises(ConversionError, match="riichi sticks"):
+        convert_log(ET.tostring(root), log_id="synthetic-shared-bad-sticks")
+
+
+def test_missing_riichi_confirmation_cannot_advance_to_next_draw() -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()  # noqa: S314 -- trusted fixture
+    for event in list(root):
+        if event.tag == "REACH" and event.get("step") == "2":
+            root.remove(event)
+    agari = root.find("AGARI")
+    assert agari is not None
+    # Keep settlement consistent so it cannot hide the progression gap.
+    agari.set("ba", "0,0")
+    agari.set("sc", "250,-26,250,0,250,26,250,0")
+
+    with pytest.raises(ConversionError, match="riichi confirmation") as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-missing-reach")
+
+    assert caught.value.event_index == next(
+        index for index, event in enumerate(root) if event.tag == "W61"
+    )
+
+
+def test_missing_riichi_confirmation_cannot_advance_to_call() -> None:
+    root = ET.parse(FIXTURES / "synthetic-chankan-ippatsu.xml").getroot()  # noqa: S314 -- trusted fixture
+    root.insert(3, ET.Element("REACH", who="0", step="1"))
+
+    with pytest.raises(ConversionError, match="riichi confirmation") as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-missing-reach-call")
+
+    assert caught.value.event_index == 5
+
+
+def test_ron_on_riichi_declaration_discard_does_not_require_confirmation() -> (
+    None
+):
+    root = ET.parse(FIXTURES / "synthetic-double-ron.xml").getroot()  # noqa: S314 -- trusted fixture
+    root.insert(3, ET.Element("REACH", who="0", step="1"))
+
+    cases = convert_log(ET.tostring(root), log_id="synthetic-declaration-ron")
+
+    assert len(cases) == 2
+    assert [case["round"]["riichi_sticks"] for case in cases] == [1, 1]
+    assert [case["expected"]["riichi_stick_points"] for case in cases] == [
+        1000,
+        0,
+    ]
+
+
+def test_riichi_declaration_cannot_be_followed_by_tsumo() -> None:
+    root = ET.parse(FIXTURES / "synthetic-tenhou.xml").getroot()  # noqa: S314 -- trusted fixture
+    root.insert(len(root) - 1, ET.Element("REACH", who="0", step="1"))
+
+    with pytest.raises(ConversionError, match="riichi confirmation"):
+        convert_log(ET.tostring(root), log_id="synthetic-declaration-tsumo")
+
+
+@pytest.mark.parametrize("reason", ["reach4", "ron3"])
+def test_pending_riichi_at_drawn_round_requires_ron_on_declaration(
+    reason: str,
+) -> None:
+    root = ET.parse(FIXTURES / "synthetic-double-ron.xml").getroot()  # noqa: S314 -- trusted fixture
+    root.insert(3, ET.Element("REACH", who="0", step="1"))
+    for event in root.findall("AGARI"):
+        root.remove(event)
+    root.append(
+        ET.Element(
+            "RYUUKYOKU",
+            type=reason,
+            ba="1,1",
+            sc="250,0,250,0,250,0,250,0",
+        )
+    )
+
+    if reason == "ron3":
+        assert (
+            convert_log(ET.tostring(root), log_id="synthetic-reach-ron3") == []
+        )
+    else:
+        with pytest.raises(ConversionError, match="riichi confirmation"):
+            convert_log(ET.tostring(root), log_id="synthetic-unconfirmed-draw")

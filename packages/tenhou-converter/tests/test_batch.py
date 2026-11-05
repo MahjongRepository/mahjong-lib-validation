@@ -53,6 +53,53 @@ def test_corrupt_gzip_is_a_reported_input_failure(tmp_path: Path) -> None:
     assert diagnostic["field"] is None
 
 
+@pytest.mark.parametrize("encoding", ["nonexistent-encoding", "utf-7"])
+def test_encoding_error_reports_failure_and_continues_batch(
+    tmp_path: Path,
+    encoding: str,
+) -> None:
+    source = tmp_path / "input"
+    source.mkdir()
+    (source / "a.xml").write_bytes(
+        (
+            f'<?xml version="1.0" encoding="{encoding}"?><mjloggm ver="2.3"/>'
+        ).encode("ascii")
+    )
+    (source / "b.xml").write_bytes((FIXTURES / "four-ron.xml").read_bytes())
+    output = tmp_path / "output"
+    report_path = tmp_path / "report.json"
+
+    assert (
+        main(
+            [
+                "mjlog",
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(report_path),
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["conversion"] == {
+        "input_count": 2,
+        "converted_count": 1,
+        "failed_by_reason": {"invalid_xml": 1},
+        "excluded_by_reason": {},
+    }
+    assert report["record_count"] == 1
+    assert report["summary_complete"] is True
+    assert report["dataset_published"] is False
+    (diagnostic,) = report["diagnostics"]
+    assert diagnostic["path"] == str(source / "a.xml")
+    assert diagnostic["reason"] == "invalid_xml"
+    assert not output.exists()
+    assert not list(tmp_path.glob(".corpus-*"))
+
+
 def test_successful_logs_without_wins_count_but_cannot_publish_empty_dataset(
     tmp_path: Path,
 ) -> None:

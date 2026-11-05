@@ -45,13 +45,21 @@ class RoundState:
         if not self.results:
             return
         for result in self.results:
+            deltas = result["event_score_deltas"] or []
             if any(
                 delta > 0 and seat not in self.winners
-                for seat, delta in enumerate(
-                    result["event_score_deltas"] or []
-                )
+                for seat, delta in enumerate(deltas)
             ):
                 self.fail(self.init, "score gain belongs to a nonwinner")
+            # Unknown individual sticks mark shared win-group deltas.
+            if (
+                result["riichi_stick_points"] is None
+                and sum(deltas) != self.sticks * 1000
+            ):
+                self.fail(
+                    self.init,
+                    "shared deltas conflict with available riichi sticks",
+                )
         sticks = [result["riichi_stick_points"] for result in self.results]
         honba = [result["honba_points"] for result in self.results]
         if (
@@ -151,6 +159,16 @@ class RoundState:
 
     def finish_draw(self, event: Event) -> None:
         reason = event.attributes.get("type")
+        if any(
+            player.declared
+            and (
+                reason != "ron3"
+                or self.last is None
+                or self.last[:2] != ("discard", seat)
+            )
+            for seat, player in enumerate(self.players)
+        ):
+            self.fail(event, "drawn round before riichi confirmation")
         if reason is None and self.remaining != 0:
             self.fail(event, "exhaustive draw before wall exhaustion")
         if reason is not None and reason not in {
@@ -176,6 +194,8 @@ class RoundState:
         self.finished = True
 
     def draw(self, who: int, value: int, event: Event) -> None:
+        if any(player.declared for player in self.players):
+            self.fail(event, "draw before riichi confirmation")
         self.check_tile(value, event)
         player = self.player(who, event)
         if (
@@ -248,6 +268,8 @@ class RoundState:
             raise event.error(msg, "unknown reach step", "step")
 
     def call(self, event: Event) -> None:
+        if any(player.declared for player in self.players):
+            self.fail(event, "call before riichi confirmation")
         who = event.integer("who")
         player = self.player(who, event)
         meld = decode_meld(event.integer("m"), who, event)
@@ -355,6 +377,12 @@ class RoundState:
             or (tsumo and self.winners)
         ):
             self.fail(event, "win does not match tile provider")
+        if any(
+            other.declared
+            and (tsumo or seat != source or self.last[0] != "discard")
+            for seat, other in enumerate(self.players)
+        ):
+            self.fail(event, "win before riichi confirmation")
         self._check_agari_tiles(event, who, winning, tsumo=tsumo)
 
         last_kind = self.last[0]

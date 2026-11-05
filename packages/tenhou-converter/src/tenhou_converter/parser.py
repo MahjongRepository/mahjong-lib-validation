@@ -56,7 +56,9 @@ def parse_xml(xml: bytes) -> list[Event]:
             xml,
             parser=ET.XMLParser(target=_TreeBuilder()),  # noqa: S314 -- DTD rejected
         )
-    except ET.ParseError as error:
+    except ConversionError:
+        raise
+    except (ET.ParseError, LookupError, ValueError) as error:
         msg = "invalid_xml"
         raise ConversionError(msg, str(error)) from error
     if root.tag != "mjloggm":
