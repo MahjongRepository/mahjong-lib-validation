@@ -14,7 +14,7 @@ corpus パッケージの決定事項を記録する。
 - ディレクトリは `packages/corpus/`、配布名は `corpus`、
   import 名は `corpus` とする。
 - このプロジェクト内で利用し、PyPI への公開は予定しない。
-- 対応 Python は `mahjong` に合わせて 3.10〜3.15 とする。
+- 対応 Python は 3.11〜3.15 とする。
 - `src/` レイアウトと `uv_build` を採用する。
 - 単体テスト・静的検査はルートの `dependency-groups` に指定された
   ツールを使用する。現時点では pytest、ruff、ty が該当する。
