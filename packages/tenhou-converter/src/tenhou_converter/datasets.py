@@ -154,8 +154,8 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
             summary["input_count"] += 1
             try:
                 converted = convert_log(read_xml(path), log_id=identifier)
-            except (ConversionError, OSError, EOFError, zlib.error) as error:
-                _record_input_failure(report, path, identifier, error)
+            except (ConversionError, OSError, EOFError, zlib.error) as e:
+                _record_input_failure(report, path, identifier, e)
             else:
                 summary["converted_count"] += 1
                 report["record_count"] += len(converted)
@@ -172,10 +172,11 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
             cases_per_file=cases_per_file,
             compress=compress,
         )
-    except (OSError, CorpusError) as error:
-        report["error"] = str(error)
+    except (OSError, CorpusError) as e:
+        report["error"] = str(e)
         save_report(report_file, report)
-        raise BatchConversionError(str(error), report) from error
+        raise BatchConversionError(str(e), report) from e
+
     report["dataset_published"] = True
     save_report(report_file, report)
     return manifest
@@ -188,7 +189,7 @@ def save_report(path: Path | None, report: Report) -> None:
             with path.open("x", encoding="utf-8") as stream:
                 json.dump(report, stream, ensure_ascii=False, indent=2)
                 stream.write("\n")
-        except OSError as error:
-            message = f"{report['error'] or ''}; report_io_error: {error}"
+        except OSError as e:
+            message = f"{report['error'] or ''}; report_io_error: {e}"
             report["error"] = message
-            raise BatchConversionError(message, report) from error
+            raise BatchConversionError(message, report) from e

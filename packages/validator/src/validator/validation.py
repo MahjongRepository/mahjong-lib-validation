@@ -102,31 +102,33 @@ def validate_case(case: ScoringCase) -> CaseResult:
         hand = prepare_hand(
             case["input"], case["round"], case["player_count"], case["ruleset"]
         )
-    except (MissingInputError, UnsupportedInputError) as error:
+    except (MissingInputError, UnsupportedInputError) as e:
         return {
             "case_id": case["case_id"],
             "status": "skipped"
-            if isinstance(error, MissingInputError)
+            if isinstance(e, MissingInputError)
             else "unsupported",
-            "reason": str(error),
+            "reason": str(e),
             "fields": {},
         }
-    except ValueError as error:
+    except ValueError as e:
         return {
             "case_id": case["case_id"],
             "status": "error",
             "fields": {},
-            "reason": f"input preparation: {error}",
+            "reason": f"input preparation: {e}",
         }
+
     try:
         actual = normalize_result(hand, calculate(hand))
-    except Exception as error:  # noqa: BLE001 -- isolate target library failures
+    except Exception as e:  # noqa: BLE001 -- isolate target library failures
         return {
             "case_id": case["case_id"],
             "status": "error",
             "fields": {},
-            "reason": f"{type(error).__name__}: {error}",
+            "reason": f"{type(e).__name__}: {e}",
         }
+
     fields = compare_result(case, actual)
     statuses = {field["status"] for field in fields.values()}
     status: CaseStatus = "skipped"
@@ -172,6 +174,7 @@ def _validate_dataset(
     digest = hashlib.sha256()
     field_counts: dict[str, dict[str, int]] = {}
     field_reasons: dict[str, dict[str, int]] = {}
+
     with (output / "cases.jsonl").open("w", encoding="utf-8") as stream:
         for scanned, case in enumerate(read_dataset(dataset), start=1):
             if not selection.matches(case, selected):
@@ -197,6 +200,7 @@ def _validate_dataset(
                         reasons.get(field["reason"], 0) + 1
                     )
             stream.write(json.dumps(result, ensure_ascii=False) + "\n")
+
     summary: ValidationSummary = {
         "counts": counts,
         "scanned_count": scanned,

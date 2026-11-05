@@ -32,6 +32,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     mjlog.add_argument("--no-compress", action="store_true")
     mjlog.add_argument("--report")
     args = parser.parse_args(argv)
+
     try:
         manifest = convert_files(
             args.input,
@@ -41,14 +42,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             compress=not args.no_compress,
             report_path=args.report,
         )
-    except BatchConversionError as error:
-        sys.stderr.write(json.dumps(error.report, ensure_ascii=False) + "\n")
+    except BatchConversionError as e:
+        sys.stderr.write(json.dumps(e.report, ensure_ascii=False) + "\n")
         return 1
-    except OSError as error:
-        sys.stderr.write(str(error) + "\n")
+    except OSError as e:
+        sys.stderr.write(str(e) + "\n")
         return 1
-    except ValueError as error:
-        parser.error(str(error))
+    except ValueError as e:
+        parser.error(str(e))
     else:
         sys.stderr.write(
             json.dumps(

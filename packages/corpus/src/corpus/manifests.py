@@ -38,8 +38,8 @@ def read_manifest(path: str | Path) -> Manifest:
     value = decode_json(path.read_bytes(), path)
     try:
         return parse_manifest(value)
-    except CorpusError as error:
-        raise CorpusError(error.field, error.message, path=path) from error
+    except CorpusError as e:
+        raise CorpusError(e.field, e.message, path=path) from e
 
 
 def write_manifest(path: str | Path, manifest: Manifest) -> None:

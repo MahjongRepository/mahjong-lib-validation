@@ -18,8 +18,8 @@ def read_cases(path: str | Path) -> Generator[ScoringCase]:
             value = decode_json(line, path, line=number)
             try:
                 case = parse_case(value)
-            except CorpusError as error:
+            except CorpusError as e:
                 raise CorpusError(
-                    error.field, error.message, path=path, line=number
-                ) from error
+                    e.field, e.message, path=path, line=number
+                ) from e
             yield case

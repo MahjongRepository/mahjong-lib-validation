@@ -100,6 +100,7 @@ def _write_files(
             first = next(cases)
         except StopIteration:
             break
+
         suffix = ".jsonl.gz" if compress else ".jsonl"
         name = f"scoring-{len(files) + 1:06d}{suffix}"
         path = directory / name
@@ -133,11 +134,13 @@ def _read_file(
         raise CorpusError(field + ".path", "data file is missing", path=path)
     if _sha256(path) != entry["sha256"]:
         raise CorpusError(field + ".sha256", "hash mismatch", path=path)
+
     count = 0
     with closing(read_cases(path)) as cases:
         for case in cases:
             count += 1
             yield case
+
     if count != entry["record_count"]:
         raise CorpusError(
             field + ".record_count", "record count mismatch", path=path

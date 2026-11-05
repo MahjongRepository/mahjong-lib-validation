@@ -229,6 +229,6 @@ def extract(
                 "comparison": {"excluded_fields": exclusions},
             }
         )
-    except CorpusError as error:
+    except CorpusError as e:
         msg = "invalid_case"
-        raise event.error(msg, error.message, error.field) from error
+        raise event.error(msg, e.message, e.field) from e

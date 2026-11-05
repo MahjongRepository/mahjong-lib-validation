@@ -21,11 +21,9 @@ class Event:
     def text(self, field: str) -> str:
         try:
             return self.attributes[field]
-        except KeyError as error:
+        except KeyError as e:
             msg = "invalid_attribute"
-            raise self.error(
-                msg, "required attribute missing", field
-            ) from error
+            raise self.error(msg, "required attribute missing", field) from e
 
     def integer(self, field: str) -> int:
         values = self.numbers(field)
@@ -38,9 +36,9 @@ class Event:
         value = self.text(field)
         try:
             return [int(part) for part in value.split(",")]
-        except ValueError as error:
+        except ValueError as e:
             msg = "invalid_attribute"
-            raise self.error(msg, "expected integer list", field) from error
+            raise self.error(msg, "expected integer list", field) from e
 
     def error(
         self, reason: str, message: str, field: str | None = None
@@ -58,9 +56,10 @@ def parse_xml(xml: bytes) -> list[Event]:
         )
     except ConversionError:
         raise
-    except (ET.ParseError, LookupError, ValueError) as error:
+    except (ET.ParseError, LookupError, ValueError) as e:
         msg = "invalid_xml"
-        raise ConversionError(msg, str(error)) from error
+        raise ConversionError(msg, str(e)) from e
+
     if root.tag != "mjloggm":
         msg = "invalid_xml"
         raise ConversionError(msg, "expected mjloggm root")

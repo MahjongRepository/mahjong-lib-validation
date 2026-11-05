@@ -23,6 +23,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate.add_argument("--case-id", action="append", default=[])
     validate.add_argument("--limit", type=int)
     args = parser.parse_args(argv)
+
     try:
         summary = validate_dataset(
             args.dataset,
@@ -31,8 +32,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 args.player_count, tuple(args.case_id), args.limit
             ),
         )
-    except (ValueError, OSError) as error:
-        sys.stderr.write(f"{error}\n")
+    except (ValueError, OSError) as e:
+        sys.stderr.write(f"{e}\n")
         return 2
+
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return summary["exit_code"]
