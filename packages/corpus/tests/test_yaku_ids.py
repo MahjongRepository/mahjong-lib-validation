@@ -4,6 +4,37 @@ import pytest
 from corpus import CorpusError, parse_case
 
 
+@pytest.mark.parametrize("name", ["riichi", "dora", "daisangen"])
+@pytest.mark.parametrize("excluded", [False, True])
+def test_duplicate_yaku_id_is_rejected(
+    example: dict[str, Any], name: str, *, excluded: bool
+) -> None:
+    yakuman = name == "daisangen"
+    example["expected"].update(
+        yaku=[
+            {
+                "id": name,
+                "han": None if yakuman else value,
+                "yakuman_multiplier": value if yakuman else 0,
+            }
+            for value in (1, 2)
+        ],
+        han=None if yakuman else 3,
+        yakuman_multiplier=3 if yakuman else 0,
+    )
+    if excluded:
+        example["comparison"]["excluded_fields"] = [
+            {"field": "yaku", "reason": "not compared"},
+            {"field": "han", "reason": "not compared"},
+        ]
+
+    with pytest.raises(CorpusError) as error:
+        parse_case(example)
+
+    assert error.value.field == "expected.yaku[1].id"
+    assert "duplicate" in str(error.value)
+
+
 @pytest.mark.parametrize(
     "name", ["unknown_yaku", "", "riichi ", "daburu_riichi", "ittsu"]
 )

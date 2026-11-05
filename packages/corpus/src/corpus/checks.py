@@ -4,7 +4,7 @@ from collections import Counter
 from typing import cast
 
 from corpus._validation import fail, minimum, validate_json, validate_type
-from corpus.models import Expected, Meld, ScoringCase
+from corpus.models import Expected, Meld, ScoringCase, Yaku
 
 MAX_MELDS = 4
 MAX_TILE_COPIES = 4
@@ -104,9 +104,18 @@ def _expected(case: ScoringCase) -> None:
         )
 
 
+def _yaku_ids(yaku: list[Yaku]) -> None:
+    seen: set[str] = set()
+    for index, item in enumerate(yaku):
+        if item["id"] in seen:
+            fail(f"expected.yaku[{index}].id", "duplicate yaku ID")
+        seen.add(item["id"])
+
+
 def _yaku(expected: Expected) -> None:
     if expected["yaku"] is None:
         return
+    _yaku_ids(expected["yaku"])
     for index, yaku in enumerate(expected["yaku"]):
         field = f"expected.yaku[{index}]"
         multiplier = yaku["yakuman_multiplier"]
