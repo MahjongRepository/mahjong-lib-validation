@@ -1,13 +1,19 @@
 # Numeric constants below describe the mjlog wire layout.
 # ruff: noqa: PLR2004
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Literal, NoReturn
+from typing import TYPE_CHECKING, Literal, NamedTuple, NoReturn
 
 from tenhou_converter.melds import DecodedMeld, decode_meld
 lazy from tenhou_converter.parser import Event
 
 if TYPE_CHECKING:
     from corpus.models import Expected, Situation
+
+
+class Action(NamedTuple):
+    kind: str
+    seat: int
+    tile: int
 
 
 @dataclass
@@ -34,7 +40,7 @@ class RoundState:
     next_seat: int
     sticks: int
     phase: Literal["draw", "discard", "response"] = "draw"
-    last: tuple[str, int, int] | None = None
+    last: Action | None = None
     interrupted: bool = False
     supplemental: bool = False
     finished: bool = False
@@ -165,7 +171,8 @@ class RoundState:
             and (
                 reason != "ron3"
                 or self.last is None
-                or self.last[:2] != ("discard", seat)
+                or self.last.kind != "discard"
+                or self.last.seat != seat
             )
             for seat, player in enumerate(self.players)
         ):
@@ -208,7 +215,7 @@ class RoundState:
             or value in self.seen
         ):
             self.fail(event, "unexpected or duplicated draw")
-        self.supplemental = self.last is not None and self.last[0] in (
+        self.supplemental = self.last is not None and self.last.kind in (
             "ankan",
             "daiminkan",
             "kakan",
@@ -221,7 +228,7 @@ class RoundState:
         player.hand.add(value)
         player.draws += 1
         self.phase = "discard"
-        self.last = ("draw", who, value)
+        self.last = Action(kind="draw", seat=who, tile=value)
 
     def discard(self, who: int, value: int, event: Event) -> None:
         player = self.player(who, event)
@@ -236,7 +243,7 @@ class RoundState:
         player.ippatsu = False
         self.phase = "response"
         self.next_seat = (who + 1) % len(self.players)
-        self.last = ("discard", who, value)
+        self.last = Action(kind="discard", seat=who, tile=value)
 
     def reach(self, event: Event) -> None:
         who = event.integer("who")
@@ -257,7 +264,8 @@ class RoundState:
             if (
                 not player.declared
                 or self.last is None
-                or self.last[:2] != ("discard", who)
+                or self.last.kind != "discard"
+                or self.last.seat != who
             ):
                 self.fail(
                     event, "riichi confirmation without declaration discard"
@@ -302,10 +310,10 @@ class RoundState:
             self.indicator_due += 1
         self.phase = "draw" if supplemental else "discard"
         self.next_seat = who
-        self.last = (
-            meld.kind,
-            who,
-            meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
+        self.last = Action(
+            kind=meld.kind,
+            seat=who,
+            tile=meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
         )
 
     def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:
@@ -313,10 +321,11 @@ class RoundState:
         if meld.kind in ("chii", "pon", "daiminkan"):
             if (
                 self.last is None
-                or self.last[0] != "discard"
+                or self.last.kind != "discard"
                 or self.phase != "response"
                 or meld.called is None
-                or self.last[1:] != (meld.source, meld.tiles[meld.called])
+                or self.last.seat != meld.source
+                or self.last.tile != meld.tiles[meld.called]
             ):
                 self.fail(event, "call does not match discarded tile")
             if len(self.players) == 3 and (
@@ -334,7 +343,7 @@ class RoundState:
                 self.phase != "discard"
                 or self.next_seat != who
                 or self.last is None
-                or self.last[0] != "draw"
+                or self.last.kind != "draw"
             ):
                 self.fail(event, "self call without draw")
             consumed = (
@@ -373,8 +382,9 @@ class RoundState:
         valid = ("draw",) if tsumo else ("discard", "kakan", "nuki")
         if (
             self.last is None
-            or self.last[0] not in valid
-            or self.last[1:] != (source, winning)
+            or self.last.kind not in valid
+            or self.last.seat != source
+            or self.last.tile != winning
             or who in self.winners
             or len(self.winners) >= 2
             or (tsumo and self.winners)
@@ -382,13 +392,13 @@ class RoundState:
             self.fail(event, "win does not match tile provider")
         if any(
             other.declared
-            and (tsumo or seat != source or self.last[0] != "discard")
+            and (tsumo or seat != source or self.last.kind != "discard")
             for seat, other in enumerate(self.players)
         ):
             self.fail(event, "win before riichi confirmation")
         self._check_agari_tiles(event, who, winning, tsumo=tsumo)
 
-        last_kind = self.last[0]
+        last_kind = self.last.kind
         first_uninterrupted_draw = (
             tsumo and player.draws == 1 and not self.interrupted
         )
