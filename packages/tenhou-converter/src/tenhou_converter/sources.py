@@ -49,6 +49,7 @@ def discover(path: Path, log_id: str | None) -> list[tuple[Path, str]]:
             msg = "log_id must not be empty"
             raise ValueError(msg)
         return [(path, log_id if log_id is not None else derived)]
+
     if not path.is_dir():
         msg = "input must be a file or directory"
         raise ValueError(msg)
