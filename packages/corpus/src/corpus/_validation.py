@@ -3,14 +3,7 @@
 from functools import cache
 from math import isfinite
 from types import UnionType
-from typing import (
-    Literal,
-    NoReturn,
-    Union,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from typing import Literal, Union, get_args, get_origin, get_type_hints
 
 from corpus.errors import CorpusError
 
@@ -27,15 +20,15 @@ def validate_json(value: object, field: str) -> None:
     if isinstance(value, dict):
         for key, child in value.items():
             if not isinstance(key, str):
-                fail(field, "JSON object keys must be strings")
+                raise CorpusError(field, "JSON object keys must be strings")
             validate_json(child, f"{field}.{key}")
         return
-    fail(field, "expected finite JSON data")
+    raise CorpusError(field, "expected finite JSON data")
 
 
 def minimum(value: int | None, minimum: int, field: str) -> None:
     if value is not None and value < minimum:
-        fail(field, f"expected at least {minimum}")
+        raise CorpusError(field, f"expected at least {minimum}")
 
 
 @cache
@@ -48,7 +41,7 @@ def validate_type(value: object, annotation: object, field: str) -> None:
     args = get_args(annotation)
     if origin is Literal:
         if not any(type(value) is type(v) and value == v for v in args):
-            fail(field, f"expected one of {args}")
+            raise CorpusError(field, f"expected one of {args}")
     elif origin in (Union, UnionType):
         _union(value, args, field)
     elif origin in (list, dict):
@@ -58,7 +51,7 @@ def validate_type(value: object, annotation: object, field: str) -> None:
     ):
         _record(value, annotation, field)
     elif annotation is not object and type(value) is not annotation:
-        fail(field, f"expected {annotation}")
+        raise CorpusError(field, f"expected {annotation}")
 
 
 def _container(
@@ -66,12 +59,12 @@ def _container(
 ) -> None:
     if origin is list:
         if not isinstance(value, list):
-            fail(field, "expected array")
+            raise CorpusError(field, "expected array")
         for index, item in enumerate(value):
             validate_type(item, args[0], f"{field}[{index}]")
     else:
         if not isinstance(value, dict):
-            fail(field, "expected object")
+            raise CorpusError(field, "expected object")
         for key, item in value.items():
             validate_type(key, args[0], field)
             validate_type(item, args[1], f"{field}.{key}")
@@ -90,23 +83,19 @@ def _union(value: object, choices: tuple[object, ...], field: str) -> None:
         except CorpusError:
             continue
         return
-    fail(field, "value does not match allowed types")
+    raise CorpusError(field, "value does not match allowed types")
 
 
 def _record(value: object, model: type, field: str) -> None:
     if not isinstance(value, dict):
-        fail(field, "expected object")
+        raise CorpusError(field, "expected object")
     fields = _fields(model)
     for name, annotation in fields.items():
         child = f"{field}.{name}" if field else name
         if name not in value:
-            fail(child, "required field is missing")
+            raise CorpusError(child, "required field is missing")
         validate_type(value[name], annotation, child)
     for name in value:
         if name not in fields:
             child = f"{field}.{name}" if field else str(name)
-            fail(child, "unknown field")
-
-
-def fail(field: str, message: str) -> NoReturn:
-    raise CorpusError(field, message)
+            raise CorpusError(child, "unknown field")

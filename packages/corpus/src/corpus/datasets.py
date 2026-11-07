@@ -7,7 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
-from corpus._validation import fail, validate_type
+from corpus._validation import validate_type
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
@@ -56,7 +56,8 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
     validate_type(conversion, ConversionSummary, "conversion")
     _complete(conversion, directory / "manifest.json")
     if type(cases_per_file) is not int or cases_per_file <= 0:
-        fail("cases_per_file", "expected a positive integer")
+        error_field = "cases_per_file"
+        raise CorpusError(error_field, "expected a positive integer")
     with TemporaryDirectory(
         dir=directory.parent, prefix=".corpus-"
     ) as temporary:

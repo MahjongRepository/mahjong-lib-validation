@@ -6,7 +6,7 @@ from re import fullmatch
 from typing import cast
 
 from corpus._fileio import atomic_path, decode_json
-from corpus._validation import fail, minimum, validate_json, validate_type
+from corpus._validation import minimum, validate_json, validate_type
 from corpus.errors import CorpusError
 from corpus.models import ConversionSummary, DataFile, Manifest
 
@@ -18,7 +18,8 @@ def parse_manifest(value: object) -> Manifest:
     minimum(manifest["record_count"], 0, "record_count")
     total = sum(entry["record_count"] for entry in manifest["files"])
     if manifest["record_count"] != total:
-        fail("record_count", "does not equal the file record counts")
+        error_field = "record_count"
+        raise CorpusError(error_field, "does not equal the file record counts")
     _conversion(manifest["conversion"])
     if manifest["record_count"] > 0:
         minimum(
@@ -28,7 +29,7 @@ def parse_manifest(value: object) -> Manifest:
         )
     for name in ("name", "version"):
         if not manifest["generator"][name].strip():
-            fail("generator." + name, "must not be empty")
+            raise CorpusError("generator." + name, "must not be empty")
     validate_json(manifest["generator"]["settings"], "generator.settings")
     return manifest
 
@@ -63,14 +64,16 @@ def _files(files: list[DataFile]) -> None:
             or not name.endswith((".jsonl", ".jsonl.gz"))
             or name.casefold() in seen
         ):
-            fail(
+            raise CorpusError(
                 field + ".path",
                 "expected a unique data file name without directories",
             )
         seen.add(name.casefold())
         minimum(entry["record_count"], 1, field + ".record_count")
         if not fullmatch(r"[a-f0-9]{64}", entry["sha256"]):
-            fail(field + ".sha256", "expected a lowercase SHA-256 digest")
+            raise CorpusError(
+                field + ".sha256", "expected a lowercase SHA-256 digest"
+            )
 
 
 def _conversion(summary: ConversionSummary) -> None:
@@ -81,11 +84,12 @@ def _conversion(summary: ConversionSummary) -> None:
         for reason, count in summary[name].items():
             field = f"conversion.{name}.{reason}"
             if not reason.strip():
-                fail(field, "reason must not be empty")
+                raise CorpusError(field, "reason must not be empty")
             minimum(count, 1, field)
             total += count
     if summary["input_count"] != total:
-        fail(
-            "conversion.input_count",
+        error_field = "conversion.input_count"
+        raise CorpusError(
+            error_field,
             "does not equal converted + failed + excluded",
         )
