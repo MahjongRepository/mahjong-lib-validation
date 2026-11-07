@@ -8,6 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 from corpus._validation import validate_type
+from corpus.case_io import _write_cases, read_cases
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
@@ -21,8 +22,6 @@ from corpus.models import (
     Manifest,
     ScoringCase,
 )
-from corpus.readers import read_cases
-from corpus.writers import _write_cases
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Iterator

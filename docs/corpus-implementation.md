@@ -142,7 +142,7 @@ manifest 実装後の Green を確認し、仕様を追加せず内部の責務�
 | `_validation.py` | ケースと manifest に共通する型・JSON 値・下限の検査 |
 | `checks.py` | scoring ケース固有の牌・席・期待値の整合性検査 |
 | `_fileio.py` | UTF-8 JSON のデコード、位置付き構文エラー、一時ファイルからの置換 |
-| `readers.py` / `writers.py` | JSONL・gzip の逐次読み書き |
+| `case_io.py` | JSONL・gzip の逐次読み書き |
 | `manifests.py` | manifest の整合性検査と一ファイル単位の読み書き |
 | `datasets.py` | manifest に従うファイル処理とデータセットの公開 |
 | `models.py` / `errors.py` | 共通のデータ型と例外 |

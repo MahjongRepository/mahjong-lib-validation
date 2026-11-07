@@ -97,8 +97,7 @@ mahjong-lib-validation/
 │   │   ├── pyproject.toml
 │   │   ├── src/corpus/
 │   │   │   ├── models.py
-│   │   │   ├── readers.py
-│   │   │   ├── writers.py
+│   │   │   ├── case_io.py
 │   │   │   └── checks.py
 │   │   └── tests/
 │   ├── tenhou-converter/
