@@ -63,4 +63,3 @@ def main(argv: Sequence[str] | None = None) -> int:
             + "\n"
         )
         return 0
-    return 2
