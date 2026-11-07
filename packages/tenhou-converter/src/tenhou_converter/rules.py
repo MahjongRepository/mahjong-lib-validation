@@ -7,7 +7,7 @@ lazy from tenhou_converter.parser import Event
 def player_count(go: Event) -> Literal[3, 4]:
     value = go.integer("type")
     # Bits are numbered from 0 (the least significant bit).
-    # 0xFFF covers known bits 0-11;
+    # 0xFFF covers known bits 0-11.
     # ~0xFFF detects unknown bits 12 and above.
     if value < 0 or value & ~0xFFF:
         reason = "invalid_attribute"
@@ -20,6 +20,9 @@ def player_count(go: Event) -> Literal[3, 4]:
     # Bit 9 (0x200): shugi bonuses.
     # Bit 10 (0x400): jansou (parlor) matches.
     # Bit 11 (0x800): skill matches.
+    #
+    # Lobby 0 is for ranked matches.
+    # All other lobbies are private rooms.
     if not value & 1 or value & 0xF06 or go.integer("lobby") != 0:
         reason = "unsupported_rules"
         raise UnsupportedLogError(
