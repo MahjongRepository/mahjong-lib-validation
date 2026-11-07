@@ -15,9 +15,6 @@ def decode_json(
     field = "$"
     try:
         text = content.decode("utf-8")
-        if line is None:
-            # Match the universal newlines of whole-file text reads.
-            text = text.replace("\r\n", "\n").replace("\r", "\n")
         return json.loads(text)
     except json.JSONDecodeError as e:
         number = e.lineno if line is None else line

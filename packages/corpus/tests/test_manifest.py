@@ -159,9 +159,12 @@ def test_manifest_io_matches_explicit_json(
     assert "合成テスト" in path.read_text(encoding="utf-8")
 
 
-def test_invalid_manifest_reports_its_path(tmp_path: Path) -> None:
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n", b"\r"])
+def test_invalid_manifest_reports_its_path(
+    tmp_path: Path, newline: bytes
+) -> None:
     path = tmp_path / "manifest.json"
-    path.write_text('{\n"schema_version":', encoding="utf-8")
+    path.write_bytes(b"{" + newline + b'"schema_version":')
     with pytest.raises(CorpusError) as error:
         read_manifest(path)
     assert error.value.path == path

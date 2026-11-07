@@ -36,7 +36,9 @@ def parse_manifest(value: object) -> Manifest:
 
 def read_manifest(path: str | Path) -> Manifest:
     path = Path(path)
-    value = decode_json(path.read_bytes(), path)
+    # Preserve the universal newlines of whole-file text reads.
+    content = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    value = decode_json(content, path)
     try:
         return parse_manifest(value)
     except CorpusError as e:
