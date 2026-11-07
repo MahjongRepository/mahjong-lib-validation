@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING
 
 from corpus._validation import validate_type
-from corpus.case_io import _write_cases, read_cases
+from corpus.case_io import read_cases, write_cases
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
@@ -104,7 +104,7 @@ def _write_files(
         suffix = ".jsonl.gz" if compress else ".jsonl"
         name = f"scoring-{len(files) + 1:06d}{suffix}"
         path = directory / name
-        count = _write_cases(path, chain((first,), islice(cases, limit - 1)))
+        count = write_cases(path, chain((first,), islice(cases, limit - 1)))
         files.append(
             {"path": name, "record_count": count, "sha256": _sha256(path)}
         )

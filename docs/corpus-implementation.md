@@ -66,7 +66,7 @@ manifest、変換器、未決の役対応表や精算規則は今回の対象に
 | `ScoringCase` | v1 scoring ケースの型。型注釈自体は実行時の検査を行わない |
 | `parse_case(value)` | 型・形式・基本的な整合性を検査し、`ScoringCase` として返す。入力を変更しない |
 | `read_cases(path)` | UTF-8 の JSONL を順次読み込み、各ケースを検査して返すイテレータ |
-| `write_cases(path, cases)` | 各ケースを再検査して JSONL を出力する。成功時に出力先を置換する |
+| `write_cases(path, cases)` | 各ケースを再検査して JSONL を出力する。成功時に出力先を置換し、書き込み件数を返す |
 | `CorpusError` | 不正なデータを表す `ValueError`。`field`、`message`、`path`、`line` を保持する |
 
 パスは `str` または `Path` で指定する。末尾が `.gz` なら gzip を使う。
@@ -152,9 +152,10 @@ scoring 固有の検査モジュールの private 関数に依存する構成を
 JSON のデコードと安全なファイル置換の重複は `_fileio.py` に集約した。
 全ファイルを読む場合の改行正規化と、JSONL の物理行番号の違いは保持する。
 
-書き込み件数は内部の `_write_cases` がシリアライズ時に数える。
-dataset 側の `_write_shard` とカウント用のジェネレータを廃止し、
-公開 `write_cases` の戻り値は従来どおり `None` に保った。
+書き込み件数は `write_cases` がシリアライズ時に数えて返す。
+dataset 側の `_write_shard` とカウント用のジェネレータは廃止した。
+当初は内部の `_write_cases` で件数を返し、公開 API は `None` を返していたが、
+2026-11-07 に `write_cases` へ統合し、dataset も公開 API を使う形にした。
 dataset の一ファイル分のパス・ハッシュ・件数の検査は `_read_file` に分けた。
 各ファイルの検査と dataset 全体の処理を別々に読める構造にした。
 

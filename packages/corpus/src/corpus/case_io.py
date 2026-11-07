@@ -26,11 +26,8 @@ def read_cases(path: str | Path) -> Generator[ScoringCase]:
             yield case
 
 
-def write_cases(path: str | Path, cases: Iterable[ScoringCase]) -> None:
-    _write_cases(Path(path), cases)
-
-
-def _write_cases(path: Path, cases: Iterable[ScoringCase]) -> int:
+def write_cases(path: str | Path, cases: Iterable[ScoringCase]) -> int:
+    path = Path(path)
     count = 0
     with atomic_path(path) as staging:
         opener = gzip.open if path.suffix == ".gz" else open

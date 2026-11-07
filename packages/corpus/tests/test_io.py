@@ -109,6 +109,18 @@ def test_gzip_reads_and_writes_explicit_json(
 
 
 @pytest.mark.parametrize("suffix", [".jsonl", ".jsonl.gz"])
+@pytest.mark.parametrize("count", [0, 2])
+def test_write_returns_record_count(
+    tmp_path: Path, example: dict[str, Any], suffix: str, count: int
+) -> None:
+    path = tmp_path / ("counts" + suffix)
+    cases = (parse_case(example) for _ in range(count))
+
+    assert write_cases(str(path), cases) == count
+    assert len(list(read_cases(path))) == count
+
+
+@pytest.mark.parametrize("suffix", [".jsonl", ".jsonl.gz"])
 def test_title_survives_jsonl_round_trip(
     tmp_path: Path, example: dict[str, Any], suffix: str
 ) -> None:
