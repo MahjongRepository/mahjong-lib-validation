@@ -1,6 +1,6 @@
 [project]
 name = "corpus"
-version = "0.0.1"
+version = "0.1.0"
 description = "Shared corpus models and I/O for mahjong library validation."
 license = "MIT"
 license-files = ["LICENSE"]

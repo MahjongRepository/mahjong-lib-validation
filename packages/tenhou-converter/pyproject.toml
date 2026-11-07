@@ -16,7 +16,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "corpus==0.0.1",
+    "corpus==0.1.0",
 ]
 
 [project.scripts]
