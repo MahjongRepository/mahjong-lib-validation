@@ -176,63 +176,57 @@ def extract(
     for value in ura:
         state.check_tile(value, event)
     win_number = len(state.winners) + 1
+    data = {
+        "schema_version": "v1",
+        "case_type": "scoring",
+        "case_id": (
+            f"tenhou:{quote(log_id, safe='')}:{wind}:"
+            f"{number}:{seed[1]}:{win_number}"
+        ),
+        "source": {
+            "platform": "tenhou",
+            "log_id": log_id,
+            "event_index": event.index,
+            "winner_index": 0,
+            "scoring_values": {
+                **event.attributes,
+                "GO": go.attributes,
+            },
+        },
+        "ruleset": "tenhou-ranked-match",
+        "player_count": players,
+        "round": {
+            "wind": wind,
+            "number": number,
+            "honba": seed[1],
+            "riichi_sticks": state.sticks,
+            "dealer_seat": state.dealer,
+        },
+        "win_number": win_number,
+        "input": {
+            "winner_seat": who,
+            "discarder_seat": None if who == source else source,
+            "concealed_tiles": [tile(value) for value in hand],
+            "winning_tile": tile(winning),
+            "melds": [
+                meld.corpus_value() for meld in melds if meld.kind != "nuki"
+            ],
+            "nuki_count": len(state.players[who].norths),
+            "dora_indicators": [tile(value) for value in state.indicators],
+            "ura_dora_indicators": [tile(value) for value in ura],
+            "situation": situation,
+        },
+        "situation_provenance": {
+            "method": "event_reconstruction",
+            "event_indices": list(range(state.init.index, event.index + 1)),
+            "unknown_fields": {},
+        },
+        "expected": expected,
+        "comparison": {"excluded_fields": exclusions},
+    }
+
     try:
-        return parse_case(
-            {
-                "schema_version": "v1",
-                "case_type": "scoring",
-                "case_id": (
-                    f"tenhou:{quote(log_id, safe='')}:{wind}:"
-                    f"{number}:{seed[1]}:{win_number}"
-                ),
-                "source": {
-                    "platform": "tenhou",
-                    "log_id": log_id,
-                    "event_index": event.index,
-                    "winner_index": 0,
-                    "scoring_values": {
-                        **event.attributes,
-                        "GO": go.attributes,
-                    },
-                },
-                "ruleset": "tenhou-ranked-match",
-                "player_count": players,
-                "round": {
-                    "wind": wind,
-                    "number": number,
-                    "honba": seed[1],
-                    "riichi_sticks": state.sticks,
-                    "dealer_seat": state.dealer,
-                },
-                "win_number": win_number,
-                "input": {
-                    "winner_seat": who,
-                    "discarder_seat": None if who == source else source,
-                    "concealed_tiles": [tile(value) for value in hand],
-                    "winning_tile": tile(winning),
-                    "melds": [
-                        meld.corpus_value()
-                        for meld in melds
-                        if meld.kind != "nuki"
-                    ],
-                    "nuki_count": len(state.players[who].norths),
-                    "dora_indicators": [
-                        tile(value) for value in state.indicators
-                    ],
-                    "ura_dora_indicators": [tile(value) for value in ura],
-                    "situation": situation,
-                },
-                "situation_provenance": {
-                    "method": "event_reconstruction",
-                    "event_indices": list(
-                        range(state.init.index, event.index + 1)
-                    ),
-                    "unknown_fields": {},
-                },
-                "expected": expected,
-                "comparison": {"excluded_fields": exclusions},
-            }
-        )
+        return parse_case(data)
     except CorpusError as e:
         reason = "invalid_case"
         raise event.error(reason, e.message, e.field) from e
