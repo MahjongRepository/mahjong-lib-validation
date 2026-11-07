@@ -39,8 +39,8 @@ class DecodedMeld:
 
 def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901 -- five protocol layouts, ordered by flag precedence
     def invalid() -> NoReturn:
-        msg = "unknown_meld_code"
-        raise event.error(msg, f"invalid meld code {code}", "m")
+        reason = "unknown_meld_code"
+        raise event.error(reason, f"invalid meld code {code}", "m")
 
     if not 0 <= code < 65536:
         invalid()

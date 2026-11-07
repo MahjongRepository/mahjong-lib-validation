@@ -87,20 +87,20 @@ class RoundState:
             or min(seed[:3]) < 0
             or seed[0] % 4 >= count
         ):
-            msg = "invalid_attribute"
-            raise event.error(msg, "invalid round seed", "seed")
+            reason = "invalid_attribute"
+            raise event.error(reason, "invalid round seed", "seed")
         scores = event.numbers("ten")
         if (
             len(scores) != 4
             or min(scores) < 0
             or (count == 3 and (scores[3] or event.text("hai3")))
         ):
-            msg = "invalid_attribute"
-            raise event.error(msg, "invalid round seats", "ten")
+            reason = "invalid_attribute"
+            raise event.error(reason, "invalid round seats", "ten")
         dealer = event.integer("oya")
         if not 0 <= dealer < count or dealer != seed[0] % 4:
-            msg = "invalid_attribute"
-            raise event.error(msg, "dealer conflicts with round", "oya")
+            reason = "invalid_attribute"
+            raise event.error(reason, "dealer conflicts with round", "oya")
         players = []
         seen: set[int] = set()
         for who in range(count):
@@ -110,29 +110,29 @@ class RoundState:
                 or len(set(hand)) != 13
                 or seen.intersection(hand)
             ):
-                msg = "inconsistent_events"
+                reason = "inconsistent_events"
                 raise event.error(
-                    msg,
+                    reason,
                     "invalid or duplicated initial tiles",
                     f"hai{who}",
                 )
             seen.update(hand)
             players.append(Player(set(hand)))
         state = cls(
-            event,
-            players,
-            dealer,
-            70 if count == 4 else 55,
-            [seed[5]],
-            seen,
-            dealer,
-            seed[2],
+            init=event,
+            players=players,
+            dealer=dealer,
+            remaining=70 if count == 4 else 55,
+            indicators=[seed[5]],
+            seen=seen,
+            next_seat=dealer,
+            sticks=seed[2],
         )
         for value in seen | {seed[5]}:
             state.check_tile(value, event)
         if seed[5] in seen:
-            msg = "inconsistent_events"
-            raise event.error(msg, "indicator already in hand", "seed")
+            reason = "inconsistent_events"
+            raise event.error(reason, "indicator already in hand", "seed")
         state.seen.add(seed[5])
         return state
 
@@ -140,18 +140,18 @@ class RoundState:
         if not 0 <= value < 136 or (
             len(self.players) == 3 and 4 <= value < 32
         ):
-            msg = "invalid_attribute"
-            raise event.error(msg, "tile outside ruleset", "tile")
+            reason = "invalid_attribute"
+            raise event.error(reason, "tile outside ruleset", "tile")
 
     def player(self, who: int, event: Event) -> Player:
         if not 0 <= who < len(self.players):
-            msg = "invalid_attribute"
-            raise event.error(msg, "seat outside player count", "who")
+            reason = "invalid_attribute"
+            raise event.error(reason, "seat outside player count", "who")
         return self.players[who]
 
     def fail(self, event: Event, message: str) -> NoReturn:
-        msg = "inconsistent_events"
-        raise event.error(msg, message)
+        reason = "inconsistent_events"
+        raise event.error(reason, message)
 
     def interrupt(self) -> None:
         self.interrupted = True
@@ -180,8 +180,10 @@ class RoundState:
             "kaze4",
             "nm",
         }:
-            msg = "invalid_attribute"
-            raise event.error(msg, "unknown drawn-round reason", "type")
+            error_reason = "invalid_attribute"
+            raise event.error(
+                error_reason, "unknown drawn-round reason", "type"
+            )
         ba = event.numbers("ba")
         sc = event.numbers("sc")
         if (
@@ -265,8 +267,8 @@ class RoundState:
             player.ippatsu = True
             self.sticks += 1
         else:
-            msg = "invalid_attribute"
-            raise event.error(msg, "unknown reach step", "step")
+            reason = "invalid_attribute"
+            raise event.error(reason, "unknown reach step", "step")
 
     def call(self, event: Event) -> None:
         if any(player.declared for player in self.players):

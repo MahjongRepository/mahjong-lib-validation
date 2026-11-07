@@ -8,8 +8,8 @@ class _TreeBuilder(ET.TreeBuilder):
     def doctype(
         self, _name: str, _pubid: str | None, _system: str | None
     ) -> None:
-        msg = "invalid_xml"
-        raise ConversionError(msg, "DOCTYPE and entities are unsupported")
+        reason = "invalid_xml"
+        raise ConversionError(reason, "DOCTYPE and entities are unsupported")
 
 
 @dataclass(frozen=True)
@@ -22,14 +22,16 @@ class Event:
         try:
             return self.attributes[field]
         except KeyError as e:
-            msg = "invalid_attribute"
-            raise self.error(msg, "required attribute missing", field) from e
+            reason = "invalid_attribute"
+            raise self.error(
+                reason, "required attribute missing", field
+            ) from e
 
     def integer(self, field: str) -> int:
         values = self.numbers(field)
         if len(values) != 1:
-            msg = "invalid_attribute"
-            raise self.error(msg, "expected one integer", field)
+            reason = "invalid_attribute"
+            raise self.error(reason, "expected one integer", field)
         return values[0]
 
     def numbers(self, field: str) -> list[int]:
@@ -37,8 +39,8 @@ class Event:
         try:
             return [int(part) for part in value.split(",")]
         except ValueError as e:
-            msg = "invalid_attribute"
-            raise self.error(msg, "expected integer list", field) from e
+            reason = "invalid_attribute"
+            raise self.error(reason, "expected integer list", field) from e
 
     def error(
         self, reason: str, message: str, field: str | None = None
@@ -57,23 +59,23 @@ def parse_xml(xml: bytes) -> list[Event]:
     except ConversionError:
         raise
     except (ET.ParseError, LookupError, ValueError) as e:
-        msg = "invalid_xml"
-        raise ConversionError(msg, str(e)) from e
+        reason = "invalid_xml"
+        raise ConversionError(reason, str(e)) from e
 
     if root.tag != "mjloggm":
-        msg = "invalid_xml"
-        raise ConversionError(msg, "expected mjloggm root")
+        reason = "invalid_xml"
+        raise ConversionError(reason, "expected mjloggm root")
     if root.get("ver") != "2.3":
-        msg = "unsupported_xml_version"
-        raise ConversionError(msg, "expected version 2.3")
+        reason = "unsupported_xml_version"
+        raise ConversionError(reason, "expected version 2.3")
     if (root.text or "").strip() or any(
         len(element)
         or (element.text or "").strip()
         or (element.tail or "").strip()
         for element in root
     ):
-        msg = "invalid_xml"
-        raise ConversionError(msg, "expected flat, empty event elements")
+        reason = "invalid_xml"
+        raise ConversionError(reason, "expected flat, empty event elements")
     return [
         Event(i, element.tag, dict(element.attrib))
         for i, element in enumerate(root)

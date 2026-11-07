@@ -35,16 +35,16 @@ def _header(events: list[Event]) -> Event:
     for event in events:
         if event.tag == "GO":
             if go is not None:
-                msg = "inconsistent_events"
-                raise event.error(msg, "unexpected GO")
+                reason = "inconsistent_events"
+                raise event.error(reason, "unexpected GO")
             player_count(event)
             go = event
         elif go is None and event.tag not in METADATA:
-            msg = "invalid_attribute"
-            raise event.error(msg, "GO required before play", "GO")
+            reason = "invalid_attribute"
+            raise event.error(reason, "GO required before play", "GO")
     if go is None:
-        msg = "invalid_attribute"
-        raise ConversionError(msg, "GO required before play", field="GO")
+        reason = "invalid_attribute"
+        raise ConversionError(reason, "GO required before play", field="GO")
     return go
 
 
@@ -53,8 +53,8 @@ def _start_round(
 ) -> RoundState:
     if state is not None:
         if not state.finished:
-            msg = "incomplete_log"
-            raise event.error(msg, "previous round did not finish")
+            reason = "incomplete_log"
+            raise event.error(reason, "previous round did not finish")
         state.check_settlement()
     return RoundState.start(event, count)
 
@@ -66,12 +66,15 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
     if not log_id.strip():
         message = "log_id must not be empty"
         raise ValueError(message)
+
     events = parse_xml(xml)
     go = _header(events)
     multiple_ron = multiple_ron_indices(events)
+
     state: RoundState | None = None
     cases: list[ScoringCase] = []
     ids: set[str] = set()
+
     for event in events:
         if event.tag in METADATA or event.tag == "GO":
             continue
@@ -79,8 +82,8 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
             state = _start_round(state, event, player_count(go))
             continue
         if state is None:
-            msg = "inconsistent_events"
-            raise event.error(msg, "INIT required before play")
+            reason = "inconsistent_events"
+            raise event.error(reason, "INIT required before play")
         if event.tag == "AGARI":
             case = extract(
                 event,
@@ -90,23 +93,24 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
                 multiple_ron=event.index in multiple_ron,
             )
             if case["case_id"] in ids:
-                msg = "inconsistent_events"
-                raise event.error(msg, "duplicate case ID")
+                reason = "inconsistent_events"
+                raise event.error(reason, "duplicate case ID")
             ids.add(case["case_id"])
             cases.append(case)
             state.results.append(case["expected"])
             state.winners.add(event.integer("who"))
             state.finished = True
         elif state.finished:
-            msg = "inconsistent_events"
-            raise event.error(msg, "action after round ended")
+            reason = "inconsistent_events"
+            raise event.error(reason, "action after round ended")
         elif event.tag == "RYUUKYOKU":
             state.finish_draw(event)
         else:
             advance(state, event)
+
     if state is None or not state.finished:
-        msg = "incomplete_log"
-        raise ConversionError(msg, "log must end after a completed round")
+        reason = "incomplete_log"
+        raise ConversionError(reason, "log must end after a completed round")
     state.check_settlement()
     return cases
 
@@ -126,8 +130,8 @@ def advance(state: RoundState, event: Event) -> None:
     elif event.tag == "DORA":
         state.dora(event)
     else:
-        msg = "unknown_event"
-        raise event.error(msg, f"unknown event {event.tag}")
+        reason = "unknown_event"
+        raise event.error(reason, f"unknown event {event.tag}")
 
 
 def extract(
@@ -139,8 +143,8 @@ def extract(
     multiple_ron: bool = False,
 ) -> ScoringCase:
     if state.finished and not state.winners:
-        msg = "inconsistent_events"
-        raise event.error(msg, "win after drawn round")
+        reason = "inconsistent_events"
+        raise event.error(reason, "win after drawn round")
     situation = state.situation(event)
     who = event.integer("who")
     source = event.integer("fromWho")
@@ -149,11 +153,11 @@ def extract(
     number = seed[0] % 4 + 1
     ba = event.numbers("ba")
     if len(ba) != 2 or ba[0] != seed[1] or ba[1] < 0:
-        msg = "inconsistent_events"
-        raise event.error(msg, "invalid honba or sticks", "ba")
+        reason = "inconsistent_events"
+        raise event.error(reason, "invalid honba or sticks", "ba")
     if not state.winners and ba[1] != state.sticks:
-        msg = "inconsistent_events"
-        raise event.error(msg, "sticks differ from progression", "ba")
+        reason = "inconsistent_events"
+        raise event.error(reason, "sticks differ from progression", "ba")
     winning = event.integer("machi")
     hand = event.numbers("hai")
     hand.remove(winning)
@@ -230,5 +234,5 @@ def extract(
             }
         )
     except CorpusError as e:
-        msg = "invalid_case"
-        raise event.error(msg, e.message, e.field) from e
+        reason = "invalid_case"
+        raise event.error(reason, e.message, e.field) from e

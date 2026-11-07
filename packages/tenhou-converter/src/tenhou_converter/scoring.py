@@ -83,30 +83,30 @@ def yaku_values(event: Event) -> list[Yaku]:
     pairs: list[tuple[int, int | None]]
     if yakuman:
         if "yaku" in event.attributes:
-            msg = "invalid_attribute"
-            raise event.error(msg, "invalid yaku representation", field)
+            reason = "invalid_attribute"
+            raise event.error(reason, "invalid yaku representation", field)
         pairs = [(key, None) for key in values]
     else:
         if len(values) % 2:
-            msg = "invalid_attribute"
-            raise event.error(msg, "invalid yaku representation", field)
+            reason = "invalid_attribute"
+            raise event.error(reason, "invalid yaku representation", field)
         pairs = list(zip(values[::2], values[1::2], strict=True))
 
     result: list[Yaku] = []
     seen: set[int] = set()
     for key, han in pairs:
         if not 0 <= key < len(YAKU_IDS):
-            msg = "unknown_yaku_id"
-            raise event.error(msg, f"unknown yaku {key}", field)
+            reason = "unknown_yaku_id"
+            raise event.error(reason, f"unknown yaku {key}", field)
         if key in seen or yakuman != (37 <= key <= 51):
-            msg = "invalid_attribute"
-            raise event.error(msg, "duplicate or misclassified yaku", field)
+            reason = "invalid_attribute"
+            raise event.error(reason, "duplicate or misclassified yaku", field)
         seen.add(key)
         if han == 0 and key == 53:
             continue
         if han is not None and han <= 0:
-            msg = "invalid_attribute"
-            raise event.error(msg, "han must be positive", field)
+            reason = "invalid_attribute"
+            raise event.error(reason, "han must be positive", field)
         result.append(
             {
                 "id": YAKU_IDS[key],
@@ -120,13 +120,13 @@ def yaku_values(event: Event) -> list[Yaku]:
 def _score_title(event: Event, rank: int, multiplier: int, han: int) -> Title:
     title = TITLES[rank]
     if multiplier and title != "yakuman":
-        msg = "invalid_attribute"
-        raise event.error(msg, "yakuman conflicts with title", "ten")
+        reason = "invalid_attribute"
+        raise event.error(reason, "yakuman conflicts with title", "ten")
     if title == "yakuman" and not multiplier:
         if han < 13:
-            msg = "invalid_attribute"
+            reason = "invalid_attribute"
             raise event.error(
-                msg, "kazoe needs at least thirteen recorded han", "yaku"
+                reason, "kazoe needs at least thirteen recorded han", "yaku"
             )
         return "kazoe_yakuman"
     return title
@@ -139,11 +139,11 @@ def expected_values(
     ten = event.numbers("ten")
     sc = event.numbers("sc")
     if len(ten) != 3 or not 0 <= ten[2] < len(TITLES) or min(ten) < 0:
-        msg = "invalid_attribute"
-        raise event.error(msg, "invalid score tuple", "ten")
+        reason = "invalid_attribute"
+        raise event.error(reason, "invalid score tuple", "ten")
     if len(sc) != 8 or (players == 3 and sc[6:] != [0, 0]):
-        msg = "invalid_attribute"
-        raise event.error(msg, "invalid seat score pairs", "sc")
+        reason = "invalid_attribute"
+        raise event.error(reason, "invalid seat score pairs", "sc")
     who = event.integer("who")
     deltas = [value * 100 for value in sc[1 : players * 2 : 2]]
     multiplier = sum(value["yakuman_multiplier"] for value in yaku)
@@ -163,9 +163,9 @@ def expected_values(
     # reconciled with the total paid by all payers.
     invalid_individual_allocation = not shared and (sticks < 0 or other_gains)
     if honba < 0 or payments[who] or invalid_individual_allocation:
-        msg = "inconsistent_events"
+        reason = "inconsistent_events"
         raise event.error(
-            msg,
+            reason,
             "score deltas cannot describe this win",
             "sc",
         )
@@ -181,8 +181,8 @@ def expected_values(
     if "paoWho" in event.attributes:
         pao = event.integer("paoWho")
         if not 0 <= pao < players or pao == who:
-            msg = "invalid_attribute"
-            raise event.error(msg, "invalid liable seat", "paoWho")
+            reason = "invalid_attribute"
+            raise event.error(reason, "invalid liable seat", "paoWho")
         exclusions.append(
             {"field": "payments_by_seat", "reason": "liability_payment"}
         )
