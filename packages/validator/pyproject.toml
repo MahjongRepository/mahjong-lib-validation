@@ -27,6 +27,3 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "validator"
-
-[tool.uv.sources]
-corpus = { workspace = true }

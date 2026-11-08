@@ -54,6 +54,9 @@ members = [
     "packages/validator",
 ]
 
+[tool.uv.sources]
+corpus = { workspace = true }
+
 [tool.ruff]
 line-length = 79
 extend-exclude = ["references"]
