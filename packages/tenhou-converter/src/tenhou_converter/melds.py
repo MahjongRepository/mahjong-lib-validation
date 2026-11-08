@@ -46,11 +46,13 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
     # significant bit.
     if not 0 <= code < 65536:
         invalid()
+
     # Bits 0-1 (0x0003): source seat relative to the caller; 0 means
     # self.
     # The wire format uses four seat slots even in three-player games.
     relative = code & 3
     source = (who + relative) % 4
+
     # Bit 2 (0x0004): chii. Decode this layout before the other flags.
     if code & 4:
         # Bits 10-15: sequence index * 3 + called tile's index in the
@@ -73,6 +75,7 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
             for offset in range(3)
         ]
         return DecodedMeld("chii", tiles, pattern % 3, source)
+
     # Bit 3 (0x0008): pon.
     # Bit 4 (0x0010): kakan.
     # These flags take precedence over bit 5, which is tile data in this
@@ -104,6 +107,7 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
             # indices.
             tiles.append(base + omitted)
         return DecodedMeld(kind, tiles, pattern % 3, source)
+
     # Bit 5 (0x0020): north extraction when no chii/pon/kakan flag
     # matched.
     if code & 0x20:
@@ -113,6 +117,7 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
         if code & 0xFF != 0x20 or code >> 8 not in range(120, 124):
             invalid()
         return DecodedMeld("nuki", [code >> 8], None, None)
+
     # With no preceding flag, the layout represents ankan or daiminkan.
     # Bits 8-15 contain a physical tile ID of the kan's tile kind.
     # For daiminkan, this is the called tile; for ankan, it has no
