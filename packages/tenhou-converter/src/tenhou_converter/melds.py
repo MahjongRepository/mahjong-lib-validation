@@ -128,7 +128,8 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
     if called >= 136 or code & 0xFC:
         invalid()
     # All four physical copies belong to the kan, in ascending ID order.
-    tiles = list(range(called // 4 * 4, called // 4 * 4 + 4))
+    tile_id = called // 4 * 4
+    tiles = list(range(tile_id, tile_id + 4))
     # A nonzero relative source means daiminkan; self means ankan.
     return DecodedMeld(
         "daiminkan" if relative else "ankan",
