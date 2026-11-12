@@ -205,7 +205,10 @@ def _seats(case: ScoringCase) -> None:
         if discarder is not None:
             error_field = "input.discarder_seat"
             raise CorpusError(error_field, "tsumo has no discarder")
-    elif discarder is None or discarder == hand["winner_seat"]:
+    elif discarder is None:
+        error_field = "input.discarder_seat"
+        raise CorpusError(error_field, "ron needs a discarder seat")
+    elif discarder == hand["winner_seat"]:
         error_field = "input.discarder_seat"
         raise CorpusError(error_field, "ron needs another player's seat")
 
