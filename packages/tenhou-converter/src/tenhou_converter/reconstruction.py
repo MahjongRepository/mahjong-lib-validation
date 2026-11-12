@@ -88,13 +88,13 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, count: int) -> RoundState:
+    def start(cls, event: Event, player_count: int) -> RoundState:
         seed = event.numbers("seed")
         if (
             len(seed) != 6
             or not 0 <= seed[0] < 12
             or min(seed[:3]) < 0
-            or seed[0] % 4 >= count
+            or seed[0] % 4 >= player_count
         ):
             reason = "invalid_attribute"
             raise event.error(reason, "invalid round seed", "seed")
@@ -102,17 +102,17 @@ class RoundState:
         if (
             len(scores) != 4
             or min(scores) < 0
-            or (count == 3 and (scores[3] or event.text("hai3")))
+            or (player_count == 3 and (scores[3] or event.text("hai3")))
         ):
             reason = "invalid_attribute"
             raise event.error(reason, "invalid round seats", "ten")
         dealer = event.integer("oya")
-        if not 0 <= dealer < count or dealer != seed[0] % 4:
+        if not 0 <= dealer < player_count or dealer != seed[0] % 4:
             reason = "invalid_attribute"
             raise event.error(reason, "dealer conflicts with round", "oya")
         players = []
         seen: set[int] = set()
-        for who in range(count):
+        for who in range(player_count):
             hand = event.numbers(f"hai{who}")
             if (
                 len(hand) != 13
@@ -131,7 +131,7 @@ class RoundState:
             init=event,
             players=players,
             dealer=dealer,
-            remaining=70 if count == 4 else 55,
+            remaining=70 if player_count == 4 else 55,
             indicators=[seed[5]],
             seen=seen,
             next_seat=dealer,
