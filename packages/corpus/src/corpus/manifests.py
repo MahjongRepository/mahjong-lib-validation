@@ -61,15 +61,18 @@ def _files(files: list[DataFile]) -> None:
     for index, entry in enumerate(files):
         field = f"files[{index}]"
         name = entry["path"]
-        if (
-            any(character in name for character in ("/", "\\", ":", "\x00"))
-            or not name.endswith((".jsonl", ".jsonl.gz"))
-            or name.casefold() in seen
-        ):
+        if any(character in name for character in ("/", "\\", ":", "\x00")):
             raise CorpusError(
                 field + ".path",
-                "expected a unique data file name without directories",
+                "data file name contains a forbidden character",
             )
+        if not name.endswith((".jsonl", ".jsonl.gz")):
+            raise CorpusError(
+                field + ".path",
+                "data file name must end in .jsonl or .jsonl.gz",
+            )
+        if name.casefold() in seen:
+            raise CorpusError(field + ".path", "duplicate data file name")
         seen.add(name.casefold())
         minimum(entry["record_count"], 1, field + ".record_count")
         if not fullmatch(r"[a-f0-9]{64}", entry["sha256"]):

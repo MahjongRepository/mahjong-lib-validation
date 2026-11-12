@@ -93,6 +93,7 @@ def test_invalid_conversion_reason_counts(
         "sub/a.jsonl",
         r"sub\a.jsonl",
         "C:a.jsonl",
+        "a\x00.jsonl",
         "manifest.json",
     ],
 )
