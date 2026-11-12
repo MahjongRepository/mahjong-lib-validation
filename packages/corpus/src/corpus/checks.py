@@ -121,7 +121,9 @@ def _yaku_ids(yaku: list[Yaku]) -> None:
         seen.add(item["id"])
 
 
-def _yaku(expected: Expected) -> None:
+def _yaku(  # noqa: C901 -- distinguish missing han from invalid values
+    expected: Expected,
+) -> None:
     if expected["yaku"] is None:
         return
     _yaku_ids(expected["yaku"])
@@ -136,7 +138,11 @@ def _yaku(expected: Expected) -> None:
         if multiplier > 0:
             if han is not None:
                 raise CorpusError(field + ".han", "yakuman has no han value")
-        elif han is None or han <= 0:
+        elif han is None:
+            raise CorpusError(
+                field + ".han", "regular yaku needs a recorded han value"
+            )
+        elif han <= 0:
             raise CorpusError(
                 field + ".han", "regular yaku needs positive han"
             )
