@@ -164,6 +164,16 @@ class RoundState:
             raise event.error(
                 reason, "round seat outside player count", "seed"
             )
+        if any(not 0 <= value < 6 for value in seed[3:5]):
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "dice value outside supported range", "seed"
+            )
+        if not 0 <= seed[5] < 136:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "initial indicator outside tile range", "seed"
+            )
 
     def check_tile(self, tile136: int, event: Event) -> None:
         if not 0 <= tile136 < 136 or (

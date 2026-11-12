@@ -63,6 +63,58 @@ def test_sanma_rejects_round_without_matching_seat() -> None:
     assert caught.value.field == "seed"
 
 
+@pytest.mark.parametrize("index", [3, 4])
+@pytest.mark.parametrize("value", [-1, 6])
+def test_round_state_rejects_invalid_dice(index: int, value: int) -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    init = root.find("INIT")
+    assert init is not None
+    seed = init.attrib["seed"].split(",")
+    seed[index] = str(value)
+    init.set("seed", ",".join(seed))
+
+    with pytest.raises(ConversionError) as caught:
+        RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "seed"
+
+
+@pytest.mark.parametrize("value", [-1, 136])
+def test_round_state_rejects_invalid_initial_indicator(value: int) -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    init = root.find("INIT")
+    assert init is not None
+    seed = init.attrib["seed"].split(",")
+    seed[5] = str(value)
+    init.set("seed", ",".join(seed))
+
+    with pytest.raises(ConversionError) as caught:
+        RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "seed"
+
+
+@pytest.mark.parametrize(("first_die", "second_die"), [(0, 5), (5, 0)])
+@pytest.mark.parametrize("indicator", [0, 135])
+def test_round_state_accepts_dice_and_indicator_boundaries(
+    first_die: int, second_die: int, indicator: int
+) -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    init = root.find("INIT")
+    assert init is not None
+    init.set("seed", f"0,0,0,{first_die},{second_die},{indicator}")
+    # Keep both possible indicators out of the initial hands.
+    hand = init.attrib["hai0"].split(",")
+    hand[hand.index("135")] = "2"
+    init.set("hai0", ",".join(hand))
+
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+
+    assert state.indicators == [indicator]
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")
