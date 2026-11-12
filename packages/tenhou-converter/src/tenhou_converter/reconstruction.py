@@ -51,6 +51,7 @@ class RoundState:
     def check_settlement(self) -> None:
         if not self.results:
             return
+
         for result in self.results:
             deltas = result["event_score_deltas"] or []
             if any(
@@ -67,8 +68,8 @@ class RoundState:
                     self.init,
                     "shared deltas conflict with available riichi sticks",
                 )
+
         sticks = [result["riichi_stick_points"] for result in self.results]
-        honba = [result["honba_points"] for result in self.results]
         if (
             all(value is not None for value in sticks)
             and sum(value or 0 for value in sticks) != self.sticks * 1000
@@ -77,6 +78,8 @@ class RoundState:
                 self.init,
                 "score components conflict with available riichi sticks",
             )
+
+        honba = [result["honba_points"] for result in self.results]
         if (
             all(value is not None for value in honba)
             and sum(value or 0 for value in honba)
