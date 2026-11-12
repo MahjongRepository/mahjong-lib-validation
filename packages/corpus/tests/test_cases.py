@@ -171,6 +171,7 @@ def test_reject_wrong_concealed_count(example: dict[str, Any]) -> None:
         (["1m", "2m"], 0),
         (["1m", "2m", "4m"], 0),
         (["1m", "2p", "3m"], 0),
+        (["1z", "2z", "3z"], 0),
         (["1m", "2m", "3m"], 3),
     ],
 )

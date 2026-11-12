@@ -220,11 +220,13 @@ def _meld(meld: Meld, field: str) -> None:
     kinds = [_kind(tile) for tile in tiles]
     if meld["type"] == "chii":
         ranks = sorted(int(tile[0]) for tile in kinds)
-        if (
-            len({tile[1] for tile in kinds}) != 1
-            or kinds[0][1] == "z"
-            or ranks != list(range(ranks[0], ranks[0] + 3))
-        ):
+        if len({tile[1] for tile in kinds}) != 1:
+            raise CorpusError(
+                field + ".tiles", "chii tiles must share one suit"
+            )
+        if kinds[0][1] == "z":
+            raise CorpusError(field + ".tiles", "chii cannot contain honors")
+        if ranks != list(range(ranks[0], ranks[0] + 3)):
             raise CorpusError(
                 field + ".tiles", "chii needs three consecutive tiles"
             )
