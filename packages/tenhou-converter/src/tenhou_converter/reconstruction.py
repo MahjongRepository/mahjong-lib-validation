@@ -88,7 +88,7 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, player_count: int) -> RoundState:
+    def start(cls, event: Event, player_count: int) -> RoundState:  # noqa: C901 -- sequential validation with distinct diagnostics
         seed = event.numbers("seed")
         cls._check_seed(seed, event, player_count)
 
@@ -116,15 +116,25 @@ class RoundState:
         seen: set[int] = set()
         for who in range(player_count):
             hand = event.numbers(f"hai{who}")
-            if (
-                len(hand) != 13
-                or len(set(hand)) != 13
-                or seen.intersection(hand)
-            ):
+            if len(hand) != 13:
                 reason = "inconsistent_events"
                 raise event.error(
                     reason,
-                    "invalid or duplicated initial tiles",
+                    "initial hand must contain thirteen tiles",
+                    f"hai{who}",
+                )
+            if len(set(hand)) != len(hand):
+                reason = "inconsistent_events"
+                raise event.error(
+                    reason,
+                    "duplicated tile in initial hand",
+                    f"hai{who}",
+                )
+            if seen.intersection(hand):
+                reason = "inconsistent_events"
+                raise event.error(
+                    reason,
+                    "initial tile already in another player's hand",
                     f"hai{who}",
                 )
             seen.update(hand)
