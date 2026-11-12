@@ -98,6 +98,7 @@ class RoundState:
         ):
             reason = "invalid_attribute"
             raise event.error(reason, "invalid round seed", "seed")
+
         scores = event.numbers("ten")
         if (
             len(scores) != 4
@@ -106,10 +107,12 @@ class RoundState:
         ):
             reason = "invalid_attribute"
             raise event.error(reason, "invalid round seats", "ten")
+
         dealer = event.integer("oya")
         if not 0 <= dealer < player_count or dealer != seed[0] % 4:
             reason = "invalid_attribute"
             raise event.error(reason, "dealer conflicts with round", "oya")
+
         players = []
         seen: set[int] = set()
         for who in range(player_count):
@@ -127,6 +130,7 @@ class RoundState:
                 )
             seen.update(hand)
             players.append(Player(set(hand)))
+
         state = cls(
             init=event,
             players=players,
