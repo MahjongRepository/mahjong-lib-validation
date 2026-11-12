@@ -93,13 +93,19 @@ class RoundState:
         cls._check_seed(seed, event, player_count)
 
         scores = event.numbers("ten")
-        if (
-            len(scores) != 4
-            or min(scores) < 0
-            or (player_count == 3 and (scores[3] or event.text("hai3")))
-        ):
+        if len(scores) != 4:
             reason = "invalid_attribute"
-            raise event.error(reason, "invalid round seats", "ten")
+            raise event.error(
+                reason, "round scores must contain four values", "ten"
+            )
+        if min(scores) < 0:
+            reason = "invalid_attribute"
+            raise event.error(reason, "negative initial score", "ten")
+        if player_count == 3 and (scores[3] or event.text("hai3")):
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "unused sanma seat has score or initial tiles", "ten"
+            )
 
         dealer = event.integer("oya")
         if not 0 <= dealer < player_count or dealer != seed[0] % 4:

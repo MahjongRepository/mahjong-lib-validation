@@ -115,6 +115,31 @@ def test_round_state_accepts_dice_and_indicator_boundaries(
     assert state.indicators == [indicator]
 
 
+@pytest.mark.parametrize(
+    ("player_count", "field", "value"),
+    [
+        (4, "ten", "250,250,250"),
+        (4, "ten", "250,-1,250,250"),
+        (3, "ten", "350,350,350,1"),
+        (3, "hai3", "0"),
+    ],
+)
+def test_round_state_rejects_invalid_scores_or_extra_seat(
+    player_count: int, field: str, value: str
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    root = ET.parse(FIXTURES / fixture).getroot()
+    init = root.find("INIT")
+    assert init is not None
+    init.set(field, value)
+
+    with pytest.raises(ConversionError) as caught:
+        RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "ten"
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")
