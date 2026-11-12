@@ -121,9 +121,7 @@ def _yaku_ids(yaku: list[Yaku]) -> None:
         seen.add(item["id"])
 
 
-def _yaku(  # noqa: C901 -- distinguish missing han from invalid values
-    expected: Expected,
-) -> None:
+def _yaku(expected: Expected) -> None:  # noqa: C901 -- distinguish missing han from invalid values
     if expected["yaku"] is None:
         return
     _yaku_ids(expected["yaku"])
