@@ -92,7 +92,7 @@ class RoundState:
         seed = event.numbers("seed")
         if (
             len(seed) != 6
-            or not 0 <= seed[0] < 16
+            or not 0 <= seed[0] < 12
             or min(seed[:3]) < 0
             or seed[0] % 4 >= count
         ):

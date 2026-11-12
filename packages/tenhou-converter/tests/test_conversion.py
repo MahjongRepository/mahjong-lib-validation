@@ -7,6 +7,8 @@ from xml.etree import ElementTree as ET
 import pytest
 from tenhou_converter import convert_log
 from tenhou_converter.errors import ConversionError
+from tenhou_converter.parser import Event
+from tenhou_converter.reconstruction import RoundState
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -24,6 +26,7 @@ def test_log_id_is_preserved_and_only_case_id_is_percent_encoded() -> None:
     [
         ("GO", "type", "x", "invalid_attribute"),
         ("INIT", "seed", "0", "invalid_attribute"),
+        ("INIT", "seed", "12,0,0,0,1,31", "invalid_attribute"),
         ("AGARI", "yaku", "999,1", "unknown_yaku_id"),
         ("AGARI", "who", "4", "invalid_attribute"),
         ("AGARI", "hai", "102", "inconsistent_events"),
@@ -40,6 +43,18 @@ def test_invalid_records_are_positioned_errors(
         convert_log(ET.tostring(root), log_id="synthetic-invalid")
     assert caught.value.reason == reason
     assert caught.value.event_index is not None
+
+
+def test_round_state_accepts_west_four() -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    init = root.find("INIT")
+    assert init is not None
+    init.set("seed", "11,0,0,0,1,31")
+    init.set("oya", "3")
+
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+
+    assert state.dealer == 3
 
 
 def test_four_player_ron_matches_independently_checked_case() -> None:
