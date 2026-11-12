@@ -11,7 +11,9 @@ from corpus.errors import CorpusError
 def validate_json(value: object, field: str) -> None:
     if value is None or type(value) in (str, int, bool):
         return
-    if isinstance(value, float) and isfinite(value):
+    if isinstance(value, float):
+        if not isfinite(value):
+            raise CorpusError(field, "JSON numbers must be finite")
         return
     if isinstance(value, list):
         for index, child in enumerate(value):
@@ -23,7 +25,7 @@ def validate_json(value: object, field: str) -> None:
                 raise CorpusError(field, "JSON object keys must be strings")
             validate_json(child, f"{field}.{key}")
         return
-    raise CorpusError(field, "expected finite JSON data")
+    raise CorpusError(field, "unsupported JSON value type")
 
 
 def minimum(value: int | None, minimum: int, field: str) -> None:
