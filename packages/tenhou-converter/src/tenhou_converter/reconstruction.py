@@ -145,9 +145,9 @@ class RoundState:
         state.seen.add(seed[5])
         return state
 
-    def check_tile(self, value: int, event: Event) -> None:
-        if not 0 <= value < 136 or (
-            len(self.players) == 3 and 4 <= value < 32
+    def check_tile(self, tile136: int, event: Event) -> None:
+        if not 0 <= tile136 < 136 or (
+            len(self.players) == 3 and 4 <= tile136 < 32
         ):
             reason = "invalid_attribute"
             raise event.error(reason, "tile outside ruleset", "tile")
@@ -206,16 +206,16 @@ class RoundState:
             )
         self.finished = True
 
-    def draw(self, who: int, value: int, event: Event) -> None:
+    def draw(self, who: int, tile136: int, event: Event) -> None:
         if any(player.declared for player in self.players):
             self.fail(event, "draw before riichi confirmation")
-        self.check_tile(value, event)
+        self.check_tile(tile136, event)
         player = self.player(who, event)
         if (
             self.phase == "discard"
             or who != self.next_seat
             or self.remaining <= 0
-            or value in self.seen
+            or tile136 in self.seen
         ):
             self.fail(event, "unexpected or duplicated draw")
         self.supplemental = self.last is not None and self.last.kind in (
@@ -227,26 +227,26 @@ class RoundState:
         if self.supplemental:
             self.interrupt()
         self.remaining -= 1
-        self.seen.add(value)
-        player.hand.add(value)
+        self.seen.add(tile136)
+        player.hand.add(tile136)
         player.draws += 1
         self.phase = "discard"
-        self.last = Action(kind="draw", seat=who, tile=value)
+        self.last = Action(kind="draw", seat=who, tile=tile136)
 
-    def discard(self, who: int, value: int, event: Event) -> None:
+    def discard(self, who: int, tile136: int, event: Event) -> None:
         player = self.player(who, event)
         if (
             self.phase != "discard"
             or who != self.next_seat
-            or value not in player.hand
+            or tile136 not in player.hand
         ):
             self.fail(event, "discard without matching draw or call")
-        player.hand.remove(value)
+        player.hand.remove(tile136)
         player.discards += 1
         player.ippatsu = False
         self.phase = "response"
         self.next_seat = (who + 1) % len(self.players)
-        self.last = Action(kind="discard", seat=who, tile=value)
+        self.last = Action(kind="discard", seat=who, tile=tile136)
 
     def reach(self, event: Event) -> None:
         who = event.integer("who")
