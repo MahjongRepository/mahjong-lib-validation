@@ -88,24 +88,12 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, player_count: int) -> RoundState:  # noqa: C901 -- sequential validation with distinct diagnostics
+    def start(cls, event: Event, player_count: int) -> RoundState:
         seed = event.numbers("seed")
         cls._check_seed(seed, event, player_count)
 
         scores = event.numbers("ten")
-        if len(scores) != 4:
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "round scores must contain four values", "ten"
-            )
-        if min(scores) < 0:
-            reason = "invalid_attribute"
-            raise event.error(reason, "negative initial score", "ten")
-        if player_count == 3 and (scores[3] or event.text("hai3")):
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "unused sanma seat has score or initial tiles", "ten"
-            )
+        cls._check_scores(scores, event, player_count)
 
         dealer = event.integer("oya")
         if not 0 <= dealer < player_count or dealer != seed[0] % 4:
@@ -116,27 +104,7 @@ class RoundState:
         seen: set[int] = set()
         for who in range(player_count):
             hand = event.numbers(f"hai{who}")
-            if len(hand) != 13:
-                reason = "inconsistent_events"
-                raise event.error(
-                    reason,
-                    "initial hand must contain thirteen tiles",
-                    f"hai{who}",
-                )
-            if len(set(hand)) != len(hand):
-                reason = "inconsistent_events"
-                raise event.error(
-                    reason,
-                    "duplicated tile in initial hand",
-                    f"hai{who}",
-                )
-            if seen.intersection(hand):
-                reason = "inconsistent_events"
-                raise event.error(
-                    reason,
-                    "initial tile already in another player's hand",
-                    f"hai{who}",
-                )
+            cls._check_hand(hand, event, who, seen)
             seen.update(hand)
             players.append(Player(set(hand)))
 
@@ -150,6 +118,7 @@ class RoundState:
             next_seat=dealer,
             sticks=seed[2],
         )
+
         for value in seen | {seed[5]}:
             state.check_tile(value, event)
         if seed[5] in seen:
@@ -189,6 +158,50 @@ class RoundState:
             reason = "invalid_attribute"
             raise event.error(
                 reason, "initial indicator outside tile range", "seed"
+            )
+
+    @staticmethod
+    def _check_scores(
+        scores: list[int], event: Event, player_count: int
+    ) -> None:
+        if len(scores) != 4:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round scores must contain four values", "ten"
+            )
+        if min(scores) < 0:
+            reason = "invalid_attribute"
+            raise event.error(reason, "negative initial score", "ten")
+        if player_count == 3 and (scores[3] or event.text("hai3")):
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "unused sanma seat has score or initial tiles", "ten"
+            )
+
+    @staticmethod
+    def _check_hand(
+        hand: list[int], event: Event, who: int, seen: set[int]
+    ) -> None:
+        if len(hand) != 13:
+            reason = "inconsistent_events"
+            raise event.error(
+                reason,
+                "initial hand must contain thirteen tiles",
+                f"hai{who}",
+            )
+        if len(set(hand)) != len(hand):
+            reason = "inconsistent_events"
+            raise event.error(
+                reason,
+                "duplicated tile in initial hand",
+                f"hai{who}",
+            )
+        if seen.intersection(hand):
+            reason = "inconsistent_events"
+            raise event.error(
+                reason,
+                "initial tile already in another player's hand",
+                f"hai{who}",
             )
 
     def check_tile(self, tile136: int, event: Event) -> None:
