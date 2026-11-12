@@ -27,6 +27,9 @@ def test_log_id_is_preserved_and_only_case_id_is_percent_encoded() -> None:
         ("GO", "type", "x", "invalid_attribute"),
         ("INIT", "seed", "0", "invalid_attribute"),
         ("INIT", "seed", "12,0,0,0,1,31", "invalid_attribute"),
+        ("INIT", "seed", "-1,0,0,0,1,31", "invalid_attribute"),
+        ("INIT", "seed", "0,-1,0,0,1,31", "invalid_attribute"),
+        ("INIT", "seed", "0,0,-1,0,1,31", "invalid_attribute"),
         ("AGARI", "yaku", "999,1", "unknown_yaku_id"),
         ("AGARI", "who", "4", "invalid_attribute"),
         ("AGARI", "hai", "102", "inconsistent_events"),
@@ -43,6 +46,21 @@ def test_invalid_records_are_positioned_errors(
         convert_log(ET.tostring(root), log_id="synthetic-invalid")
     assert caught.value.reason == reason
     assert caught.value.event_index is not None
+
+
+def test_sanma_rejects_round_without_matching_seat() -> None:
+    root = ET.parse(FIXTURES / "sanma-tsumo.xml").getroot()
+    init = root.find("INIT")
+    assert init is not None
+    seed = init.get("seed", "").split(",")
+    seed[0] = "3"
+    init.set("seed", ",".join(seed))
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-invalid-round")
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "seed"
 
 
 def test_round_state_accepts_west_four() -> None:

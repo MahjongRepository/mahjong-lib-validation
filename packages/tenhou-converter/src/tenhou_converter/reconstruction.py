@@ -88,16 +88,28 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, player_count: int) -> RoundState:
+    def start(cls, event: Event, player_count: int) -> RoundState:  # noqa: C901 -- sequential validation with distinct diagnostics
         seed = event.numbers("seed")
-        if (
-            len(seed) != 6
-            or not 0 <= seed[0] < 12
-            or min(seed[:3]) < 0
-            or seed[0] % 4 >= player_count
-        ):
+        if len(seed) != 6:
             reason = "invalid_attribute"
-            raise event.error(reason, "invalid round seed", "seed")
+            raise event.error(
+                reason, "round seed must contain six values", "seed"
+            )
+        if not 0 <= seed[0] < 12:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round number outside supported range", "seed"
+            )
+        if min(seed[1:3]) < 0:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "negative honba or riichi stick count", "seed"
+            )
+        if seed[0] % 4 >= player_count:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round seat outside player count", "seed"
+            )
 
         scores = event.numbers("ten")
         if (
