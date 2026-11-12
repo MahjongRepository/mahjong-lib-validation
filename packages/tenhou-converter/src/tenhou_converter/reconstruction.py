@@ -88,28 +88,9 @@ class RoundState:
             self.fail(self.init, "score components conflict with honba")
 
     @classmethod
-    def start(cls, event: Event, player_count: int) -> RoundState:  # noqa: C901 -- sequential validation with distinct diagnostics
+    def start(cls, event: Event, player_count: int) -> RoundState:
         seed = event.numbers("seed")
-        if len(seed) != 6:
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "round seed must contain six values", "seed"
-            )
-        if not 0 <= seed[0] < 12:
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "round number outside supported range", "seed"
-            )
-        if min(seed[1:3]) < 0:
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "negative honba or riichi stick count", "seed"
-            )
-        if seed[0] % 4 >= player_count:
-            reason = "invalid_attribute"
-            raise event.error(
-                reason, "round seat outside player count", "seed"
-            )
+        cls._check_seed(seed, event, player_count)
 
         scores = event.numbers("ten")
         if (
@@ -160,6 +141,29 @@ class RoundState:
             raise event.error(reason, "indicator already in hand", "seed")
         state.seen.add(seed[5])
         return state
+
+    @staticmethod
+    def _check_seed(seed: list[int], event: Event, player_count: int) -> None:
+        if len(seed) != 6:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round seed must contain six values", "seed"
+            )
+        if not 0 <= seed[0] < 12:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round number outside supported range", "seed"
+            )
+        if min(seed[1:3]) < 0:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "negative honba or riichi stick count", "seed"
+            )
+        if seed[0] % 4 >= player_count:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "round seat outside player count", "seed"
+            )
 
     def check_tile(self, tile136: int, event: Event) -> None:
         if not 0 <= tile136 < 136 or (
