@@ -35,6 +35,10 @@ corpus の初期実装と API の確認事項は
 実装は [天鳳 converter のテストリスト](docs/tenhou-converter-implementation.md)
 から一件ずつ進める。
 
+検証処理の原因別分割は、一時的な
+[検証分割 TODO](docs/tenhou-converter-validation-todo.md) で管理する。
+修正ごとに更新し、全項目の対応完了後にこのリンクと TODO ファイルを削除する。
+
 corpus を使った検証・計測・比較・プロファイルは
 [validator パッケージの設計](docs/validator-design.md) を参照する。
 実装先は `packages/validator/` とし、
