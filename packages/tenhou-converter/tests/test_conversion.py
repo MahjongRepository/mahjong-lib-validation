@@ -153,6 +153,41 @@ def test_round_state_rejects_invalid_scores_or_extra_seat(
     assert caught.value.field == "ten"
 
 
+@pytest.mark.parametrize(
+    ("player_count", "tile136"),
+    [(3, -1), (3, 136), (4, -1), (4, 136), (3, 4), (3, 31)],
+)
+def test_check_tile_rejects_invalid_tiles(
+    player_count: int, tile136: int
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+
+    with pytest.raises(ConversionError) as caught:
+        state.check_tile(tile136, Event(9, "DORA", {}))
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "tile"
+    assert caught.value.event_index == 9
+
+
+@pytest.mark.parametrize(
+    ("player_count", "tile136"),
+    [(3, 0), (3, 3), (3, 32), (3, 135), (4, 0), (4, 4), (4, 31), (4, 135)],
+)
+def test_check_tile_accepts_valid_boundaries(
+    player_count: int, tile136: int
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+
+    state.check_tile(tile136, Event(9, "DORA", {}))
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")

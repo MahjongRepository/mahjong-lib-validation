@@ -205,11 +205,14 @@ class RoundState:
             )
 
     def check_tile(self, tile136: int, event: Event) -> None:
-        if not 0 <= tile136 < 136 or (
-            len(self.players) == 3 and 4 <= tile136 < 32
-        ):
+        if not 0 <= tile136 < 136:
             reason = "invalid_attribute"
-            raise event.error(reason, "tile outside ruleset", "tile")
+            raise event.error(reason, "tile ID outside 136-tile range", "tile")
+        if len(self.players) == 3 and 4 <= tile136 < 32:
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "sanma excludes two through eight man", "tile"
+            )
 
     def player(self, who: int, event: Event) -> Player:
         if not 0 <= who < len(self.players):

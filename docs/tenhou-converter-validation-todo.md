@@ -3,7 +3,7 @@
 作成日: 2026-11-14
 
 原因別の診断を具体化するための、一時的な確認・作業リスト。
-レビューで挙げた26か所を記録する。現時点で実装は変更していない。
+レビューで挙げた26か所を記録し、対応状況をチェックで管理する。
 
 ## 進め方
 
@@ -21,8 +21,10 @@
 
 対象: [reconstruction.py](../packages/tenhou-converter/src/tenhou_converter/reconstruction.py)
 
-- [ ] 01. `RoundState.check_tile()`
+- [x] 01. `RoundState.check_tile()`
   — 136形式の範囲外と、三麻では使わない二〜八萬を分ける。
+  四麻・三麻の範囲外、三麻の除外範囲、正常な境界値をテストし、
+  `reason`・項目・イベント位置の維持を確認した。メッセージの文言は固定しない。
 - [ ] 02. `RoundState.finish_draw()` の精算情報
   — 本場・供託の不一致、`sc` の要素数不正、三麻の不使用席の点数情報を分ける。
 - [ ] 03. `RoundState.draw()`
