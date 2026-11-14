@@ -188,6 +188,54 @@ def test_check_tile_accepts_valid_boundaries(
     state.check_tile(tile136, Event(9, "DORA", {}))
 
 
+@pytest.mark.parametrize(
+    ("player_count", "ba", "sc"),
+    [
+        (4, "1,0", "250,0,250,0,250,0,250,0"),
+        (4, "0,1", "250,0,250,0,250,0,250,0"),
+        (4, "0", "250,0,250,0,250,0,250,0"),
+        (4, "0,0", "250,0,250,0,250,0,250"),
+        (4, "0,0", "250,0,250,0,250,0,250,0,0"),
+        (3, "0,0", "350,0,350,0,350,0,1,0"),
+        (3, "0,0", "350,0,350,0,350,0,0,1"),
+    ],
+)
+def test_drawn_round_rejects_inconsistent_settlement(
+    player_count: int, ba: str, sc: str
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+    event = Event(9, "RYUUKYOKU", {"type": "yao9", "ba": ba, "sc": sc})
+
+    with pytest.raises(ConversionError) as caught:
+        state.finish_draw(event)
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert not state.finished
+
+
+@pytest.mark.parametrize(
+    ("player_count", "sc"),
+    [(3, "350,0,350,0,350,0,0,0"), (4, "250,0,250,0,250,0,250,0")],
+)
+def test_drawn_round_accepts_consistent_settlement(
+    player_count: int, sc: str
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+    event = Event(9, "RYUUKYOKU", {"type": "yao9", "ba": "0,0", "sc": sc})
+
+    state.finish_draw(event)
+
+    assert state.finished
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")

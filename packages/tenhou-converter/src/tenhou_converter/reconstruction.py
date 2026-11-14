@@ -258,13 +258,15 @@ class RoundState:
             )
         ba = event.numbers("ba")
         sc = event.numbers("sc")
-        if (
-            ba != [self.init.numbers("seed")[1], self.sticks]
-            or len(sc) != 8
-            or (len(self.players) == 3 and sc[6:] != [0, 0])
-        ):
+        if ba != [self.init.numbers("seed")[1], self.sticks]:
             self.fail(
-                event, "drawn-round seats or sticks conflict with progression"
+                event, "drawn-round honba or sticks conflict with progression"
+            )
+        if len(sc) != 8:
+            self.fail(event, "drawn-round scores must contain eight values")
+        if len(self.players) == 3 and sc[6:] != [0, 0]:
+            self.fail(
+                event, "unused sanma seat has drawn-round score or delta"
             )
         self.finished = True
 
