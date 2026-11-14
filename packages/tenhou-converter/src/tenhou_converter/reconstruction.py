@@ -327,9 +327,10 @@ class RoundState:
             player.declared = True
             player.double = not self.interrupted and player.discards == 0
         elif step == 2:
+            if not player.declared:
+                self.fail(event, "riichi confirmation without declaration")
             if (
-                not player.declared
-                or self.last is None
+                self.last is None
                 or self.last.kind != "discard"
                 or self.last.seat != who
             ):

@@ -11,7 +11,7 @@ from tenhou_converter import convert_log
 from tenhou_converter.errors import ConversionError
 from tenhou_converter.melds import decode_meld
 from tenhou_converter.parser import Event
-from tenhou_converter.reconstruction import RoundState
+from tenhou_converter.reconstruction import Action, RoundState
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -403,6 +403,57 @@ def test_riichi_declaration_accepts_closed_hand(meld_code: int | None) -> None:
     assert state.players[0].declared
     assert state.players[0].riichi == "none"
     assert state.players[0].double == (not state.interrupted)
+
+
+@pytest.mark.parametrize(
+    ("declared", "last"),
+    [
+        (False, Action("discard", 0, 124)),
+        (True, None),
+        (True, Action("draw", 0, 124)),
+        (True, Action("discard", 1, 124)),
+    ],
+    ids=["no-declaration", "no-action", "not-discard", "other-seat"],
+)
+def test_riichi_confirmation_rejects_invalid_state_without_changes(
+    last: Action | None, *, declared: bool
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.players[0].declared = declared
+    state.last = last
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.reach(Event(9, "REACH", {"who": "0", "step": "2"}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("interrupted", [False, True])
+def test_riichi_confirmation_accepts_declaration_discard(
+    *, interrupted: bool
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.interrupted = interrupted
+    state.draw(0, 124, Event(8, "T124", {}))
+    state.reach(Event(9, "REACH", {"who": "0", "step": "1"}))
+    state.discard(0, 124, Event(10, "D124", {}))
+
+    state.reach(Event(11, "REACH", {"who": "0", "step": "2"}))
+
+    assert not state.players[0].declared
+    assert state.players[0].riichi == (
+        "riichi" if interrupted else "double_riichi"
+    )
+    assert state.players[0].ippatsu
+    assert state.sticks == 1
 
 
 def test_round_state_accepts_west_four() -> None:
