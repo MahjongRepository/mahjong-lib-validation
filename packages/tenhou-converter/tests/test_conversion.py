@@ -9,6 +9,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from tenhou_converter import convert_log
 from tenhou_converter.errors import ConversionError
+from tenhou_converter.melds import decode_meld
 from tenhou_converter.parser import Event
 from tenhou_converter.reconstruction import RoundState
 
@@ -332,6 +333,76 @@ def test_discard_accepts_held_or_drawn_tile(tile136: int) -> None:
     assert state.last.kind == "discard"
     assert state.last.seat == 0
     assert state.last.tile == tile136
+
+
+@pytest.mark.parametrize(
+    ("phase", "next_seat", "declared", "riichi", "meld_code"),
+    [
+        ("draw", 0, False, "none", None),
+        ("discard", 1, False, "none", None),
+        ("discard", 0, True, "none", None),
+        ("discard", 0, False, "riichi", None),
+        ("discard", 0, False, "double_riichi", None),
+        ("discard", 0, False, "none", 7),
+        ("discard", 0, False, "none", 41514),
+        ("discard", 0, False, "none", 28161),
+        ("discard", 0, False, "none", 41522),
+    ],
+    ids=[
+        "wrong-phase",
+        "wrong-seat",
+        "pending-declaration",
+        "riichi",
+        "double-riichi",
+        "chii",
+        "pon",
+        "daiminkan",
+        "kakan",
+    ],
+)
+def test_riichi_declaration_rejects_invalid_state_without_changes(
+    phase: Literal["draw", "discard", "response"],
+    next_seat: int,
+    *,
+    declared: bool,
+    riichi: Literal["none", "riichi", "double_riichi"],
+    meld_code: int | None,
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.phase = phase
+    state.next_seat = next_seat
+    state.players[0].declared = declared
+    state.players[0].riichi = riichi
+    if meld_code is not None:
+        state.players[0].melds.append(decode_meld(meld_code, 0, state.init))
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.reach(Event(9, "REACH", {"who": "0", "step": "1"}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("meld_code", [None, 27648], ids=["closed", "ankan"])
+def test_riichi_declaration_accepts_closed_hand(meld_code: int | None) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.draw(0, 124, Event(8, "T124", {}))
+    if meld_code is not None:
+        state.players[0].melds.append(decode_meld(meld_code, 0, state.init))
+        state.interrupted = True
+
+    state.reach(Event(9, "REACH", {"who": "0", "step": "1"}))
+
+    assert state.players[0].declared
+    assert state.players[0].riichi == "none"
+    assert state.players[0].double == (not state.interrupted)
 
 
 def test_round_state_accepts_west_four() -> None:

@@ -314,14 +314,16 @@ class RoundState:
         player = self.player(who, event)
         step = event.integer("step")
         if step == 1:
-            if (
-                self.phase != "discard"
-                or self.next_seat != who
-                or player.declared
-                or player.riichi != "none"
-                or any(meld.kind != "ankan" for meld in player.melds)
-            ):
-                self.fail(event, "invalid riichi declaration")
+            if self.phase != "discard" or self.next_seat != who:
+                self.fail(
+                    event, "riichi declaration at an invalid phase or seat"
+                )
+            if player.declared or player.riichi != "none":
+                self.fail(
+                    event, "riichi declaration is already pending or confirmed"
+                )
+            if any(meld.kind != "ankan" for meld in player.melds):
+                self.fail(event, "riichi declaration requires a closed hand")
             player.declared = True
             player.double = not self.interrupted and player.discards == 0
         elif step == 2:
