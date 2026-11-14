@@ -1,7 +1,9 @@
 # XML inputs below are trusted local fixtures.
 # ruff: noqa: S314
 import json
+from copy import deepcopy
 from pathlib import Path
+from typing import Literal
 from xml.etree import ElementTree as ET
 
 import pytest
@@ -234,6 +236,57 @@ def test_drawn_round_accepts_consistent_settlement(
     state.finish_draw(event)
 
     assert state.finished
+
+
+@pytest.mark.parametrize(
+    ("phase", "who", "remaining", "tile136"),
+    [
+        ("discard", 0, 70, 124),
+        ("draw", 1, 70, 124),
+        ("draw", 0, 0, 124),
+        ("draw", 0, 70, 26),
+    ],
+    ids=["wrong-phase", "wrong-seat", "empty-wall", "seen-tile"],
+)
+def test_draw_rejects_invalid_progression_without_changing_state(
+    phase: Literal["draw", "discard", "response"],
+    who: int,
+    remaining: int,
+    tile136: int,
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.phase = phase
+    state.remaining = remaining
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.draw(who, tile136, Event(9, "T124", {}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("phase", ["draw", "response"])
+def test_draw_accepts_last_remaining_tile(
+    phase: Literal["draw", "discard", "response"],
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.phase = phase
+    state.remaining = 1
+
+    state.draw(0, 124, Event(9, "T124", {}))
+
+    assert state.remaining == 0
+    assert 124 in state.players[0].hand
+    assert 124 in state.seen
+    assert state.players[0].draws == 1
+    assert state.phase == "discard"
 
 
 def test_round_state_accepts_west_four() -> None:

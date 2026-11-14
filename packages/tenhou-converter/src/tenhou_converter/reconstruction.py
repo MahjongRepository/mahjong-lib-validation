@@ -275,13 +275,12 @@ class RoundState:
             self.fail(event, "draw before riichi confirmation")
         self.check_tile(tile136, event)
         player = self.player(who, event)
-        if (
-            self.phase == "discard"
-            or who != self.next_seat
-            or self.remaining <= 0
-            or tile136 in self.seen
-        ):
-            self.fail(event, "unexpected or duplicated draw")
+        if self.phase == "discard" or who != self.next_seat:
+            self.fail(event, "draw at an invalid phase or seat")
+        if self.remaining <= 0:
+            self.fail(event, "no tiles remain for draw")
+        if tile136 in self.seen:
+            self.fail(event, "draw tile has already been seen")
         self.supplemental = self.last is not None and self.last.kind in (
             "ankan",
             "daiminkan",
