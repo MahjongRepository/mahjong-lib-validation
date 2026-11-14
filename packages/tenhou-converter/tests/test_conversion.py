@@ -289,6 +289,51 @@ def test_draw_accepts_last_remaining_tile(
     assert state.phase == "discard"
 
 
+@pytest.mark.parametrize(
+    ("phase", "who", "tile136"),
+    [("draw", 0, 26), ("discard", 1, 20), ("discard", 0, 124)],
+    ids=["wrong-phase", "wrong-seat", "absent-tile"],
+)
+def test_discard_rejects_invalid_progression_without_changing_state(
+    phase: Literal["draw", "discard", "response"], who: int, tile136: int
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.phase = phase
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.discard(who, tile136, Event(9, f"{'DEFG'[who]}{tile136}", {}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("tile136", [26, 124])
+def test_discard_accepts_held_or_drawn_tile(tile136: int) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.draw(0, 124, Event(8, "T124", {}))
+    state.players[0].ippatsu = True
+
+    state.discard(0, tile136, Event(9, f"D{tile136}", {}))
+
+    assert tile136 not in state.players[0].hand
+    assert len(state.players[0].hand) == 13
+    assert state.players[0].discards == 1
+    assert not state.players[0].ippatsu
+    assert state.phase == "response"
+    assert state.next_seat == 1
+    assert state.last is not None
+    assert state.last.kind == "discard"
+    assert state.last.seat == 0
+    assert state.last.tile == tile136
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")

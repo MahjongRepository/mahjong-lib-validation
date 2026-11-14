@@ -298,12 +298,10 @@ class RoundState:
 
     def discard(self, who: int, tile136: int, event: Event) -> None:
         player = self.player(who, event)
-        if (
-            self.phase != "discard"
-            or who != self.next_seat
-            or tile136 not in player.hand
-        ):
-            self.fail(event, "discard without matching draw or call")
+        if self.phase != "discard" or who != self.next_seat:
+            self.fail(event, "discard at an invalid phase or seat")
+        if tile136 not in player.hand:
+            self.fail(event, "discard tile is absent from hand")
         player.hand.remove(tile136)
         player.discards += 1
         player.ippatsu = False
