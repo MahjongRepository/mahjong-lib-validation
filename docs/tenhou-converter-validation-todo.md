@@ -82,8 +82,10 @@
 対象: [scoring.py](../packages/tenhou-converter/src/tenhou_converter/scoring.py)、
 [melds.py](../packages/tenhou-converter/src/tenhou_converter/melds.py)
 
-- [ ] 14. `scoring.yaku_values()`
+- [x] 14. `scoring.yaku_values()`
   — 役IDの重複と、通常役・役満の分類不一致を分ける。
+  通常役・役満それぞれの重複、分類境界での誤分類の拒否と正常な受理を変更前後で確認した。
+  エラーの分類・項目・イベント位置を維持し、メッセージの文言はテストで固定しない。
 - [ ] 15. `scoring.expected_values()` の `ten`
   — 要素数不正、点数区分の範囲外、符・点数の負数を分ける。
 - [ ] 16. `scoring.expected_values()` の `sc`

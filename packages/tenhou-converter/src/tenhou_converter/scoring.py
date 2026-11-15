@@ -98,9 +98,14 @@ def yaku_values(event: Event) -> list[Yaku]:
         if not 0 <= key < len(YAKU_IDS):
             reason = "unknown_yaku_id"
             raise event.error(reason, f"unknown yaku {key}", field)
-        if key in seen or yakuman != (37 <= key <= 51):
+        if key in seen:
             reason = "invalid_attribute"
-            raise event.error(reason, "duplicate or misclassified yaku", field)
+            raise event.error(reason, "duplicate yaku ID", field)
+        if yakuman != (37 <= key <= 51):
+            reason = "invalid_attribute"
+            raise event.error(
+                reason, "yaku ID conflicts with yaku/yakuman field", field
+            )
         seen.add(key)
         if han == 0 and key == 53:
             continue

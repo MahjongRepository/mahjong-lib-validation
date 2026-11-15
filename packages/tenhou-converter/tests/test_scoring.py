@@ -86,6 +86,57 @@ def test_invalid_yaku_representation_preserves_error_details(
     assert caught.value.field == field
 
 
+@pytest.mark.parametrize(
+    ("field", "values"),
+    [
+        ("yaku", "1,1,1,2"),
+        ("yakuman", "39,39"),
+        ("yaku", "37,1"),
+        ("yaku", "51,1"),
+        ("yakuman", "36"),
+        ("yakuman", "52"),
+    ],
+    ids=[
+        "duplicate-yaku",
+        "duplicate-yakuman",
+        "yakuman-lower-as-yaku",
+        "yakuman-upper-as-yaku",
+        "regular-below-yakuman",
+        "regular-above-yakuman",
+    ],
+)
+def test_duplicate_or_misclassified_yaku_preserves_error_details(
+    field: str, values: str
+) -> None:
+    with pytest.raises(ConversionError) as caught:
+        yaku_values(Event(21, "AGARI", {field: values}))
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == field
+    assert caught.value.event_index == 21
+
+
+@pytest.mark.parametrize(
+    ("field", "values", "expected_ids"),
+    [
+        ("yaku", "36,5,52,1", ["renhou", "dora"]),
+        ("yakuman", "37,51", ["tenhou", "suukantsu"]),
+    ],
+)
+def test_yaku_classification_accepts_boundary_ids(
+    field: str, values: str, expected_ids: list[str]
+) -> None:
+    result = yaku_values(Event(21, "AGARI", {field: values}))
+
+    assert [yaku["id"] for yaku in result] == expected_ids
+    assert [yaku["han"] for yaku in result] == (
+        [5, 1] if field == "yaku" else [None, None]
+    )
+    assert [yaku["yakuman_multiplier"] for yaku in result] == (
+        [0, 0] if field == "yaku" else [1, 1]
+    )
+
+
 def test_shared_ron_keeps_liability_exclusion_without_duplicates() -> None:
     record = Event(
         19,
