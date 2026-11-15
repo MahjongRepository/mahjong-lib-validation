@@ -68,14 +68,20 @@ def parse_xml(xml: bytes) -> list[Event]:
     if root.get("ver") != "2.3":
         reason = "unsupported_xml_version"
         raise ConversionError(reason, "expected version 2.3")
-    if (root.text or "").strip() or any(
-        len(element)
-        or (element.text or "").strip()
-        or (element.tail or "").strip()
-        for element in root
-    ):
+    if (root.text or "").strip():
         reason = "invalid_xml"
-        raise ConversionError(reason, "expected flat, empty event elements")
+        raise ConversionError(reason, "unexpected text before event elements")
+    for element in root:
+        if len(element):
+            reason = "invalid_xml"
+            raise ConversionError(
+                reason, "event elements must not contain child elements"
+            )
+        if (element.text or "").strip() or (element.tail or "").strip():
+            reason = "invalid_xml"
+            raise ConversionError(
+                reason, "unexpected text within or after event elements"
+            )
     return [
         Event(i, element.tag, dict(element.attrib))
         for i, element in enumerate(root)

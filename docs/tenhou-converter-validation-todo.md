@@ -125,8 +125,10 @@
   — 要素数不正、本場と局の記録の不一致、供託の負数を分ける。
   各原因の拒否と、既存の供託・進行の不一致チェックを変更前後で確認した。
   エラーの分類・項目・イベント位置と、正常な単独・複数ロンの受理を維持した。
-- [ ] 23. [parser.parse_xml()](../packages/tenhou-converter/src/tenhou_converter/parser.py) の文書構造
+- [x] 23. [parser.parse_xml()](../packages/tenhou-converter/src/tenhou_converter/parser.py) の文書構造
   — ルート直下の文字列、イベントの入れ子、イベント内・イベント間の文字列を分ける。
+  各原因の拒否と、空白を含む平坦な文書でのイベント順序・属性の保持を変更前後で確認した。
+  エラーの分類と位置情報を維持し、メッセージの文言はテストで固定しない。
 - [ ] 24. [rules.player_count()](../packages/tenhou-converter/src/tenhou_converter/rules.py) の対応範囲
   — コンピューター対局、非対応ルールのフラグ、段位戦以外のロビーを分ける。
   対応外ルールの除外扱いと、従来の検証順序を維持する。
