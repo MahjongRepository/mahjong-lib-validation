@@ -23,11 +23,27 @@ def player_count(go: Event) -> Literal[3, 4]:
     #
     # Lobby 0 is for ranked matches.
     # All other lobbies are private rooms.
-    if not value & 1 or value & 0xF06 or go.integer("lobby") != 0:
+    if not value & 1:
         reason = "unsupported_rules"
         raise UnsupportedLogError(
             reason,
-            "only ranked aka/kuitan games are supported",
+            "computer-opponent games are unsupported",
+            event_index=go.index,
+            field="type",
+        )
+    if value & 0xF06:
+        reason = "unsupported_rules"
+        raise UnsupportedLogError(
+            reason,
+            "GO type contains unsupported rule flags",
+            event_index=go.index,
+            field="type",
+        )
+    if go.integer("lobby") != 0:
+        reason = "unsupported_rules"
+        raise UnsupportedLogError(
+            reason,
+            "only ranked-match lobby 0 is supported",
             event_index=go.index,
             field="type",
         )

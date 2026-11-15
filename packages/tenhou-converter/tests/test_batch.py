@@ -216,13 +216,24 @@ def test_cli_exit_codes_and_json_report(tmp_path: Path) -> None:
     assert caught.value.code == 2
 
 
+@pytest.mark.parametrize(
+    ("game_type", "lobby"),
+    [(40, 0), (43, 0), (41, 1)],
+    ids=["computer-opponents", "unsupported-flags", "private-lobby"],
+)
 def test_known_unsupported_rules_are_counted_as_exclusions(
     tmp_path: Path,
+    game_type: int,
+    lobby: int,
 ) -> None:
     source = tmp_path / "input"
     source.mkdir()
     xml = (FIXTURES / "four-ron.xml").read_bytes()
-    (source / "a.xml").write_bytes(xml.replace(b'type="41"', b'type="43"'))
+    unsupported = xml.replace(b'type="41"', f'type="{game_type}"'.encode())
+    unsupported = unsupported.replace(
+        b'lobby="0"', f'lobby="{lobby}"'.encode()
+    )
+    (source / "a.xml").write_bytes(unsupported)
     (source / "b.xml").write_bytes(xml)
     manifest = convert_files(source, tmp_path / "output")
     assert manifest["conversion"]["excluded_by_reason"] == {

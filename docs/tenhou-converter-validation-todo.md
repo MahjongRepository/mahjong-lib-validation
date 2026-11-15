@@ -129,9 +129,11 @@
   — ルート直下の文字列、イベントの入れ子、イベント内・イベント間の文字列を分ける。
   各原因の拒否と、空白を含む平坦な文書でのイベント順序・属性の保持を変更前後で確認した。
   エラーの分類と位置情報を維持し、メッセージの文言はテストで固定しない。
-- [ ] 24. [rules.player_count()](../packages/tenhou-converter/src/tenhou_converter/rules.py) の対応範囲
+- [x] 24. [rules.player_count()](../packages/tenhou-converter/src/tenhou_converter/rules.py) の対応範囲
   — コンピューター対局、非対応ルールのフラグ、段位戦以外のロビーを分ける。
   対応外ルールの除外扱いと、従来の検証順序を維持する。
+  各原因の除外と正常な四麻・三麻の受理を確認し、未知ビットや不正なロビーとの検証順序も維持した。
+  エラーの分類・項目・イベント位置と、バッチ処理で失敗ではなく除外に集計される動作を確認した。
 - [ ] 25. [sources.log_id_from_path()](../packages/tenhou-converter/src/tenhou_converter/sources.py)
   — 非対応拡張子と、拡張子を除いたIDが空の状態を分ける。
 - [ ] 26. [datasets.convert_files()](../packages/tenhou-converter/src/tenhou_converter/datasets.py) の出力設定
