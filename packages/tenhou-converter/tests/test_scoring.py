@@ -137,6 +137,106 @@ def test_yaku_classification_accepts_boundary_ids(
     )
 
 
+@pytest.mark.parametrize(
+    "ten",
+    [
+        "30,1300",
+        "30,1300,0,0",
+        "30,1300,-1",
+        "30,1300,6",
+        "-1,1300,0",
+        "30,-1,0",
+    ],
+    ids=[
+        "too-short",
+        "too-long",
+        "negative-rank",
+        "rank-limit",
+        "negative-fu",
+        "negative-points",
+    ],
+)
+def test_invalid_score_tuple_preserves_error_details(ten: str) -> None:
+    record = Event(
+        22,
+        "AGARI",
+        {
+            "who": "1",
+            "ten": ten,
+            "yaku": "1,1",
+            "sc": "250,-13,250,13,250,0,250,0",
+        },
+    )
+
+    with pytest.raises(ConversionError) as caught:
+        expected_values(record, 4)
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "ten"
+    assert caught.value.event_index == 22
+
+
+@pytest.mark.parametrize(
+    ("players", "sc"),
+    [
+        (4, "250,-13,250,13,250,0,250"),
+        (4, "250,-13,250,13,250,0,250,0,0"),
+        (3, "350,-13,350,13,350,0,1,0"),
+        (3, "350,-13,350,13,350,0,0,1"),
+    ],
+    ids=["too-short", "too-long", "unused-seat-score", "unused-seat-delta"],
+)
+def test_invalid_seat_scores_preserve_error_details(
+    players: int, sc: str
+) -> None:
+    record = Event(
+        23,
+        "AGARI",
+        {
+            "who": "1",
+            "ten": "30,1300,0",
+            "yaku": "1,1",
+            "sc": sc,
+        },
+    )
+
+    with pytest.raises(ConversionError) as caught:
+        expected_values(record, players)
+
+    assert caught.value.reason == "invalid_attribute"
+    assert caught.value.field == "sc"
+    assert caught.value.event_index == 23
+
+
+@pytest.mark.parametrize("players", [3, 4])
+@pytest.mark.parametrize("multiple_ron", [False, True])
+def test_seat_scores_accept_one_pair_per_wire_seat(
+    players: int, *, multiple_ron: bool
+) -> None:
+    record = Event(
+        23,
+        "AGARI",
+        {
+            "who": "1",
+            "ten": "30,1300,0",
+            "yaku": "1,1",
+            "sc": "250,-13,250,13,250,0,0,0",
+        },
+    )
+
+    expected, exclusions = expected_values(
+        record, players, multiple_ron=multiple_ron
+    )
+
+    assert expected["event_score_deltas"] == [
+        -1300,
+        1300,
+        *([0] * (players - 2)),
+    ]
+    assert expected["payments_by_seat"] == [1300, *([0] * (players - 1))]
+    assert exclusions == []
+
+
 def test_shared_ron_keeps_liability_exclusion_without_duplicates() -> None:
     record = Event(
         19,
@@ -170,6 +270,9 @@ def test_shared_ron_keeps_liability_exclusion_without_duplicates() -> None:
         ("250,-29,250,26,250,13,250,0", False),
         ("250,-10,250,26,250,13,250,0", True),
         ("250,26,250,-29,250,13,250,0", True),
+        ("250,-26,250,13,250,0,250,0", False),
+        ("250,-26,250,13,250,0,250,0", True),
+        ("250,-13,250,26,250,1,250,0", False),
     ],
 )
 def test_inconsistent_payments_are_not_hidden_by_shared_ron(
@@ -184,6 +287,5 @@ def test_inconsistent_payments_are_not_hidden_by_shared_ron(
         expected_values(record, 4, multiple_ron=multiple_ron)
 
     assert caught.value.reason == "inconsistent_events"
-    assert caught.value.message == "score deltas cannot describe this win"
     assert caught.value.event_index == 20
     assert caught.value.field == "sc"

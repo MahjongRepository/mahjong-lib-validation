@@ -137,18 +137,33 @@ def _score_title(event: Event, rank: int, multiplier: int, han: int) -> Title:
     return title
 
 
-def expected_values(
+def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with distinct diagnostics
     event: Event, players: int, *, multiple_ron: bool = False
 ) -> tuple[Expected, list[ExcludedField]]:
     yaku = yaku_values(event)
     ten = event.numbers("ten")
     sc = event.numbers("sc")
-    if len(ten) != 3 or not 0 <= ten[2] < len(TITLES) or min(ten) < 0:
+    if len(ten) != 3:
         reason = "invalid_attribute"
-        raise event.error(reason, "invalid score tuple", "ten")
-    if len(sc) != 8 or (players == 3 and sc[6:] != [0, 0]):
+        raise event.error(
+            reason, "score tuple must contain three values", "ten"
+        )
+    if not 0 <= ten[2] < len(TITLES):
         reason = "invalid_attribute"
-        raise event.error(reason, "invalid seat score pairs", "sc")
+        raise event.error(
+            reason, "score title rank outside supported range", "ten"
+        )
+    if min(ten[:2]) < 0:
+        reason = "invalid_attribute"
+        raise event.error(reason, "negative fu or base points", "ten")
+    if len(sc) != 8:
+        reason = "invalid_attribute"
+        raise event.error(
+            reason, "seat scores must contain eight values", "sc"
+        )
+    if players == 3 and sc[6:] != [0, 0]:
+        reason = "invalid_attribute"
+        raise event.error(reason, "unused sanma seat has score or delta", "sc")
     who = event.integer("who")
     deltas = [value * 100 for value in sc[1 : players * 2 : 2]]
     multiplier = sum(value["yakuman_multiplier"] for value in yaku)
@@ -166,13 +181,25 @@ def expected_values(
     shared = multiple_ron and other_gains
     # Shared deltas describe several wins, so individual gains cannot be
     # reconciled with the total paid by all payers.
-    invalid_individual_allocation = not shared and (sticks < 0 or other_gains)
-    if honba < 0 or payments[who] or invalid_individual_allocation:
+    if honba < 0:
         reason = "inconsistent_events"
         raise event.error(
             reason,
-            "score deltas cannot describe this win",
+            "payments are less than base points",
             "sc",
+        )
+    if payments[who]:
+        reason = "inconsistent_events"
+        raise event.error(reason, "winner must not pay their own win", "sc")
+    if not shared and sticks < 0:
+        reason = "inconsistent_events"
+        raise event.error(
+            reason, "winner gain is less than total payments", "sc"
+        )
+    if not shared and other_gains:
+        reason = "inconsistent_events"
+        raise event.error(
+            reason, "individual win credits another player", "sc"
         )
 
     exclusions: list[ExcludedField] = []
