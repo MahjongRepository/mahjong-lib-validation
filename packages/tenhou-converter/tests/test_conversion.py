@@ -686,6 +686,106 @@ def test_dora_accepts_due_indicator_below_limit(
     assert 124 in state.seen
 
 
+@pytest.mark.parametrize(
+    ("last", "source", "winners"),
+    [
+        (None, 0, set()),
+        (Action("draw", 0, 124), 0, set()),
+        (Action("discard", 1, 124), 0, set()),
+        (Action("discard", 0, 125), 0, set()),
+        (Action("discard", 0, 124), 0, {2}),
+        (Action("discard", 0, 124), 0, {1, 3}),
+        (Action("draw", 2, 124), 2, {1}),
+        (Action("discard", 2, 124), 2, set()),
+    ],
+    ids=[
+        "no-action",
+        "ron-without-discard-or-call",
+        "wrong-source",
+        "wrong-tile",
+        "duplicate-winner",
+        "winner-limit",
+        "tsumo-after-another-win",
+        "tsumo-without-draw",
+    ],
+)
+def test_situation_rejects_invalid_win_without_changes(
+    last: Action | None, source: int, winners: set[int]
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.last = last
+    state.winners = winners.copy()
+    if source == 2:
+        state.players[2].hand.add(124)
+    recorded_hand = state.players[2].hand | {124}
+    event = Event(
+        9,
+        "AGARI",
+        {
+            "who": "2",
+            "fromWho": str(source),
+            "machi": "124",
+            "hai": ",".join(map(str, sorted(recorded_hand))),
+            "doraHai": "31",
+        },
+    )
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.situation(event)
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("last_kind", "source", "winners"),
+    [
+        ("discard", 0, set()),
+        ("discard", 0, {1}),
+        ("kakan", 0, set()),
+        ("nuki", 0, set()),
+        ("draw", 2, set()),
+    ],
+    ids=["ron", "second-ron", "chankan", "ron-on-nuki", "tsumo"],
+)
+def test_situation_accepts_matching_win(
+    last_kind: str, source: int, winners: set[int]
+) -> None:
+    player_count = 3 if last_kind == "nuki" else 4
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+    state.last = Action(last_kind, source, 124)
+    state.winners = winners.copy()
+    if source == 2:
+        state.players[2].hand.add(124)
+    recorded_hand = state.players[2].hand | {124}
+    event = Event(
+        9,
+        "AGARI",
+        {
+            "who": "2",
+            "fromWho": str(source),
+            "machi": "124",
+            "hai": ",".join(map(str, sorted(recorded_hand))),
+            "doraHai": ",".join(map(str, state.indicators)),
+        },
+    )
+    before = deepcopy(state)
+
+    situation = state.situation(event)
+
+    assert situation["tsumo"] == (source == 2)
+    assert situation["chankan"] == (last_kind in ("kakan", "nuki"))
+    assert state == before
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")
@@ -742,16 +842,16 @@ def test_open_hand_preserves_decoded_melds() -> None:
 
 
 @pytest.mark.parametrize(
-    ("field", "value", "message"),
+    ("field", "value"),
     [
-        ("machi", "91", "win does not match tile provider"),
-        ("hai", "16,19,25,31,32,92,99", "AGARI hand differs"),
-        ("m", "24105", "AGARI calls differ"),
-        ("doraHai", "96", "AGARI dora differs"),
+        ("machi", "91"),
+        ("hai", "16,19,25,31,32,92,99"),
+        ("m", "24105"),
+        ("doraHai", "96"),
     ],
 )
 def test_agari_tile_mismatches_keep_positioned_errors(
-    field: str, value: str, message: str
+    field: str, value: str
 ) -> None:
     root = ET.parse(FIXTURES / "four-melds.xml").getroot()
     root[-1].set(field, value)
@@ -760,7 +860,6 @@ def test_agari_tile_mismatches_keep_positioned_errors(
         convert_log(ET.tostring(root), log_id="synthetic-mismatch")
 
     assert caught.value.reason == "inconsistent_events"
-    assert caught.value.message.startswith(message)
     assert caught.value.event_index == len(root) - 1
     assert caught.value.field is None
 

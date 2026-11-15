@@ -448,16 +448,20 @@ class RoundState:
         winning = event.integer("machi")
         tsumo = who == source
         valid = ("draw",) if tsumo else ("discard", "kakan", "nuki")
-        if (
-            self.last is None
-            or self.last.kind not in valid
-            or self.last.seat != source
-            or self.last.tile != winning
-            or who in self.winners
-            or len(self.winners) >= 2
-            or (tsumo and self.winners)
-        ):
-            self.fail(event, "win does not match tile provider")
+        if self.last is None or self.last.kind not in valid:
+            self.fail(
+                event, "win does not follow a matching draw, discard, or call"
+            )
+        if self.last.seat != source:
+            self.fail(event, "win source differs from last tile provider")
+        if self.last.tile != winning:
+            self.fail(event, "winning tile differs from last provided tile")
+        if who in self.winners:
+            self.fail(event, "player has already won this round")
+        if len(self.winners) >= 2:
+            self.fail(event, "winner count limit has been reached")
+        if tsumo and self.winners:
+            self.fail(event, "tsumo after another win")
         if any(
             other.declared
             and (tsumo or seat != source or self.last.kind != "discard")
