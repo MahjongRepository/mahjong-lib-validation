@@ -121,8 +121,10 @@
 
 ## 入力・ルール・出力設定：5か所
 
-- [ ] 22. [conversion.extract()](../packages/tenhou-converter/src/tenhou_converter/conversion.py) の `ba`
+- [x] 22. [conversion.extract()](../packages/tenhou-converter/src/tenhou_converter/conversion.py) の `ba`
   — 要素数不正、本場と局の記録の不一致、供託の負数を分ける。
+  各原因の拒否と、既存の供託・進行の不一致チェックを変更前後で確認した。
+  エラーの分類・項目・イベント位置と、正常な単独・複数ロンの受理を維持した。
 - [ ] 23. [parser.parse_xml()](../packages/tenhou-converter/src/tenhou_converter/parser.py) の文書構造
   — ルート直下の文字列、イベントの入れ子、イベント内・イベント間の文字列を分ける。
 - [ ] 24. [rules.player_count()](../packages/tenhou-converter/src/tenhou_converter/rules.py) の対応範囲

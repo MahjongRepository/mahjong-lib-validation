@@ -152,9 +152,17 @@ def extract(
     wind = ("east", "south", "west", "north")[seed[0] // 4]
     number = seed[0] % 4 + 1
     ba = event.numbers("ba")
-    if len(ba) != 2 or ba[0] != seed[1] or ba[1] < 0:
+    if len(ba) != 2:
         reason = "inconsistent_events"
-        raise event.error(reason, "invalid honba or sticks", "ba")
+        raise event.error(
+            reason, "honba and sticks must contain two values", "ba"
+        )
+    if ba[0] != seed[1]:
+        reason = "inconsistent_events"
+        raise event.error(reason, "honba differs from round seed", "ba")
+    if ba[1] < 0:
+        reason = "inconsistent_events"
+        raise event.error(reason, "negative riichi stick count", "ba")
     if not state.winners and ba[1] != state.sticks:
         reason = "inconsistent_events"
         raise event.error(reason, "sticks differ from progression", "ba")

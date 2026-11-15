@@ -963,6 +963,29 @@ def test_agari_after_drawn_round_is_rejected() -> None:
         convert_log(ET.tostring(root), log_id="synthetic-after-draw")
 
 
+@pytest.mark.parametrize(
+    "ba",
+    ["0", "0,1,0", "1,1", "0,-1", "0,0"],
+    ids=[
+        "too-short",
+        "too-long",
+        "different-honba",
+        "negative-sticks",
+        "different-sticks",
+    ],
+)
+def test_agari_rejects_invalid_honba_or_sticks(ba: str) -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    root[-1].set("ba", ba)
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-invalid-ba")
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field == "ba"
+    assert caught.value.event_index == len(root) - 1
+
+
 def test_score_components_must_match_the_available_riichi_sticks() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     root[-1].set("sc", "250,-26,250,0,240,46,250,0")
