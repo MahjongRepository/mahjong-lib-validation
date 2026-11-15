@@ -9,7 +9,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from tenhou_converter import convert_log
 from tenhou_converter.errors import ConversionError
-from tenhou_converter.melds import decode_meld
+from tenhou_converter.melds import DecodedMeld, decode_meld
 from tenhou_converter.parser import Event
 from tenhou_converter.reconstruction import Action, RoundState
 
@@ -454,6 +454,70 @@ def test_riichi_confirmation_accepts_declaration_discard(
     )
     assert state.players[0].ippatsu
     assert state.sticks == 1
+
+
+@pytest.mark.parametrize(
+    ("last", "phase", "called"),
+    [
+        (None, "response", 0),
+        (Action("draw", 3, 0), "response", 0),
+        (Action("discard", 3, 0), "discard", 0),
+        (Action("discard", 3, 0), "response", None),
+        (Action("discard", 2, 0), "response", 0),
+        (Action("discard", 3, 1), "response", 0),
+    ],
+    ids=[
+        "no-action",
+        "not-discard",
+        "wrong-phase",
+        "no-called-index",
+        "wrong-source",
+        "wrong-tile",
+    ],
+)
+def test_open_call_rejects_mismatched_discard_without_changes(
+    last: Action | None,
+    phase: Literal["draw", "discard", "response"],
+    called: int | None,
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.players[0].hand = {4, 8, 124}
+    state.last = last
+    state.phase = phase
+    meld = DecodedMeld("chii", [0, 4, 8], called, 3)
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.consume_call(meld, 0, Event(9, "N", {}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("code", [7, 41514, 28161], ids=["chii", "pon", "kan"])
+def test_open_call_consumes_hand_tiles_for_matching_discard(code: int) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    event = Event(9, "N", {"who": "0", "m": str(code)})
+    meld = decode_meld(code, 0, event)
+    assert meld.called is not None
+    assert meld.source is not None
+    called_tile = meld.tiles[meld.called]
+    state.players[0].hand = set(meld.tiles) - {called_tile} | {124}
+    state.players[1].ippatsu = True
+    state.last = Action("discard", meld.source, called_tile)
+    state.phase = "response"
+
+    state.consume_call(meld, 0, event)
+
+    assert state.players[0].hand == {124}
+    assert state.interrupted
+    assert not state.players[1].ippatsu
 
 
 def test_round_state_accepts_west_four() -> None:

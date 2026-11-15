@@ -383,18 +383,21 @@ class RoundState:
             tile=meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
         )
 
-    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:
+    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901 -- distinct diagnostics for call mismatches
         player = self.player(who, event)
         if meld.kind in ("chii", "pon", "daiminkan"):
             if (
                 self.last is None
                 or self.last.kind != "discard"
                 or self.phase != "response"
-                or meld.called is None
-                or self.last.seat != meld.source
-                or self.last.tile != meld.tiles[meld.called]
             ):
-                self.fail(event, "call does not match discarded tile")
+                self.fail(event, "call without a pending discard")
+            if meld.called is None:
+                self.fail(event, "open call has no called tile index")
+            if self.last.seat != meld.source:
+                self.fail(event, "call source differs from discarder")
+            if self.last.tile != meld.tiles[meld.called]:
+                self.fail(event, "called tile differs from discarded tile")
             if len(self.players) == 3 and (
                 meld.kind == "chii" or meld.source == 3
             ):
