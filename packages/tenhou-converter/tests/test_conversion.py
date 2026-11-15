@@ -634,6 +634,58 @@ def test_self_call_consumes_tiles_after_own_draw(
     assert state.interrupted == (meld.kind == "ankan")
 
 
+@pytest.mark.parametrize(
+    ("indicator_due", "indicators", "tile136"),
+    [
+        (0, [31], 124),
+        (1, [31], 31),
+        (1, [31], 26),
+        (1, [31, 0, 1, 2, 3], 124),
+    ],
+    ids=["not-due", "repeated-indicator", "tile-in-hand", "indicator-limit"],
+)
+def test_dora_rejects_unexpected_indicator_without_changes(
+    indicator_due: int, indicators: list[int], tile136: int
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.indicator_due = indicator_due
+    state.indicators = indicators.copy()
+    state.seen.update(indicators)
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.dora(Event(9, "DORA", {"hai": str(tile136)}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("indicator_due", "indicators"),
+    [(1, [31]), (2, [31, 0, 1, 2])],
+    ids=["second-indicator", "fifth-indicator"],
+)
+def test_dora_accepts_due_indicator_below_limit(
+    indicator_due: int, indicators: list[int]
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    state.indicator_due = indicator_due
+    state.indicators = indicators.copy()
+    state.seen.update(indicators)
+
+    state.dora(Event(9, "DORA", {"hai": "124"}))
+
+    assert state.indicators == [*indicators, 124]
+    assert state.indicator_due == indicator_due - 1
+    assert 124 in state.seen
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")

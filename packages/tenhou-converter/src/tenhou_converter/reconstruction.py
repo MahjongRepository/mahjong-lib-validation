@@ -430,12 +430,12 @@ class RoundState:
     def dora(self, event: Event) -> None:
         value = event.integer("hai")
         self.check_tile(value, event)
-        if (
-            not self.indicator_due
-            or value in self.seen
-            or len(self.indicators) >= 5
-        ):
-            self.fail(event, "unexpected dora indicator")
+        if not self.indicator_due:
+            self.fail(event, "no additional dora indicator is due")
+        if value in self.seen:
+            self.fail(event, "dora indicator tile has already been seen")
+        if len(self.indicators) >= 5:
+            self.fail(event, "dora indicator limit has been reached")
         self.indicator_due -= 1
         self.indicators.append(value)
         self.seen.add(value)
