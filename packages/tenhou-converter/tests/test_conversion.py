@@ -520,6 +520,120 @@ def test_open_call_consumes_hand_tiles_for_matching_discard(code: int) -> None:
     assert not state.players[1].ippatsu
 
 
+@pytest.mark.parametrize(
+    "meld",
+    [
+        DecodedMeld("chii", [36, 40, 44], 0, 1),
+        DecodedMeld("pon", [108, 109, 110], 0, 3),
+    ],
+    ids=["chii", "nonexistent-source"],
+)
+def test_sanma_rejects_unsupported_open_call_without_changes(
+    meld: DecodedMeld,
+) -> None:
+    init = ET.parse(FIXTURES / "sanma-tsumo.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 3)
+    assert meld.called is not None
+    assert meld.source is not None
+    called_tile = meld.tiles[meld.called]
+    state.players[0].hand = set(meld.tiles) - {called_tile} | {124}
+    state.last = Action("discard", meld.source, called_tile)
+    state.phase = "response"
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.consume_call(meld, 0, Event(9, "N", {}))
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize("code", [41514, 28161], ids=["pon", "kan"])
+def test_sanma_accepts_open_call_from_existing_seat(code: int) -> None:
+    init = ET.parse(FIXTURES / "sanma-tsumo.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 3)
+    event = Event(9, "N", {"who": "0", "m": str(code)})
+    meld = decode_meld(code, 0, event)
+    assert meld.called is not None
+    assert meld.source is not None
+    called_tile = meld.tiles[meld.called]
+    state.players[0].hand = set(meld.tiles) - {called_tile} | {124}
+    state.last = Action("discard", meld.source, called_tile)
+    state.phase = "response"
+
+    state.consume_call(meld, 0, event)
+
+    assert state.players[0].hand == {124}
+    assert state.interrupted
+
+
+@pytest.mark.parametrize(
+    ("phase", "next_seat", "last"),
+    [
+        ("draw", 0, Action("draw", 0, 124)),
+        ("discard", 1, Action("draw", 0, 124)),
+        ("discard", 0, None),
+        ("discard", 0, Action("discard", 0, 124)),
+    ],
+    ids=["wrong-phase", "wrong-seat", "no-action", "not-draw"],
+)
+def test_self_call_rejects_invalid_progression_without_changes(
+    phase: Literal["draw", "discard", "response"],
+    next_seat: int,
+    last: Action | None,
+) -> None:
+    init = ET.parse(FIXTURES / "four-ron.xml").getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), 4)
+    event = Event(9, "N", {"who": "0", "m": "27648"})
+    meld = decode_meld(27648, 0, event)
+    state.players[0].hand = set(meld.tiles) | {124}
+    state.players[1].ippatsu = True
+    state.phase = phase
+    state.next_seat = next_seat
+    state.last = last
+    before = deepcopy(state)
+
+    with pytest.raises(ConversionError) as caught:
+        state.consume_call(meld, 0, event)
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == 9
+    assert state == before
+
+
+@pytest.mark.parametrize(
+    ("player_count", "code"),
+    [(4, 27648), (4, 41522), (3, 27648), (3, 41522), (3, 31264)],
+    ids=["four-ankan", "four-kakan", "three-ankan", "three-kakan", "nuki"],
+)
+def test_self_call_consumes_tiles_after_own_draw(
+    player_count: int, code: int
+) -> None:
+    fixture = "sanma-tsumo.xml" if player_count == 3 else "four-ron.xml"
+    init = ET.parse(FIXTURES / fixture).getroot().find("INIT")
+    assert init is not None
+    state = RoundState.start(Event(0, "INIT", dict(init.attrib)), player_count)
+    event = Event(9, "N", {"who": "0", "m": str(code)})
+    meld = decode_meld(code, 0, event)
+    state.players[0].hand = set(meld.tiles) | {124}
+    state.phase = "discard"
+    state.next_seat = 0
+    state.last = Action("draw", 0, 124)
+    before_hand = state.players[0].hand.copy()
+
+    state.consume_call(meld, 0, event)
+
+    consumed = meld.tiles[-1:] if meld.kind == "kakan" else meld.tiles
+    assert state.players[0].hand == before_hand - set(consumed)
+    assert state.interrupted == (meld.kind == "ankan")
+
+
 def test_round_state_accepts_west_four() -> None:
     root = ET.parse(FIXTURES / "four-ron.xml").getroot()
     init = root.find("INIT")

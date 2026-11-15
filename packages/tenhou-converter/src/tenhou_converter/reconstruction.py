@@ -383,7 +383,7 @@ class RoundState:
             tile=meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
         )
 
-    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901 -- distinct diagnostics for call mismatches
+    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901, PLR0912 -- distinct diagnostics for call mismatches
         player = self.player(who, event)
         if meld.kind in ("chii", "pon", "daiminkan"):
             if (
@@ -398,10 +398,10 @@ class RoundState:
                 self.fail(event, "call source differs from discarder")
             if self.last.tile != meld.tiles[meld.called]:
                 self.fail(event, "called tile differs from discarded tile")
-            if len(self.players) == 3 and (
-                meld.kind == "chii" or meld.source == 3
-            ):
-                self.fail(event, "invalid sanma call")
+            if len(self.players) == 3 and meld.kind == "chii":
+                self.fail(event, "sanma does not allow chii")
+            if len(self.players) == 3 and meld.source == 3:
+                self.fail(event, "sanma call source is a nonexistent seat")
             consumed = [
                 value
                 for index, value in enumerate(meld.tiles)
@@ -409,12 +409,9 @@ class RoundState:
             ]
             self.interrupt()
         else:
-            if (
-                self.phase != "discard"
-                or self.next_seat != who
-                or self.last is None
-                or self.last.kind != "draw"
-            ):
+            if self.phase != "discard" or self.next_seat != who:
+                self.fail(event, "self call at an invalid phase or seat")
+            if self.last is None or self.last.kind != "draw":
                 self.fail(event, "self call without draw")
             consumed = (
                 meld.tiles
@@ -425,6 +422,7 @@ class RoundState:
                 self.fail(event, "invalid north extraction")
             if meld.kind == "ankan":
                 self.interrupt()
+
         if not set(consumed) <= player.hand:
             self.fail(event, "call consumes tiles absent from hand")
         player.hand.difference_update(consumed)
