@@ -19,9 +19,11 @@ def log_id_from_path(path: Path) -> str:
     for suffix in SUFFIXES:
         if path.name.lower().endswith(suffix):
             value = path.name[: -len(suffix)]
-            if value.strip():
-                return value
-    msg = f"unsupported extension or empty log ID: {path}"
+            if not value.strip():
+                msg = f"empty log ID before extension: {path}"
+                raise ValueError(msg)
+            return value
+    msg = f"unsupported extension: {path}"
     raise ValueError(msg)
 
 

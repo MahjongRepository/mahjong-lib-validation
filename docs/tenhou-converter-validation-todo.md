@@ -134,8 +134,10 @@
   対応外ルールの除外扱いと、従来の検証順序を維持する。
   各原因の除外と正常な四麻・三麻の受理を確認し、未知ビットや不正なロビーとの検証順序も維持した。
   エラーの分類・項目・イベント位置と、バッチ処理で失敗ではなく除外に集計される動作を確認した。
-- [ ] 25. [sources.log_id_from_path()](../packages/tenhou-converter/src/tenhou_converter/sources.py)
+- [x] 25. [sources.log_id_from_path()](../packages/tenhou-converter/src/tenhou_converter/sources.py)
   — 非対応拡張子と、拡張子を除いたIDが空の状態を分ける。
+  両原因の拒否と、対応拡張子・大文字小文字・空白を含むIDの保持を変更前後で確認した。
+  `ValueError` と診断内のパスを維持し、メッセージの文言はテストで固定しない。
 - [ ] 26. [datasets.convert_files()](../packages/tenhou-converter/src/tenhou_converter/datasets.py) の出力設定
   — 分割件数の型不正、分割件数が0以下、圧縮指定の型不正を分ける。
 
