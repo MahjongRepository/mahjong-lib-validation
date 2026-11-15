@@ -1,6 +1,7 @@
 import gzip
 import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 from corpus import read_dataset
@@ -34,6 +35,62 @@ def test_existing_output_is_rejected_before_missing_input_is_read(
     output.mkdir()
     with pytest.raises(FileExistsError):
         convert_files(tmp_path / "missing.xml", output)
+
+
+@pytest.mark.parametrize(
+    ("cases_per_file", "compress"),
+    [
+        (True, True),
+        (1.5, True),
+        ("1", True),
+        (0, True),
+        (-1, True),
+        (1, 0),
+        (1, "true"),
+        (1, None),
+    ],
+    ids=[
+        "boolean-size",
+        "float-size",
+        "string-size",
+        "zero-size",
+        "negative-size",
+        "integer-compress",
+        "string-compress",
+        "null-compress",
+    ],
+)
+def test_invalid_output_options_are_rejected_before_input_or_output_io(
+    tmp_path: Path, cases_per_file: object, compress: object
+) -> None:
+    with pytest.raises(ValueError) as caught:  # noqa: PT011 -- message wording is not a contract
+        convert_files(
+            tmp_path / "missing.xml",
+            tmp_path / "new" / "output",
+            cases_per_file=cast("int", cases_per_file),
+            compress=cast("bool", compress),
+            report_path=tmp_path / "report.json",
+        )
+
+    assert type(caught.value) is ValueError
+    assert list(tmp_path.iterdir()) == []
+
+
+@pytest.mark.parametrize("compress", [False, True])
+def test_output_options_accept_minimum_shard_size(
+    tmp_path: Path, *, compress: bool
+) -> None:
+    output = tmp_path / "output"
+
+    manifest = convert_files(
+        FIXTURES / "four-ron.xml", output, cases_per_file=1, compress=compress
+    )
+
+    assert manifest["record_count"] == 1
+    assert manifest["files"][0]["record_count"] == 1
+    expected_suffix = ".jsonl.gz" if compress else ".jsonl"
+    assert manifest["files"][0]["path"].endswith(expected_suffix)
+    assert len(list(read_dataset(output))) == 1
 
 
 def test_corrupt_gzip_is_a_reported_input_failure(tmp_path: Path) -> None:
