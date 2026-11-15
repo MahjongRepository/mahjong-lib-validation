@@ -37,15 +37,15 @@ class DecodedMeld:
         }
 
 
-def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901 -- five protocol layouts, ordered by flag precedence
-    def invalid() -> NoReturn:
+def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901, PLR0912 -- ordered protocol layouts with distinct diagnostics
+    def invalid(message: str) -> NoReturn:
         reason = "unknown_meld_code"
-        raise event.error(reason, f"invalid meld code {code}", "m")
+        raise event.error(reason, f"invalid meld code {code}: {message}", "m")
 
     # Meld codes are unsigned 16-bit integers; bit 0 is the least
     # significant bit.
     if not 0 <= code < 65536:
-        invalid()
+        invalid("code outside unsigned 16-bit range")
 
     # Bits 0-1 (0x0003): source seat relative to the caller; 0 means
     # self.
@@ -62,8 +62,12 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
         # patterns.
         # Chii must come from the previous seat; bit 9 (0x0200) is
         # unused.
-        if pattern >= 63 or relative != 3 or code & 0x0200:
-            invalid()
+        if pattern >= 63:
+            invalid("chii pattern outside supported range")
+        if relative != 3:
+            invalid("chii source must be the previous seat")
+        if code & 0x0200:
+            invalid("unused chii bit is set")
         sequence = pattern // 3
         # Map the suit and sequence start to the first physical tile ID.
         base = (sequence // 7 * 9 + sequence % 7) * 4
@@ -87,13 +91,14 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
         # Require one of 34 * 3 patterns and a source other than self.
         # Bits 7-8 (0x0180) are unused; pon and kakan flags are mutually
         # exclusive.
-        if (
-            pattern >= 102
-            or not relative
-            or code & 0x180
-            or code & 0x18 == 0x18
-        ):
-            invalid()
+        if pattern >= 102:
+            invalid("pon or added-kan pattern outside supported range")
+        if not relative:
+            invalid("pon or added-kan source must not be self")
+        if code & 0x180:
+            invalid("unused pon or added-kan bits are set")
+        if code & 0x18 == 0x18:
+            invalid("pon and added-kan flags are both set")
         # Bits 5-6: copy index omitted from the original pon (added for
         # kakan).
         omitted = (code >> 5) & 3
@@ -114,8 +119,10 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
         # Bits 0-7 must contain only the extraction flag.
         # Bits 8-15 contain the physical tile ID, restricted to north
         # (120-123).
-        if code & 0xFF != 0x20 or code >> 8 not in range(120, 124):
-            invalid()
+        if code & 0xFF != 0x20:
+            invalid("north extraction lower bits must contain only its flag")
+        if code >> 8 not in range(120, 124):
+            invalid("north extraction tile must be north")
         return DecodedMeld("nuki", [code >> 8], None, None)
 
     # With no preceding flag, the layout represents ankan or daiminkan.
@@ -125,8 +132,10 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
     called = code >> 8
     # Physical tile IDs range from 0 to 135; bits 2-7 (0x00FC) are
     # unused.
-    if called >= 136 or code & 0xFC:
-        invalid()
+    if called >= 136:
+        invalid("kan tile ID outside 136-tile range")
+    if code & 0xFC:
+        invalid("unused kan bits are set")
     # All four physical copies belong to the kan, in ascending ID order.
     tile_id = called // 4 * 4
     tiles = list(range(tile_id, tile_id + 4))
