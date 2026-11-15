@@ -110,9 +110,6 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
     if cases_per_file <= 0:
         msg = "cases_per_file must be positive"
         raise ValueError(msg)
-    if type(compress) is not bool:
-        msg = "compress must be a boolean"
-        raise ValueError(msg)
     report_file = Path(report_path) if report_path is not None else None
     _check_paths(source, output, report_file)
     inputs = discover(source, log_id)

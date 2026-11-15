@@ -38,37 +38,24 @@ def test_existing_output_is_rejected_before_missing_input_is_read(
 
 
 @pytest.mark.parametrize(
-    ("cases_per_file", "compress"),
-    [
-        (True, True),
-        (1.5, True),
-        ("1", True),
-        (0, True),
-        (-1, True),
-        (1, 0),
-        (1, "true"),
-        (1, None),
-    ],
+    "cases_per_file",
+    [True, 1.5, "1", 0, -1],
     ids=[
         "boolean-size",
         "float-size",
         "string-size",
         "zero-size",
         "negative-size",
-        "integer-compress",
-        "string-compress",
-        "null-compress",
     ],
 )
-def test_invalid_output_options_are_rejected_before_input_or_output_io(
-    tmp_path: Path, cases_per_file: object, compress: object
+def test_invalid_shard_size_is_rejected_before_input_or_output_io(
+    tmp_path: Path, cases_per_file: object
 ) -> None:
     with pytest.raises(ValueError) as caught:  # noqa: PT011 -- message wording is not a contract
         convert_files(
             tmp_path / "missing.xml",
             tmp_path / "new" / "output",
             cases_per_file=cast("int", cases_per_file),
-            compress=cast("bool", compress),
             report_path=tmp_path / "report.json",
         )
 
