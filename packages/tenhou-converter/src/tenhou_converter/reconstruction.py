@@ -496,7 +496,9 @@ class RoundState:
         player = self.players[who]
         hand = event.numbers("hai")
         actual = player.hand if tsumo else player.hand | {winning}
-        if len(set(hand)) != len(hand) or set(hand) != actual:
+        if len(set(hand)) != len(hand):
+            self.fail(event, "AGARI hand contains a duplicate tile ID")
+        if set(hand) != actual:
             self.fail(event, "AGARI hand differs from reconstructed hand")
 
         melds = (
@@ -506,11 +508,17 @@ class RoundState:
         )
         norths = [meld.tiles[0] for meld in melds if meld.kind == "nuki"]
         regular = [meld for meld in melds if meld.kind != "nuki"]
-        if (
-            len(set(norths)) != len(norths)
-            or set(norths) != player.norths
-            or sorted(regular, key=lambda meld: meld.tiles)
-            != sorted(player.melds, key=lambda meld: meld.tiles)
+        if len(set(norths)) != len(norths):
+            self.fail(
+                event, "AGARI north extractions contain a duplicate tile ID"
+            )
+        if set(norths) != player.norths:
+            self.fail(
+                event,
+                "AGARI north extractions differ from reconstructed norths",
+            )
+        if sorted(regular, key=lambda meld: meld.tiles) != sorted(
+            player.melds, key=lambda meld: meld.tiles
         ):
             self.fail(event, "AGARI calls differ from reconstructed calls")
 

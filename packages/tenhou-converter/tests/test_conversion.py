@@ -864,6 +864,71 @@ def test_agari_tile_mismatches_keep_positioned_errors(
     assert caught.value.field is None
 
 
+@pytest.mark.parametrize(
+    "hand",
+    [
+        "16,19,25,31,32,92,99,100,16",
+        "0,19,25,31,32,92,99,100",
+    ],
+    ids=["duplicate-tile", "different-tile"],
+)
+def test_agari_rejects_duplicate_or_different_hand(hand: str) -> None:
+    root = ET.parse(FIXTURES / "four-melds.xml").getroot()
+    root[-1].set("hai", hand)
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-invalid-hand")
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == len(root) - 1
+
+
+def test_agari_accepts_hand_in_different_order() -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    root[-1].set("hai", ",".join(reversed(root[-1].attrib["hai"].split(","))))
+
+    (case,) = convert_log(ET.tostring(root), log_id="synthetic-reordered-hand")
+
+    assert case["input"]["winning_tile"] == "8s"
+    assert len(case["input"]["concealed_tiles"]) == 13
+
+
+@pytest.mark.parametrize(
+    ("fixture", "melds"),
+    [
+        ("synthetic-nuki-rinshan.xml", "30752,30752"),
+        ("synthetic-nuki-rinshan.xml", "31008"),
+        ("four-melds.xml", "24105"),
+    ],
+    ids=["duplicate-north", "different-north", "different-melds"],
+)
+def test_agari_rejects_duplicate_or_different_calls(
+    fixture: str, melds: str
+) -> None:
+    root = ET.parse(FIXTURES / fixture).getroot()
+    root[-1].set("m", melds)
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-invalid-calls")
+
+    assert caught.value.reason == "inconsistent_events"
+    assert caught.value.field is None
+    assert caught.value.event_index == len(root) - 1
+
+
+def test_agari_accepts_melds_in_different_order() -> None:
+    root = ET.parse(FIXTURES / "four-melds.xml").getroot()
+    (original,) = convert_log(ET.tostring(root), log_id="synthetic-meld-order")
+    root[-1].set("m", ",".join(reversed(root[-1].attrib["m"].split(","))))
+
+    (reordered,) = convert_log(
+        ET.tostring(root), log_id="synthetic-meld-order"
+    )
+
+    assert reordered["input"]["melds"] == original["input"]["melds"][::-1]
+
+
 def test_kokushi_preserves_recorded_zero_fu_and_excludes_comparison() -> None:
     (case,) = convert_log(
         (FIXTURES / "four-kokushi.xml").read_bytes(), log_id="masked-kokushi"
