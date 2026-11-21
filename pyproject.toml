@@ -1,29 +1,3 @@
-[project]
-name = "mahjong-lib-validation"
-version = "0.0.1"
-description = "Validation and benchmarking tools for the mahjong library."
-authors = [
-    { name = "Alexey Lisikhin", email = "alexey@nihisil.com" },
-    { name = "Apricot S." },
-]
-license = "MIT"
-license-files = ["LICENSE"]
-readme = "README.md"
-requires-python = ">=3.15"
-classifiers = [
-    "Private :: Do Not Upload",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.15",
-    "Topic :: Games/Entertainment :: Board Games",
-    "Typing :: Typed",
-]
-
-[project.urls]
-Repository = "https://github.com/MahjongRepository/mahjong-lib-validation"
-
 [dependency-groups]
 dev = [
     { include-group = "hooks" },
@@ -44,9 +18,6 @@ test = [
     "pytest>=9.2.0,<10",
 ]
 
-[tool.uv]
-package = false
-
 [tool.uv.workspace]
 members = [
     "packages/corpus",
@@ -58,6 +29,7 @@ members = [
 corpus = { workspace = true }
 
 [tool.ruff]
+target-version = "py315"
 line-length = 79
 extend-exclude = ["references"]
 

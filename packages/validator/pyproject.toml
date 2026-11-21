@@ -2,11 +2,16 @@
 name = "mahjong-validator"
 version = "0.0.1"
 description = "Validate the mahjong library against scoring corpora."
+authors = [
+    { name = "Apricot S." },
+]
 license = "MIT"
 license-files = ["LICENSE"]
+readme = "README.md"
 requires-python = ">=3.15"
 classifiers = [
     "Private :: Do Not Upload",
+    "Intended Audience :: Developers",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",

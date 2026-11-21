@@ -5,10 +5,25 @@ requires-python = ">=3.15"
 [manifest]
 members = [
     "corpus",
-    "mahjong-lib-validation",
     "mahjong-validator",
     "tenhou-converter",
 ]
+
+[manifest.dependency-groups]
+dev = [
+    { name = "prek", specifier = ">=0.5.9,<0.6" },
+    { name = "pytest", specifier = ">=9.2.0,<10" },
+    { name = "ruff", specifier = ">=0.17.3,<0.18" },
+    { name = "ty", specifier = ">=0.0.95" },
+]
+hooks = [
+    { name = "prek", specifier = ">=0.5.9,<0.6" },
+    { name = "ruff", specifier = ">=0.17.3,<0.18" },
+    { name = "ty", specifier = ">=0.0.95" },
+]
+lint = [{ name = "ruff", specifier = ">=0.17.3,<0.18" }]
+test = [{ name = "pytest", specifier = ">=9.2.0,<10" }]
+typing = [{ name = "ty", specifier = ">=0.0.95" }]
 
 [[package]]
 name = "colorama"
@@ -41,51 +56,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/c0/9a/15447deead1f0bc10
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b2/60/6cf9e1298042af8287c3b5e2db9ee5146344e02d49e32b6d7c4c0b7ce056/mahjong-2.2.0-py3-none-any.whl", hash = "sha256:cd878ded188dc63dda0cc8b115f84d9a80ff9bd99f9ba4f0925b95f725ec2bcf", size = 88138, upload-time = "2026-11-12T02:21:42.604Z" },
 ]
-
-[[package]]
-name = "mahjong-lib-validation"
-version = "0.0.1"
-source = { virtual = "." }
-
-[package.dev-dependencies]
-dev = [
-    { name = "prek" },
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-hooks = [
-    { name = "prek" },
-    { name = "ruff" },
-    { name = "ty" },
-]
-lint = [
-    { name = "ruff" },
-]
-test = [
-    { name = "pytest" },
-]
-typing = [
-    { name = "ty" },
-]
-
-[package.metadata]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "prek", specifier = ">=0.5.9,<0.6" },
-    { name = "pytest", specifier = ">=9.2.0,<10" },
-    { name = "ruff", specifier = ">=0.17.3,<0.18" },
-    { name = "ty", specifier = ">=0.0.95" },
-]
-hooks = [
-    { name = "prek", specifier = ">=0.5.9,<0.6" },
-    { name = "ruff", specifier = ">=0.17.3,<0.18" },
-    { name = "ty", specifier = ">=0.0.95" },
-]
-lint = [{ name = "ruff", specifier = ">=0.17.3,<0.18" }]
-test = [{ name = "pytest", specifier = ">=9.2.0,<10" }]
-typing = [{ name = "ty", specifier = ">=0.0.95" }]
 
 [[package]]
 name = "mahjong-validator"

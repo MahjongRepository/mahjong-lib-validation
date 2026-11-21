@@ -4,7 +4,7 @@
 
 ## workspace の開発環境
 
-ルートは開発ツールを管理する非パッケージのプロジェクトとし、
+ルートは workspace と共通の開発ツールを管理し、
 `packages/corpus`、`packages/tenhou-converter`、`packages/validator` を
 uv workspace のメンバーとしている。
 ロックファイルと開発用の仮想環境はルートで共有する。
@@ -14,10 +14,9 @@ corpus の配布名・import 名は、ともに `corpus` である。
 
 validator は `packages/validator/` に置き、配布名・CLI 名は
 `mahjong-validator`、import 名は `validator` とする。
-ルートと全パッケージの最低 Python は 3.15 に統一する。
+全パッケージの最低 Python は 3.15 に統一する。
 全メンバー用開発環境と共通ロックファイルも Python 3.15 以上を必要とする。
-Ruff はルートの `requires-python` から対象版を推定し、全パッケージで
-共通設定を使う。ルートの ty も Python 3.15 を指定する。
+Ruff と ty はルートの共通設定で Python 3.15 を対象とする。
 
 ルートで次を実行すると、全メンバーと開発ツールをインストールできる。
 
@@ -43,7 +42,7 @@ uv build --package mahjong-validator
 `packages/` のテストを収集する。
 
 ```console
-uv run --no-sync pytest
+uv run --no-sync python -m pytest
 ```
 
 一時ディレクトリが制限される環境では、
