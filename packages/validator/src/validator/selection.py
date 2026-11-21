@@ -10,11 +10,13 @@ class Selection:
     limit: int | None = None
 
     def __post_init__(self) -> None:
-        if self.limit is not None and (
-            type(self.limit) is not int or self.limit <= 0
-        ):
-            msg = "limit must be a positive integer"
-            raise ValueError(msg)
+        if self.limit is not None:
+            if type(self.limit) is not int:
+                msg = "limit must be an integer"
+                raise ValueError(msg)
+            if self.limit <= 0:
+                msg = "limit must be positive"
+                raise ValueError(msg)
         if self.player_count is not None and (
             type(self.player_count) is not int
             or self.player_count not in (3, 4)

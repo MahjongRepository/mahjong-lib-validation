@@ -82,8 +82,13 @@ def test_interruption_and_write_failure_do_not_publish(
 
 @pytest.mark.parametrize("limit", [0, -1, True, 1.5])
 def test_invalid_limit_is_rejected(limit: int) -> None:
-    with pytest.raises(ValueError, match="positive integer"):
+    with pytest.raises(ValueError, match="limit"):
         Selection(limit=limit)
+
+
+@pytest.mark.parametrize("limit", [None, 1])
+def test_valid_limit_is_preserved(limit: int | None) -> None:
+    assert Selection(limit=limit).limit == limit
 
 
 def test_summary_identifies_inputs_environment_and_partial_coverage(
