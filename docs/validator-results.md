@@ -26,7 +26,8 @@ summary = validate_dataset(
 
 `Selection` は frozen dataclass で、既定は全件選択とする。
 `player_count` は `None` / `3` / `4`、`case_ids` は空または非空文字列の tuple、
-`limit` は `None` または正の整数とする。bool を整数指定として受理しない。
+`limit` は `None` または正の整数とする。Python API の呼び出しでは型注釈に従う。
+CLI では引数の解析時に型を指定し、`Selection` は値の制約を検証する。
 同じ case ID に該当する全レコードを対象とし、絞込後に件数上限を適用する。
 
 CLI は `mahjong-validator validate DATASET --output OUTPUT` とし、

@@ -10,23 +10,14 @@ class Selection:
     limit: int | None = None
 
     def __post_init__(self) -> None:
-        if self.limit is not None:
-            if type(self.limit) is not int:
-                msg = "limit must be an integer"
-                raise ValueError(msg)
-            if self.limit <= 0:
-                msg = "limit must be positive"
-                raise ValueError(msg)
-        if self.player_count is not None and (
-            type(self.player_count) is not int
-            or self.player_count not in (3, 4)
-        ):
+        if self.limit is not None and self.limit <= 0:
+            msg = "limit must be positive"
+            raise ValueError(msg)
+        if self.player_count is not None and self.player_count not in (3, 4):
             msg = "player_count must be 3 or 4"
             raise ValueError(msg)
-        if not isinstance(self.case_ids, tuple) or any(
-            not isinstance(key, str) or not key for key in self.case_ids
-        ):
-            msg = "case_ids must be a tuple of nonempty strings"
+        if "" in self.case_ids:
+            msg = "case_ids must not contain empty strings"
             raise ValueError(msg)
 
     def matches(self, case: ScoringCase, selected: int) -> bool:
