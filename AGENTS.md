@@ -47,10 +47,6 @@ corpus を使った検証・計測・比較・プロファイルは
 validator の公開 API と保存する JSON の契約は
 [validator 初期版の API と結果形式](docs/validator-results.md) を参照する。
 
-validator の検証処理の原因別分割は、一時的な
-[検証分割 TODO](docs/validator-validation-todo.md) で管理する。
-修正ごとに更新し、全項目の対応完了後にこのリンクと TODO ファイルを削除する。
-
 ## 実装方針
 
 本プロジェクトは開発中であり、利用先も同じプロジェクト内に限られる。

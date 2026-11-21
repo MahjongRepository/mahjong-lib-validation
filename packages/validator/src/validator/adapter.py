@@ -210,8 +210,8 @@ def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
             msg = f"unknown library yaku: {value.yaku_id}"
             raise ValueError(msg)
         han = value.han_open if raw.is_open_hand else value.han_closed
-        if han is None or han <= 0:
-            msg = f"invalid yaku han: {key}"
+        if han <= 0:
+            msg = f"yaku han must be positive: {key}"
             raise ValueError(msg)
         yaku.append(
             {

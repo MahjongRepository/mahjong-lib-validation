@@ -52,6 +52,23 @@ def test_normalize_accepts_zero_han_and_fu_and_empty_yaku(
     assert (result["han"], result["fu"], result["yaku"]) == (0, 0, [])
 
 
+@pytest.mark.parametrize("han", [0, -1])
+@pytest.mark.parametrize("opened", [False, True])
+def test_normalize_rejects_invalid_han_for_hand_openness(
+    load_case: Callable[..., ScoringCase], han: int, *, opened: bool
+) -> None:
+    case = load_case()
+    hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
+    raw = calculate(hand)
+    yaku = YakuConfig().tanyao
+    setattr(yaku, "han_open" if opened else "han_closed", han)
+    raw.yaku = [yaku]
+    raw.is_open_hand = opened
+
+    with pytest.raises(ValueError, match="tanyao"):
+        normalize_result(hand, raw)
+
+
 @pytest.mark.parametrize("kazoe", [False, True])
 def test_normalize_composite_yakuman_and_kazoe(
     load_case: Callable[..., ScoringCase], *, kazoe: bool
