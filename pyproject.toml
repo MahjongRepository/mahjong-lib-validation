@@ -1,3 +1,13 @@
+[tool.uv.workspace]
+members = [
+    "packages/corpus",
+    "packages/tenhou-converter",
+    "packages/validator",
+]
+
+[tool.uv.sources]
+corpus = { workspace = true }
+
 [dependency-groups]
 dev = [
     { include-group = "hooks" },
@@ -17,16 +27,6 @@ typing = [
 test = [
     "pytest>=9.2.0,<10",
 ]
-
-[tool.uv.workspace]
-members = [
-    "packages/corpus",
-    "packages/tenhou-converter",
-    "packages/validator",
-]
-
-[tool.uv.sources]
-corpus = { workspace = true }
 
 [tool.ruff]
 target-version = "py315"
