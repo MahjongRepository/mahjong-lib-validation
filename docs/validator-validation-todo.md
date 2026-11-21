@@ -44,7 +44,7 @@ Python API では型注釈に従い、実行時の型検査は外部入力の解
 `validate_case()` でケースの `error` として保存される。
 未対応の `unsupported` や入力不足の `skipped` へ分類を変えない。
 
-- [ ] 04. ライブラリ結果の必須値の欠落
+- [x] 04. ライブラリ結果の必須値の欠落
   — `raw.cost`・`raw.han`・`raw.fu`・`raw.yaku` のどれが `None` なのかを区別する。
   現在の順序（cost → han → fu → yaku）で個別に検証し、すべて確認してから後続処理で使用する。
   `raw.error` を先に扱う順序も維持する。

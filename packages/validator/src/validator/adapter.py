@@ -185,14 +185,19 @@ def _payments(hand: PreparedHand, cost: ScoresResult) -> list[int]:
 def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
     if raw.error:
         raise ValueError(raw.error)
-    if (
-        raw.cost is None
-        or raw.han is None
-        or raw.fu is None
-        or raw.yaku is None
-    ):
-        msg = "incomplete library result"
+    if raw.cost is None:
+        msg = "library result is missing cost"
         raise ValueError(msg)
+    if raw.han is None:
+        msg = "library result is missing han"
+        raise ValueError(msg)
+    if raw.fu is None:
+        msg = "library result is missing fu"
+        raise ValueError(msg)
+    if raw.yaku is None:
+        msg = "library result is missing yaku"
+        raise ValueError(msg)
+
     yaku: list[Yaku] = []
     seen: set[int] = set()
     for value in raw.yaku:
@@ -217,6 +222,7 @@ def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
                 else 0,
             }
         )
+
     multiplier = sum(item["yakuman_multiplier"] for item in yaku)
     cost = raw.cost
     titles: dict[str, Title] = {

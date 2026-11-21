@@ -15,6 +15,43 @@ if TYPE_CHECKING:
     from corpus.models import ScoringCase, Tile
 
 
+@pytest.mark.parametrize(
+    ("missing", "first"),
+    [
+        (("cost",), "cost"),
+        (("han",), "han"),
+        (("fu",), "fu"),
+        (("yaku",), "yaku"),
+        (("han", "fu", "yaku"), "han"),
+        (("cost", "han"), "cost"),
+    ],
+)
+def test_normalize_reports_first_missing_field(
+    load_case: Callable[..., ScoringCase], missing: tuple[str, ...], first: str
+) -> None:
+    case = load_case()
+    hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
+    raw = calculate(hand)
+    for field in missing:
+        setattr(raw, field, None)
+
+    with pytest.raises(ValueError, match=rf"\b{first}\b"):
+        normalize_result(hand, raw)
+
+
+def test_normalize_accepts_zero_han_and_fu_and_empty_yaku(
+    load_case: Callable[..., ScoringCase],
+) -> None:
+    case = load_case()
+    hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
+    raw = HandResponse(cost=calculate(hand).cost, han=0, fu=0)
+    raw.yaku = []
+
+    result = normalize_result(hand, raw)
+
+    assert (result["han"], result["fu"], result["yaku"]) == (0, 0, [])
+
+
 @pytest.mark.parametrize("kazoe", [False, True])
 def test_normalize_composite_yakuman_and_kazoe(
     load_case: Callable[..., ScoringCase], *, kazoe: bool
