@@ -112,7 +112,12 @@ def test_shared_double_ron_deltas_do_not_become_individual_payments() -> None:
         assert case["expected"]["event_score_deltas"] == [-2900, 2600, 1300, 0]
         assert {
             item["field"] for item in case["comparison"]["excluded_fields"]
-        } == {"payments_by_seat", "honba_points", "riichi_stick_points"}
+        } == {
+            "payments_by_seat",
+            "honba_points",
+            "riichi_stick_points",
+            "winner_gain",
+        }
 
 
 @pytest.mark.parametrize("gain", [16, 36])

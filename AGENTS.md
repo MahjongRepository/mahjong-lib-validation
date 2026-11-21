@@ -30,7 +30,7 @@ corpus の初期実装と API の確認事項は
 
 共通の役名は [共通の役 ID](docs/corpus-yaku.md) を参照する。
 
-包・複数ロンで精算中の持ち点が負になる場合の調査結果と未実装の修正案は
+包・複数ロンで精算中の持ち点が負になる場合の調査結果と実装記録は
 [負の持ち点からの和了](docs/negative-balance-win-proposal.md) を参照する。
 
 天鳳牌譜の変換器は [天鳳 converter の設計](docs/tenhou-converter-design.md)

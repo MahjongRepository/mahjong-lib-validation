@@ -15,19 +15,32 @@ from tenhou_converter.scoring import expected_values
 METADATA = frozenset({"SHUFFLE", "UN", "TAIKYOKU", "BYE"})
 
 
-def multiple_ron_indices(events: list[Event]) -> set[int]:
+def shared_score_indices(events: list[Event]) -> set[int]:
+    """Recognize shared scores regardless of each winner's net gain."""
     result: set[int] = set()
-    current: list[int] = []
+    current: list[Event] = []
     for event in events:
         if event.tag == "INIT":
-            if len(current) > 1:
-                result.update(current)
+            result.update(_shared_group(current))
             current = []
         elif event.tag == "AGARI":
-            current.append(event.index)
-    if len(current) > 1:
-        result.update(current)
+            current.append(event)
+    result.update(_shared_group(current))
     return result
+
+
+def _shared_group(events: list[Event]) -> set[int]:
+    if len(events) < 2:
+        return set()
+    scores = [event.numbers("sc") for event in events]
+    if all(score[1::2] == scores[0][1::2] for score in scores):
+        if any(score != scores[0] for score in scores):
+            reason = "inconsistent_events"
+            raise events[-1].error(
+                reason, "shared scores have different starting balances", "sc"
+            )
+        return {event.index for event in events}
+    return set()
 
 
 def _header(events: list[Event]) -> Event:
@@ -55,7 +68,14 @@ def _start_round(
         if not state.finished:
             reason = "incomplete_log"
             raise event.error(reason, "previous round did not finish")
-        state.check_settlement()
+        final_scores = state.check_settlement()
+        if final_scores is not None and event.numbers("ten") != final_scores:
+            reason = "inconsistent_events"
+            raise event.error(
+                reason,
+                "next round balance conflicts with win settlement",
+                "ten",
+            )
     return RoundState.start(event, count)
 
 
@@ -69,7 +89,7 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
 
     events = parse_xml(xml)
     go = _header(events)
-    multiple_ron = multiple_ron_indices(events)
+    shared_scores = shared_score_indices(events)
 
     state: RoundState | None = None
     cases: list[ScoringCase] = []
@@ -90,7 +110,7 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
                 state,
                 go,
                 log_id,
-                multiple_ron=event.index in multiple_ron,
+                shared_scores=event.index in shared_scores,
             )
             if case["case_id"] in ids:
                 reason = "inconsistent_events"
@@ -98,6 +118,7 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
             ids.add(case["case_id"])
             cases.append(case)
             state.results.append(case["expected"])
+            state.win_events.append(event)
             state.winners.add(event.integer("who"))
             state.finished = True
         elif state.finished:
@@ -140,7 +161,7 @@ def extract(
     go: Event,
     log_id: str,
     *,
-    multiple_ron: bool = False,
+    shared_scores: bool = False,
 ) -> ScoringCase:
     if state.finished and not state.winners:
         reason = "inconsistent_events"
@@ -171,7 +192,7 @@ def extract(
     hand.remove(winning)
     players = player_count(go)
     expected, exclusions = expected_values(
-        event, players, multiple_ron=multiple_ron
+        event, players, shared_scores=shared_scores
     )
     melds = (
         [decode_meld(code, who, event) for code in event.numbers("m")]

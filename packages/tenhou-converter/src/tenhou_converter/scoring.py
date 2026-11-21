@@ -138,7 +138,7 @@ def _score_title(event: Event, rank: int, multiplier: int, han: int) -> Title:
 
 
 def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with distinct diagnostics
-    event: Event, players: int, *, multiple_ron: bool = False
+    event: Event, players: int, *, shared_scores: bool = False
 ) -> tuple[Expected, list[ExcludedField]]:
     yaku = yaku_values(event)
     ten = event.numbers("ten")
@@ -178,25 +178,24 @@ def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with d
     other_gains = any(
         value > 0 for seat, value in enumerate(deltas) if seat != who
     )
-    shared = multiple_ron and other_gains
     # Shared deltas describe several wins, so individual gains cannot be
     # reconciled with the total paid by all payers.
-    if honba < 0:
+    if not shared_scores and honba < 0:
         reason = "inconsistent_events"
         raise event.error(
             reason,
             "payments are less than base points",
             "sc",
         )
-    if payments[who]:
+    if not shared_scores and payments[who]:
         reason = "inconsistent_events"
         raise event.error(reason, "winner must not pay their own win", "sc")
-    if not shared and sticks < 0:
+    if not shared_scores and sticks < 0:
         reason = "inconsistent_events"
         raise event.error(
             reason, "winner gain is less than total payments", "sc"
         )
-    if not shared and other_gains:
+    if not shared_scores and other_gains:
         reason = "inconsistent_events"
         raise event.error(
             reason, "individual win credits another player", "sc"
@@ -231,14 +230,16 @@ def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with d
         "payments_by_seat": payments,
         "event_score_deltas": deltas,
     }
-    if shared:
+    if shared_scores:
         result["honba_points"] = None
         result["riichi_stick_points"] = None
         result["payments_by_seat"] = None
+        result["winner_gain"] = None
         excluded_fields = {item["field"] for item in exclusions}
         for field in (
             "honba_points",
             "riichi_stick_points",
+            "winner_gain",
             "payments_by_seat",
         ):
             if field in excluded_fields:

@@ -48,6 +48,36 @@ def test_liability_and_shared_event_exclusions_keep_original_reasons(
     assert result["fields"]["winner_gain"]["status"] == "unsupported"
 
 
+def test_negative_balance_win_compares_individual_gain_not_group_net(
+    load_case: Callable[..., ScoringCase],
+) -> None:
+    case = load_case("synthetic-sanma-pao-double-ron")
+
+    result = validate_case(case)
+
+    assert result["status"] == "passed"
+    assert result["fields"]["winner_gain"]["status"] == "matched"
+    assert result["fields"]["winner_gain"]["actual"] == 3200
+    assert result["fields"]["event_score_deltas"]["status"] == "unsupported"
+    assert result["fields"]["event_score_deltas"]["actual"] is None
+
+    for name in (
+        "winner_gain",
+        "honba_points",
+        "riichi_stick_points",
+        "payments_by_seat",
+    ):
+        case["expected"][name] = None
+        case["comparison"]["excluded_fields"].append(
+            {"field": name, "reason": "multiple_ron_allocation_unknown"},
+        )
+    result = validate_case(case)
+    assert result["status"] == "passed"
+    assert result["fields"]["base_points"]["status"] == "matched"
+    assert result["fields"]["winner_gain"]["status"] == "excluded"
+    assert result["fields"]["event_score_deltas"]["status"] == "unsupported"
+
+
 @pytest.mark.parametrize(
     "field",
     [

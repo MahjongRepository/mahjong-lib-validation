@@ -23,12 +23,37 @@ EDGE_FIXTURES = (
     "synthetic-liability.json",
     "tenhou-kokushi.json",
     "synthetic-yakuman-ippatsu.json",
+    "synthetic-sanma-pao-double-ron.json",
 )
 
 
 def _fixture(name: str) -> dict[str, Any]:
     path = Path(__file__).parent / "fixtures" / name
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("compress", [False, True])
+def test_negative_balance_and_net_loss_keep_positive_individual_gain(
+    tmp_path: Path, *, compress: bool
+) -> None:
+    case = parse_case(_fixture("synthetic-sanma-pao-double-ron.json"))
+    path = tmp_path / ("pao.jsonl.gz" if compress else "pao.jsonl")
+    write_cases(path, [case])
+
+    (saved,) = read_cases(path)
+    assert saved["source"]["scoring_values"]["scores_after_first"] == [
+        98000,
+        -14000,
+        21000,
+    ]
+    assert saved["expected"]["winner_gain"] == 3200
+    assert saved["expected"]["payments_by_seat"] == [0, 0, 3200]
+    assert saved["expected"]["event_score_deltas"] == [48000, -20800, -27200]
+
+    saved["expected"]["winner_gain"] = -20800
+    with pytest.raises(CorpusError) as caught:
+        parse_case(saved)
+    assert caught.value.field == "expected.winner_gain"
 
 
 def test_unknown_situation_reason_is_preserved(
@@ -211,8 +236,8 @@ def test_edge_fixtures_survive_manifest_dataset(
             "excluded_by_reason": {},
         },
     )
-    assert [entry["record_count"] for entry in manifest["files"]] == [3, 3, 2]
-    assert check_dataset(path)["record_count"] == 8
+    assert [entry["record_count"] for entry in manifest["files"]] == [3, 3, 3]
+    assert check_dataset(path)["record_count"] == 9
     assert list(read_dataset(path)) == values
 
 

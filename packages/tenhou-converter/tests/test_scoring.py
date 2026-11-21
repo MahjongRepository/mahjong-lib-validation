@@ -209,10 +209,7 @@ def test_invalid_seat_scores_preserve_error_details(
 
 
 @pytest.mark.parametrize("players", [3, 4])
-@pytest.mark.parametrize("multiple_ron", [False, True])
-def test_seat_scores_accept_one_pair_per_wire_seat(
-    players: int, *, multiple_ron: bool
-) -> None:
+def test_seat_scores_accept_one_pair_per_wire_seat(players: int) -> None:
     record = Event(
         23,
         "AGARI",
@@ -224,9 +221,7 @@ def test_seat_scores_accept_one_pair_per_wire_seat(
         },
     )
 
-    expected, exclusions = expected_values(
-        record, players, multiple_ron=multiple_ron
-    )
+    expected, exclusions = expected_values(record, players)
 
     assert expected["event_score_deltas"] == [
         -1300,
@@ -249,7 +244,7 @@ def test_shared_ron_keeps_liability_exclusion_without_duplicates() -> None:
             "sc": "250,-29,250,26,250,13,250,0",
         },
     )
-    expected, exclusions = expected_values(record, 4, multiple_ron=True)
+    expected, exclusions = expected_values(record, 4, shared_scores=True)
 
     assert expected["honba_points"] is None
     assert expected["riichi_stick_points"] is None
@@ -261,31 +256,75 @@ def test_shared_ron_keeps_liability_exclusion_without_duplicates() -> None:
             "field": "riichi_stick_points",
             "reason": "multiple_ron_allocation_unknown",
         },
+        {"field": "winner_gain", "reason": "multiple_ron_allocation_unknown"},
     ]
 
 
 @pytest.mark.parametrize(
-    ("sc", "multiple_ron"),
+    "sc",
     [
-        ("250,-29,250,26,250,13,250,0", False),
-        ("250,-10,250,26,250,13,250,0", True),
-        ("250,26,250,-29,250,13,250,0", True),
-        ("250,-26,250,13,250,0,250,0", False),
-        ("250,-26,250,13,250,0,250,0", True),
-        ("250,-13,250,26,250,1,250,0", False),
+        "250,-29,250,26,250,13,250,0",
+        "250,-10,250,26,250,13,250,0",
+        "250,26,250,-29,250,13,250,0",
+        "250,-26,250,13,250,0,250,0",
+        "250,-13,250,26,250,1,250,0",
     ],
 )
-def test_inconsistent_payments_are_not_hidden_by_shared_ron(
-    sc: str, *, multiple_ron: bool
-) -> None:
+def test_inconsistent_individual_payments_are_rejected(sc: str) -> None:
     record = Event(
         20,
         "AGARI",
         {"who": "1", "ten": "30,1300,0", "yaku": "1,1", "sc": sc},
     )
     with pytest.raises(ConversionError) as caught:
-        expected_values(record, 4, multiple_ron=multiple_ron)
+        expected_values(record, 4)
 
     assert caught.value.reason == "inconsistent_events"
     assert caught.value.event_index == 20
     assert caught.value.field == "sc"
+
+
+@pytest.mark.parametrize("net", [-24000, 0, 8000])
+def test_shared_winner_gain_is_not_the_net_event_delta(net: int) -> None:
+    record = Event(
+        24,
+        "AGARI",
+        {
+            "who": "1",
+            "ten": "50,32000,5",
+            "yakuman": "39",
+            "sc": f"500,480,100,{net // 100},450,{-480 - net // 100},0,0",
+        },
+    )
+
+    expected, exclusions = expected_values(record, 3, shared_scores=True)
+
+    assert expected["winner_gain"] is None
+    assert expected["event_score_deltas"] == [48000, net, -48000 - net]
+    assert {item["field"] for item in exclusions} == {
+        "honba_points",
+        "riichi_stick_points",
+        "winner_gain",
+        "payments_by_seat",
+    }
+
+
+def test_shared_net_payments_can_be_less_than_one_winners_base_points() -> (
+    None
+):
+    record = Event(
+        25,
+        "AGARI",
+        {
+            "who": "0",
+            "ten": "40,48000,5",
+            "yakuman": "39",
+            "paoWho": "1",
+            "sc": "500,320,100,80,450,-400,0,0",
+        },
+    )
+    # The first winner also pays the second win. The group net income
+    # must not become this winner's individual gain or own-win payment.
+    expected, _ = expected_values(record, 3, shared_scores=True)
+    assert expected["winner_gain"] is None
+    assert expected["base_points"] == 48000

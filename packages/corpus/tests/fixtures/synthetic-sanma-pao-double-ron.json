@@ -1,0 +1,130 @@
+{
+  "schema_version": "v1",
+  "case_type": "scoring",
+  "case_id": "tenhou:synthetic-sanma-pao-double-ron:east:1:0:2",
+  "source": {
+    "platform": "tenhou",
+    "log_id": "synthetic-sanma-pao-double-ron",
+    "event_index": 21,
+    "winner_index": 0,
+    "scoring_values": {
+      "fixture_kind": "synthetic",
+      "group_scores_before": [
+        50000,
+        10000,
+        45000
+      ],
+      "scores_after_first": [
+        98000,
+        -14000,
+        21000
+      ],
+      "sc": "980,0,-140,32,210,-32,0,0"
+    }
+  },
+  "ruleset": "tenhou-ranked-match",
+  "player_count": 3,
+  "round": {
+    "wind": "east",
+    "number": 1,
+    "honba": 0,
+    "riichi_sticks": 0,
+    "dealer_seat": 0
+  },
+  "win_number": 2,
+  "input": {
+    "winner_seat": 1,
+    "discarder_seat": 2,
+    "concealed_tiles": [
+      "1p",
+      "2p",
+      "3p",
+      "1s",
+      "2s",
+      "3s",
+      "7s",
+      "8s",
+      "9s",
+      "1z",
+      "1m",
+      "1m",
+      "1m"
+    ],
+    "winning_tile": "1z",
+    "melds": [],
+    "nuki_count": 0,
+    "dora_indicators": [
+      "7p"
+    ],
+    "ura_dora_indicators": [],
+    "situation": {
+      "tsumo": false,
+      "riichi": "none",
+      "ippatsu": false,
+      "rinshan": false,
+      "chankan": false,
+      "haitei": false,
+      "houtei": false,
+      "tenhou": false,
+      "chiihou": false,
+      "renhou": false
+    }
+  },
+  "situation_provenance": {
+    "method": "event_reconstruction",
+    "event_indices": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21
+    ],
+    "unknown_fields": {}
+  },
+  "expected": {
+    "title": "below_mangan",
+    "yaku": [
+      {
+        "id": "chanta",
+        "han": 2,
+        "yakuman_multiplier": 0
+      }
+    ],
+    "han": 2,
+    "fu": 50,
+    "yakuman_multiplier": 0,
+    "base_points": 3200,
+    "honba_points": 0,
+    "riichi_stick_points": 0,
+    "winner_gain": 3200,
+    "payments_by_seat": [
+      0,
+      0,
+      3200
+    ],
+    "event_score_deltas": [
+      48000,
+      -20800,
+      -27200
+    ]
+  },
+  "comparison": {
+    "excluded_fields": []
+  }
+}

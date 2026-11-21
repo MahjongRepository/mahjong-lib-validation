@@ -4,6 +4,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, NamedTuple, NoReturn
 
 from tenhou_converter.melds import DecodedMeld, decode_meld
+from tenhou_converter.settlement import (
+    check_shared_payments,
+    check_win_balances,
+)
 lazy from tenhou_converter.parser import Event
 
 if TYPE_CHECKING:
@@ -47,10 +51,11 @@ class RoundState:
     winners: set[int] = field(default_factory=set)
     indicator_due: int = 0
     results: list[Expected] = field(default_factory=list)
+    win_events: list[Event] = field(default_factory=list)
 
-    def check_settlement(self) -> None:
+    def check_settlement(self) -> list[int] | None:
         if not self.results:
-            return
+            return None
 
         for result in self.results:
             deltas = result["event_score_deltas"] or []
@@ -86,6 +91,26 @@ class RoundState:
             != self.init.numbers("seed")[1] * (len(self.players) - 1) * 100
         ):
             self.fail(self.init, "score components conflict with honba")
+
+        shared_scores = self.results[0]["riichi_stick_points"] is None
+        if shared_scores:
+            check_shared_payments(
+                self.win_events,
+                len(self.players),
+                honba=self.init.numbers("seed")[1]
+                * (len(self.players) - 1)
+                * 100,
+                sticks=self.sticks * 1000,
+            )
+        starting = self.init.numbers("ten")
+        for seat, player in enumerate(self.players):
+            if player.riichi != "none":
+                starting[seat] -= 10
+        return check_win_balances(
+            self.win_events,
+            starting,
+            shared_scores=shared_scores,
+        )
 
     @classmethod
     def start(cls, event: Event, player_count: int) -> RoundState:
