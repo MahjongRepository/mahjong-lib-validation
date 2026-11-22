@@ -438,13 +438,13 @@ class RoundState:
                 self.fail(event, "self call at an invalid phase or seat")
             if self.last is None or self.last.kind != "draw":
                 self.fail(event, "self call without draw")
+            if meld.kind == "nuki" and len(self.players) != 3:
+                self.fail(event, "invalid north extraction")
             consumed = (
                 meld.tiles
                 if meld.kind in ("ankan", "nuki")
                 else meld.tiles[-1:]
             )
-            if meld.kind == "nuki" and len(self.players) != 3:
-                self.fail(event, "invalid north extraction")
 
         if not set(consumed) <= player.hand:
             self.fail(event, "call consumes tiles absent from hand")
