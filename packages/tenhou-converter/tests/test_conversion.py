@@ -626,12 +626,32 @@ def test_self_call_consumes_tiles_after_own_draw(
     state.next_seat = 0
     state.last = Action("draw", 0, 124)
     before_hand = state.players[0].hand.copy()
+    state.players[1].ippatsu = True
 
     state.consume_call(meld, 0, event)
 
     consumed = meld.tiles[-1:] if meld.kind == "kakan" else meld.tiles
     assert state.players[0].hand == before_hand - set(consumed)
-    assert state.interrupted == (meld.kind == "ankan")
+    assert not state.interrupted
+    assert state.players[1].ippatsu
+
+
+def test_ankan_interrupts_ippatsu_on_supplemental_draw() -> None:
+    root = ET.parse(FIXTURES / "synthetic-ankan-rinshan.xml").getroot()
+    init, draw, call, dora, supplemental_draw = root[1:6]
+    state = RoundState.start(Event(0, init.tag, dict(init.attrib)), 4)
+    state.players[1].ippatsu = True
+    state.draw(0, 127, Event(1, draw.tag, {}))
+    state.call(Event(2, call.tag, dict(call.attrib)))
+    state.dora(Event(3, dora.tag, dict(dora.attrib)))
+
+    assert not state.interrupted
+    assert state.players[1].ippatsu
+
+    state.draw(0, 109, Event(4, supplemental_draw.tag, {}))
+
+    assert state.interrupted
+    assert not state.players[1].ippatsu
 
 
 @pytest.mark.parametrize(

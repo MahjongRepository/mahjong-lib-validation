@@ -408,7 +408,7 @@ class RoundState:
             tile=meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
         )
 
-    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901, PLR0912 -- distinct diagnostics for call mismatches
+    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901 -- distinct diagnostics for call mismatches
         player = self.player(who, event)
         if meld.kind in ("chii", "pon", "daiminkan"):
             if (
@@ -445,8 +445,6 @@ class RoundState:
             )
             if meld.kind == "nuki" and len(self.players) != 3:
                 self.fail(event, "invalid north extraction")
-            if meld.kind == "ankan":
-                self.interrupt()
 
         if not set(consumed) <= player.hand:
             self.fail(event, "call consumes tiles absent from hand")
