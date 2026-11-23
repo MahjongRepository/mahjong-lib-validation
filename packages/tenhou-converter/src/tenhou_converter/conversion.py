@@ -13,6 +13,7 @@ from tenhou_converter.rules import player_count
 from tenhou_converter.scoring import expected_values
 
 METADATA = frozenset({"SHUFFLE", "UN", "TAIKYOKU", "BYE"})
+_DRAW_OR_DISCARD_TAG = re.compile(r"([T-WD-G])([0-9]+)")
 
 
 def shared_score_indices(events: list[Event]) -> set[int]:
@@ -135,7 +136,7 @@ def convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]:  # noqa: C901 
 
 
 def advance(state: RoundState, event: Event) -> None:
-    match = re.fullmatch(r"([T-WD-G])([0-9]+)", event.tag)
+    match = _DRAW_OR_DISCARD_TAG.fullmatch(event.tag)
     if match:
         letter, value = match.groups()
         if letter in "TUVW":
