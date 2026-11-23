@@ -11,19 +11,19 @@ members = [
 
 [manifest.dependency-groups]
 dev = [
-    { name = "prek", specifier = ">=0.5.9,<0.6" },
+    { name = "prek", specifier = ">=0.5.11,<0.6" },
     { name = "pytest", specifier = ">=9.2.0,<10" },
-    { name = "ruff", specifier = ">=0.17.3,<0.18" },
-    { name = "ty", specifier = ">=0.0.95" },
+    { name = "ruff", specifier = ">=0.17.6,<0.18" },
+    { name = "ty", specifier = ">=0.0.108" },
 ]
 hooks = [
-    { name = "prek", specifier = ">=0.5.9,<0.6" },
-    { name = "ruff", specifier = ">=0.17.3,<0.18" },
-    { name = "ty", specifier = ">=0.0.95" },
+    { name = "prek", specifier = ">=0.5.11,<0.6" },
+    { name = "ruff", specifier = ">=0.17.6,<0.18" },
+    { name = "ty", specifier = ">=0.0.108" },
 ]
-lint = [{ name = "ruff", specifier = ">=0.17.3,<0.18" }]
+lint = [{ name = "ruff", specifier = ">=0.17.6,<0.18" }]
 test = [{ name = "pytest", specifier = ">=9.2.0,<10" }]
-typing = [{ name = "ty", specifier = ">=0.0.95" }]
+typing = [{ name = "ty", specifier = ">=0.0.108" }]
 
 [[package]]
 name = "colorama"
