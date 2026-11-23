@@ -2,7 +2,12 @@
 
 from corpus.case_io import read_cases, write_cases
 from corpus.checks import parse_case
-from corpus.datasets import check_dataset, read_dataset, write_dataset
+from corpus.datasets import (
+    check_dataset,
+    file_sha256,
+    read_dataset,
+    write_dataset,
+)
 from corpus.errors import CorpusError
 from corpus.manifests import parse_manifest, read_manifest, write_manifest
 from corpus.models import Manifest, ScoringCase
@@ -12,6 +17,7 @@ __all__ = [
     "Manifest",
     "ScoringCase",
     "check_dataset",
+    "file_sha256",
     "parse_case",
     "parse_manifest",
     "read_cases",

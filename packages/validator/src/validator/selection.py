@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 lazy from corpus.models import ScoringCase
 
+MAX_CASE_IDS = 100
+
 
 @dataclass(frozen=True)
 class Selection:
@@ -10,6 +12,9 @@ class Selection:
     limit: int | None = None
 
     def __post_init__(self) -> None:
+        if len(self.case_ids) > MAX_CASE_IDS:
+            msg = f"at most {MAX_CASE_IDS} case IDs may be selected"
+            raise ValueError(msg)
         if self.limit is not None and self.limit <= 0:
             msg = "limit must be positive"
             raise ValueError(msg)

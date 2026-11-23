@@ -19,7 +19,7 @@ def test_files_publish_checked_shards_and_report(tmp_path: Path) -> None:
     )
     assert manifest == check_dataset(output)
     assert manifest["record_count"] == 2
-    assert len(manifest["files"]) == 2
+    assert len((output / "files.jsonl").read_text().splitlines()) == 2
     assert manifest["conversion"]["converted_count"] == 2
     assert [case["source"]["log_id"] for case in read_dataset(output)] == [
         "a",

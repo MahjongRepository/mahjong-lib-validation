@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from corpus import read_dataset, read_manifest
+from corpus import file_sha256, read_dataset
 
 from validator.adapter import (
     MissingInputError,
@@ -161,8 +161,7 @@ def _validate_dataset(
     dataset: str | Path, output: Path, selection: Selection
 ) -> ValidationSummary:
     manifest_path = Path(dataset) / "manifest.json"
-    manifest = read_manifest(manifest_path)
-    manifest_sha256 = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
+    manifest_sha256 = file_sha256(manifest_path)
     counts: dict[CaseStatus, int] = {
         "passed": 0,
         "mismatch": 0,
@@ -173,7 +172,6 @@ def _validate_dataset(
     scanned = selected = 0
     digest = hashlib.sha256()
     field_counts: dict[str, dict[str, int]] = {}
-    field_reasons: dict[str, dict[str, int]] = {}
 
     with (output / "cases.jsonl").open("w", encoding="utf-8") as stream:
         for scanned, case in enumerate(read_dataset(dataset), start=1):
@@ -194,11 +192,6 @@ def _validate_dataset(
                 statuses[field["status"]] = (
                     statuses.get(field["status"], 0) + 1
                 )
-                if "reason" in field:
-                    reasons = field_reasons.setdefault(name, {})
-                    reasons[field["reason"]] = (
-                        reasons.get(field["reason"], 0) + 1
-                    )
             stream.write(json.dumps(result, ensure_ascii=False) + "\n")
 
     summary: ValidationSummary = {
@@ -209,14 +202,13 @@ def _validate_dataset(
         "purpose": "validate",
         "complete": True,
         "field_counts": field_counts,
-        "field_reasons": field_reasons,
         "selection_sha256": digest.hexdigest(),
         "selection": {
             "player_count": selection.player_count,
             "case_ids": list(selection.case_ids),
             "limit": selection.limit,
         },
-        "corpus": {"manifest": manifest, "manifest_sha256": manifest_sha256},
+        "corpus": {"manifest_sha256": manifest_sha256},
         "environment": environment_info(),
         "comparison_policy": (
             "v1: yaku dora+nuki_dora combined; "

@@ -1,3 +1,4 @@
+import hashlib
 import json
 from importlib.metadata import version
 from pathlib import Path
@@ -101,7 +102,10 @@ def test_summary_identifies_inputs_environment_and_partial_coverage(
     second = validate_dataset(dataset, tmp_path / "second")
     assert first["selection_sha256"] == second["selection_sha256"]
     assert len(first["selection_sha256"]) == 64
-    assert first["corpus"]["manifest"]["record_count"] == 2
+    assert (
+        first["corpus"]["manifest_sha256"]
+        == hashlib.sha256((dataset / "manifest.json").read_bytes()).hexdigest()
+    )
     assert first["environment"]["mahjong_version"] == version("mahjong")
     assert Path(first["environment"]["mahjong_path"]).is_dir()
     assert first["field_counts"]["event_score_deltas"] == {"unsupported": 2}
@@ -118,10 +122,15 @@ def test_later_corruption_after_limit_never_publishes_result(
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case(), load_case()])
     manifest = json.loads((dataset / "manifest.json").read_text())
+    index = dataset / "files.jsonl"
+    files = [json.loads(line) for line in index.read_text().splitlines()]
     if kind == "hash":
-        (dataset / manifest["files"][1]["path"]).write_bytes(b"broken")
+        (dataset / files[1]["path"]).write_bytes(b"broken")
     else:
-        manifest["files"][1]["record_count"] = 2
+        files[1]["record_count"] = 2
+        data = "".join(json.dumps(row) + "\n" for row in files).encode()
+        index.write_bytes(data)
+        manifest["files_sha256"] = hashlib.sha256(data).hexdigest()
         manifest["record_count"] = 3
         (dataset / "manifest.json").write_text(json.dumps(manifest))
     output = tmp_path / "result"
@@ -148,3 +157,8 @@ def test_filter_before_limit_retains_global_position_and_checks_all(
     result = json.loads((output / "cases.jsonl").read_text())
     assert result["position"] == 2
     assert result["case_id"] == case["case_id"]
+
+
+def test_case_id_filter_rejects_an_unbounded_list() -> None:
+    with pytest.raises(ValueError, match="at most 100 case IDs"):
+        Selection(case_ids=("case-id",) * 101)

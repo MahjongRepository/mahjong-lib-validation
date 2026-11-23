@@ -25,7 +25,7 @@ summary = validate_dataset(
 正常に処理を完了した不一致・計算エラーの結果は公開して返す。
 
 `Selection` は frozen dataclass で、既定は全件選択とする。
-`player_count` は `None` / `3` / `4`、`case_ids` は空または非空文字列の tuple、
+`player_count` は `None` / `3` / `4`、`case_ids` は空または非空文字列を最大 100 件含む tuple、
 `limit` は `None` または正の整数とする。Python API の呼び出しでは型注釈に従う。
 CLI では引数の解析時に型を指定し、`Selection` は値の制約を検証する。
 同じ case ID に該当する全レコードを対象とし、絞込後に件数上限を適用する。
@@ -55,16 +55,17 @@ case ID の一意性に依存しない。
 | `scanned_count` | corpus の全件検査で読んだ件数 |
 | `selected_count` | 選択して処理した件数。counts の和と一致する |
 | `field_counts` | 比較項目名 → 項目状態 → 件数。発生した状態だけを保存する |
-| `field_reasons` | 比較項目名 → 理由文字列 → 件数。理由がある項目だけを保存する |
 | `selection` | `player_count`、`case_ids`（JSON 配列）、`limit` |
 | `selection_sha256` | 選択した `[position, case_id]` を順に JSON 化して LF を付けた UTF-8 の SHA-256 |
-| `corpus` | `manifest`（読込時のモデル）と `manifest_sha256`（保存バイト列の SHA-256） |
+| `corpus` | `manifest_sha256`（保存バイト列の SHA-256） |
 | `environment` | 下記の実行環境 |
 | `comparison_policy` | 比較の版・ドラと抜きドラの合算・イベント集約未対応を示す文字列 |
 
 ダイジェストの各行は `json.dumps([position, case_id], ensure_ascii=False)` と
 `"\n"` の連結で生成する。空選択のダイジェストも保存するが、終了コードは 1。
-manifest のモデルには元ファイルの件数・ハッシュと変換器の集計も含む。
+manifest のハッシュは、manifest に記録された索引のハッシュを通じて
+各分割ファイルの順序・件数・ハッシュにも対応する。
+比較項目ごとの理由は `cases.jsonl` に記録する。
 
 `environment` の文字列フィールドは `validator_version`、`corpus_version`、
 `mahjong_version`、`mahjong_path`（実際の import ディレクトリ）、`python`、

@@ -1,9 +1,11 @@
 import json
+import sqlite3
 import zlib
+from contextlib import closing
 from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
-lazy from collections.abc import Iterator
+lazy from collections.abc import Generator
 
 from corpus import CorpusError, Manifest, ScoringCase, write_dataset
 
@@ -13,6 +15,9 @@ from tenhou_converter.sources import discover, read_xml
 
 if TYPE_CHECKING:
     from corpus.models import ConversionSummary, GeneratorInfo
+
+
+MAX_DIAGNOSTICS = 100
 
 
 class Diagnostic(TypedDict):
@@ -33,6 +38,7 @@ class Report(TypedDict):
     summary_complete: bool
     dataset_published: bool
     diagnostics: list[Diagnostic]
+    omitted_diagnostic_count: int
     error: str | None
 
 
@@ -79,6 +85,10 @@ def _record_input_failure(
         counts = summary["failed_by_reason"]
     counts[reason] = counts.get(reason, 0) + 1
 
+    if len(report["diagnostics"]) >= MAX_DIAGNOSTICS:
+        report["omitted_diagnostic_count"] += 1
+        return
+
     report["diagnostics"].append(
         {
             "path": str(path),
@@ -110,7 +120,6 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
 
     report_file = Path(report_path) if report_path is not None else None
     _check_paths(source, output, report_file)
-    inputs = discover(source, log_id)
     summary: ConversionSummary = {
         "input_count": 0,
         "converted_count": 0,
@@ -143,33 +152,36 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
         "summary_complete": False,
         "dataset_published": False,
         "diagnostics": [],
+        "omitted_diagnostic_count": 0,
         "error": None,
     }
 
-    def cases() -> Iterator[ScoringCase]:
-        for path, identifier in inputs:
-            summary["input_count"] += 1
-            try:
-                converted = convert_log(read_xml(path), log_id=identifier)
-            except (ConversionError, OSError, EOFError, zlib.error) as e:
-                _record_input_failure(report, path, identifier, e)
-            else:
-                summary["converted_count"] += 1
-                report["record_count"] += len(converted)
-                yield from converted
+    def cases() -> Generator[ScoringCase]:
+        with closing(discover(source, log_id)) as inputs:
+            for path, identifier in inputs:
+                summary["input_count"] += 1
+                try:
+                    converted = convert_log(read_xml(path), log_id=identifier)
+                except (ConversionError, OSError, EOFError, zlib.error) as e:
+                    _record_input_failure(report, path, identifier, e)
+                else:
+                    summary["converted_count"] += 1
+                    report["record_count"] += len(converted)
+                    yield from converted
         report["summary_complete"] = True
 
     try:
         output.parent.mkdir(parents=True, exist_ok=True)
-        manifest = write_dataset(
-            output,
-            cases(),
-            generator=generator,
-            conversion=summary,
-            cases_per_file=cases_per_file,
-            compress=compress,
-        )
-    except (OSError, CorpusError) as e:
+        with closing(cases()) as records:
+            manifest = write_dataset(
+                output,
+                records,
+                generator=generator,
+                conversion=summary,
+                cases_per_file=cases_per_file,
+                compress=compress,
+            )
+    except (OSError, CorpusError, sqlite3.Error) as e:
         report["error"] = str(e)
         save_report(report_file, report)
         raise BatchConversionError(str(e), report) from e

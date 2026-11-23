@@ -8,18 +8,16 @@ from typing import cast
 from corpus._fileio import atomic_path, decode_json
 from corpus._validation import minimum, validate_json, validate_type
 from corpus.errors import CorpusError
-from corpus.models import ConversionSummary, DataFile, Manifest
+from corpus.models import ConversionSummary, Manifest
+
+MAX_MANIFEST_BYTES = 1024 * 1024
 
 
 def parse_manifest(value: object) -> Manifest:
     validate_type(value, Manifest, "")
     manifest = cast("Manifest", value)
-    _files(manifest["files"])
     minimum(manifest["record_count"], 0, "record_count")
-    total = sum(entry["record_count"] for entry in manifest["files"])
-    if manifest["record_count"] != total:
-        error_field = "record_count"
-        raise CorpusError(error_field, "does not equal the file record counts")
+    validate_digest(manifest["files_sha256"], "files_sha256")
     _conversion(manifest["conversion"])
     if manifest["record_count"] > 0:
         minimum(
@@ -37,8 +35,12 @@ def parse_manifest(value: object) -> Manifest:
 def read_manifest(path: str | Path) -> Manifest:
     path = Path(path)
     # Preserve the universal newlines of whole-file text reads.
-    content = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    value = decode_json(content, path)
+    with path.open("rb") as stream:
+        content = stream.read(MAX_MANIFEST_BYTES + 1)
+    _check_size(content, path)
+    value = decode_json(
+        content.replace(b"\r\n", b"\n").replace(b"\r", b"\n"), path
+    )
     try:
         return parse_manifest(value)
     except CorpusError as e:
@@ -48,37 +50,24 @@ def read_manifest(path: str | Path) -> Manifest:
 def write_manifest(path: str | Path, manifest: Manifest) -> None:
     manifest = parse_manifest(manifest)
     path = Path(path)
+    content = (
+        json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False)
+        + "\n"
+    ).encode("utf-8")
+    _check_size(content, path)
     with atomic_path(path) as staging:
-        staging.write_text(
-            json.dumps(manifest, ensure_ascii=False, indent=2, allow_nan=False)
-            + "\n",
-            encoding="utf-8",
-        )
+        staging.write_bytes(content)
 
 
-def _files(files: list[DataFile]) -> None:
-    seen = set()
-    for index, entry in enumerate(files):
-        field = f"files[{index}]"
-        name = entry["path"]
-        if any(character in name for character in ("/", "\\", ":", "\x00")):
-            raise CorpusError(
-                field + ".path",
-                "data file name contains a forbidden character",
-            )
-        if not name.endswith((".jsonl", ".jsonl.gz")):
-            raise CorpusError(
-                field + ".path",
-                "data file name must end in .jsonl or .jsonl.gz",
-            )
-        if name.casefold() in seen:
-            raise CorpusError(field + ".path", "duplicate data file name")
-        seen.add(name.casefold())
-        minimum(entry["record_count"], 1, field + ".record_count")
-        if not fullmatch(r"[a-f0-9]{64}", entry["sha256"]):
-            raise CorpusError(
-                field + ".sha256", "expected a lowercase SHA-256 digest"
-            )
+def _check_size(content: bytes, path: Path) -> None:
+    if len(content) > MAX_MANIFEST_BYTES:
+        field = "$"
+        raise CorpusError(field, "manifest exceeds 1 MiB", path=path)
+
+
+def validate_digest(value: str, field: str) -> None:
+    if not fullmatch(r"[a-f0-9]{64}", value):
+        raise CorpusError(field, "expected a lowercase SHA-256 digest")
 
 
 def _conversion(summary: ConversionSummary) -> None:

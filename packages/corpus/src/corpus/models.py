@@ -210,4 +210,4 @@ class Manifest(TypedDict):
     generator: GeneratorInfo
     conversion: ConversionSummary
     record_count: int
-    files: list[DataFile]
+    files_sha256: str

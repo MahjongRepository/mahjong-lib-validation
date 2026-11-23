@@ -1,18 +1,22 @@
 """Read and publish datasets described by a manifest."""
 
 import hashlib
-from contextlib import closing
+import json
+from contextlib import closing, contextmanager
 from itertools import chain, islice
+from os import scandir
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
-from corpus._validation import validate_type
+from corpus._fileio import decode_json
+from corpus._validation import minimum, validate_type
 from corpus.case_io import read_cases, write_cases
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
     read_manifest,
+    validate_digest,
     write_manifest,
 )
 from corpus.models import (
@@ -25,6 +29,9 @@ from corpus.models import (
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterable, Iterator
+
+
+MAX_INDEX_ROW_BYTES = 4096
 
 
 def read_dataset(directory: str | Path) -> Generator[ScoringCase]:
@@ -57,12 +64,8 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
     if cases_per_file <= 0:
         error_field = "cases_per_file"
         raise CorpusError(error_field, "must be positive")
-    with TemporaryDirectory(
-        dir=directory.parent, prefix=".corpus-"
-    ) as temporary:
-        staging = Path(temporary) / "dataset"
-        staging.mkdir()
-        files = _write_files(
+    with _staging_directory(directory.parent) as staging:
+        record_count = _write_files(
             staging, iter(cases), cases_per_file, compress=compress
         )
         manifest = parse_manifest(
@@ -71,8 +74,8 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
                 "case_type": "scoring",
                 "generator": generator,
                 "conversion": conversion,
-                "files": files,
-                "record_count": sum(entry["record_count"] for entry in files),
+                "files_sha256": file_sha256(staging / "files.jsonl"),
+                "record_count": record_count,
             }
         )
         _ready(manifest, directory / "manifest.json")
@@ -80,6 +83,22 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
         _new_directory(directory)
         staging.rename(directory)
     return manifest
+
+
+@contextmanager
+def _staging_directory(parent: Path) -> Generator[Path]:
+    with TemporaryDirectory(dir=parent, prefix=".corpus-") as temporary:
+        staging = Path(temporary) / "dataset"
+        staging.mkdir()
+        try:
+            yield staging
+        finally:
+            if staging.exists():
+                # Clean up failed shards one at a time.
+                with scandir(staging) as entries:
+                    for entry in entries:
+                        Path(entry.path).unlink()
+                staging.rmdir()
 
 
 def _new_directory(directory: Path) -> None:
@@ -93,30 +112,67 @@ def _write_files(
     limit: int,
     *,
     compress: bool,
-) -> list[DataFile]:
-    files: list[DataFile] = []
-    while True:
-        try:
-            first = next(cases)
-        except StopIteration:
-            break
-
-        suffix = ".jsonl.gz" if compress else ".jsonl"
-        name = f"scoring-{len(files) + 1:06d}{suffix}"
-        path = directory / name
-        count = write_cases(path, chain((first,), islice(cases, limit - 1)))
-        files.append(
-            {"path": name, "record_count": count, "sha256": _sha256(path)}
-        )
-    return files
+) -> int:
+    total = 0
+    suffix = ".jsonl.gz" if compress else ".jsonl"
+    with (directory / "files.jsonl").open("wb") as index:
+        for position, first in enumerate(cases, start=1):
+            name = f"scoring-{position:06d}{suffix}"
+            path = directory / name
+            count = write_cases(
+                path, chain((first,), islice(cases, limit - 1))
+            )
+            entry = {
+                "path": name,
+                "record_count": count,
+                "sha256": file_sha256(path),
+            }
+            index.write((json.dumps(entry) + "\n").encode("utf-8"))
+            total += count
+    return total
 
 
 def _read_dataset(
     directory: Path, manifest: Manifest
 ) -> Generator[ScoringCase]:
     _ready(manifest, directory / "manifest.json")
-    for index, entry in enumerate(manifest["files"]):
-        yield from _read_file(directory, entry, index)
+    path = directory / "files.jsonl"
+    index_field = "files_sha256"
+    if path.resolve().parent != directory.resolve() or not path.is_file():
+        raise CorpusError(
+            index_field, "missing or unsafe file index", path=path
+        )
+    if file_sha256(path) != manifest["files_sha256"]:
+        raise CorpusError(index_field, "file index hash mismatch", path=path)
+
+    total = 0
+    with path.open("rb") as stream:
+        lines = iter(lambda: stream.readline(MAX_INDEX_ROW_BYTES + 1), b"")
+        for index, line in enumerate(lines):
+            field = f"files[{index}]"
+            if len(line) > MAX_INDEX_ROW_BYTES:
+                raise CorpusError(
+                    field, "file index row exceeds 4 KiB", path=path
+                )
+            value = decode_json(line, path, line=index + 1)
+            validate_type(value, DataFile, field)
+            entry = cast("DataFile", value)
+            stem = f"scoring-{index + 1:06d}"
+            if entry["path"] not in (stem + ".jsonl", stem + ".jsonl.gz"):
+                raise CorpusError(
+                    field + ".path",
+                    "expected sequential data file name",
+                    path=path,
+                )
+            minimum(entry["record_count"], 1, field + ".record_count")
+            validate_digest(entry["sha256"], field + ".sha256")
+            yield from _read_file(directory, entry, index)
+            total += entry["record_count"]
+    if total != manifest["record_count"]:
+        field = "record_count"
+        raise CorpusError(
+            field, "does not equal the file record counts", path=path
+        )
 
 
 def _read_file(
@@ -132,7 +188,7 @@ def _read_file(
         )
     if not path.is_file():
         raise CorpusError(field + ".path", "data file is missing", path=path)
-    if _sha256(path) != entry["sha256"]:
+    if file_sha256(path) != entry["sha256"]:
         raise CorpusError(field + ".sha256", "hash mismatch", path=path)
 
     count = 0
@@ -162,7 +218,7 @@ def _ready(manifest: Manifest, path: Path) -> None:
         raise CorpusError(field, "dataset contains no cases", path=path)
 
 
-def _sha256(path: Path) -> str:
+def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):

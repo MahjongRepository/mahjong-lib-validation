@@ -236,7 +236,11 @@ def test_edge_fixtures_survive_manifest_dataset(
             "excluded_by_reason": {},
         },
     )
-    assert [entry["record_count"] for entry in manifest["files"]] == [3, 3, 3]
+    assert manifest["record_count"] == 9
+    index = (path / "files.jsonl").read_text(encoding="utf-8")
+    assert [
+        json.loads(line)["record_count"] for line in index.splitlines()
+    ] == [3, 3, 3]
     assert check_dataset(path)["record_count"] == 9
     assert list(read_dataset(path)) == values
 

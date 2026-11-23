@@ -67,9 +67,10 @@ def test_output_options_accept_minimum_shard_size(
     )
 
     assert manifest["record_count"] == 1
-    assert manifest["files"][0]["record_count"] == 1
+    entry = json.loads((output / "files.jsonl").read_text(encoding="utf-8"))
+    assert entry["record_count"] == 1
     expected_suffix = ".jsonl.gz" if compress else ".jsonl"
-    assert manifest["files"][0]["path"].endswith(expected_suffix)
+    assert entry["path"].endswith(expected_suffix)
     assert len(list(read_dataset(output))) == 1
 
 
@@ -301,3 +302,21 @@ def test_existing_report_and_nested_output_are_rejected(
     with pytest.raises(FileExistsError):
         convert_files(source, tmp_path / "output", report_path=report)
     assert report.read_text(encoding="utf-8") == "original"
+
+
+def test_report_caps_details_but_counts_every_input(tmp_path: Path) -> None:
+    source = tmp_path / "logs"
+    source.mkdir()
+    for index in range(103):
+        (source / f"{index:03d}.xml").write_bytes(b"<")
+    output = tmp_path / "dataset"
+    with pytest.raises(BatchConversionError) as caught:
+        convert_files(source, output)
+
+    report = caught.value.report
+    assert report["conversion"]["failed_by_reason"] == {"invalid_xml": 103}
+    assert len(report["diagnostics"]) == 100
+    assert report["diagnostics"][-1]["log_id"] == "099"
+    assert report["omitted_diagnostic_count"] == 3
+    assert report["summary_complete"]
+    assert not output.exists()

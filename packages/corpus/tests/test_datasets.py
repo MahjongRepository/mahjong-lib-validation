@@ -23,8 +23,8 @@ def dataset(tmp_path: Path) -> Path:
     fixtures = Path(__file__).parent / "fixtures"
     files = []
     for fixture, name in [
-        ("tenhou-scoring.json", "z.jsonl"),
-        ("majsoul-scoring.json", "a.jsonl.gz"),
+        ("tenhou-scoring.json", "scoring-000001.jsonl"),
+        ("majsoul-scoring.json", "scoring-000002.jsonl.gz"),
     ]:
         value = json.loads((fixtures / fixture).read_text(encoding="utf-8"))
         content = (json.dumps(value) + "\n").encode("utf-8")
@@ -56,12 +56,28 @@ def dataset(tmp_path: Path) -> Path:
 
 
 def _load_manifest(directory: Path) -> dict[str, Any]:
-    return json.loads(
+    manifest = json.loads(
         (directory / "manifest.json").read_text(encoding="utf-8")
     )
+    manifest["files"] = _index(directory)
+    return manifest
+
+
+def _index(directory: Path) -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in (directory / "files.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ]
 
 
 def _save_manifest(directory: Path, value: dict[str, Any]) -> None:
+    value = value.copy()
+    content = "".join(json.dumps(row) + "\n" for row in value.pop("files"))
+    data = content.encode("utf-8")
+    (directory / "files.jsonl").write_bytes(data)
+    value["files_sha256"] = hashlib.sha256(data).hexdigest()
     (directory / "manifest.json").write_text(
         json.dumps(value), encoding="utf-8"
     )
@@ -79,14 +95,14 @@ def test_read_dataset_uses_manifest_order(dataset: Path) -> None:
 def test_check_dataset_consumes_every_file(dataset: Path) -> None:
     manifest = check_dataset(dataset)
     assert manifest["record_count"] == 2
-    (dataset / "a.jsonl.gz").write_bytes(b"corrupted")
+    (dataset / "scoring-000002.jsonl.gz").write_bytes(b"corrupted")
     with pytest.raises(CorpusError) as error:
         check_dataset(dataset)
     assert error.value.field == "files[1].sha256"
 
 
 def test_hash_is_checked_before_yielding_file_cases(dataset: Path) -> None:
-    path = dataset / "z.jsonl"
+    path = dataset / "scoring-000001.jsonl"
     path.write_bytes(path.read_bytes() + b" ")
     with pytest.raises(CorpusError) as error:
         next(read_dataset(dataset))
@@ -94,7 +110,7 @@ def test_hash_is_checked_before_yielding_file_cases(dataset: Path) -> None:
 
 
 def test_missing_data_file_is_reported(dataset: Path) -> None:
-    (dataset / "z.jsonl").unlink()
+    (dataset / "scoring-000001.jsonl").unlink()
     with pytest.raises(CorpusError) as error:
         list(read_dataset(dataset))
     assert error.value.field == "files[0].path"
@@ -123,7 +139,7 @@ def test_failed_conversion_is_not_a_complete_dataset(dataset: Path) -> None:
 
 
 def test_data_symlink_must_not_leave_dataset(dataset: Path) -> None:
-    path = dataset / "z.jsonl"
+    path = dataset / "scoring-000001.jsonl"
     external = dataset.parent / "external.jsonl"
     external.write_bytes(path.read_bytes())
     path.unlink()
@@ -142,7 +158,7 @@ def test_resolved_file_target_must_stay_in_dataset(
     original_resolve = Path.resolve
 
     def resolved(path: Path, *, strict: bool = False) -> Path:
-        if path == dataset / "z.jsonl":
+        if path == dataset / "scoring-000001.jsonl":
             return dataset.parent / "external.jsonl"
         return original_resolve(path, strict=strict)
 
@@ -153,7 +169,7 @@ def test_resolved_file_target_must_stay_in_dataset(
 
 
 def test_bad_case_is_detected_even_with_matching_hash(dataset: Path) -> None:
-    path = dataset / "z.jsonl"
+    path = dataset / "scoring-000001.jsonl"
     value = json.loads(path.read_text(encoding="utf-8"))
     value["input"]["winning_tile"] = "0z"
     path.write_text(json.dumps(value) + "\n", encoding="utf-8")
@@ -187,13 +203,13 @@ def test_write_dataset_shards_and_hashes_saved_bytes(
         cases_per_file=2,
         compress=False,
     )
-    assert [entry["record_count"] for entry in manifest["files"]] == [2, 1]
-    assert [entry["path"] for entry in manifest["files"]] == [
+    assert [entry["record_count"] for entry in _index(path)] == [2, 1]
+    assert [entry["path"] for entry in _index(path)] == [
         "scoring-000001.jsonl",
         "scoring-000002.jsonl",
     ]
     assert manifest["record_count"] == 3
-    for entry in manifest["files"]:
+    for entry in _index(path):
         assert (
             entry["sha256"]
             == hashlib.sha256((path / entry["path"]).read_bytes()).hexdigest()
@@ -286,12 +302,15 @@ def test_compressed_dataset_hashes_gzip_bytes(
             "excluded_by_reason": {},
         },
     )
-    assert len(manifest["files"]) == 1
-    content = (path / manifest["files"][0]["path"]).read_bytes()
-    assert content.startswith(b"\x1f\x8b")
+    files = _index(path)
+    assert len(files) == 1
     assert (
-        manifest["files"][0]["sha256"] == hashlib.sha256(content).hexdigest()
+        manifest["files_sha256"]
+        == hashlib.sha256((path / "files.jsonl").read_bytes()).hexdigest()
     )
+    content = (path / files[0]["path"]).read_bytes()
+    assert content.startswith(b"\x1f\x8b")
+    assert files[0]["sha256"] == hashlib.sha256(content).hexdigest()
     assert check_dataset(path)["record_count"] == 2
 
 
@@ -375,4 +394,31 @@ def test_empty_manifest_is_not_a_successful_dataset(dataset: Path) -> None:
     with pytest.raises(CorpusError, match="files"):
         list(read_dataset(dataset))
     with pytest.raises(CorpusError, match="files"):
+        check_dataset(dataset)
+
+
+def test_index_hash_is_checked_before_yielding(dataset: Path) -> None:
+    path = dataset / "files.jsonl"
+    path.write_bytes(path.read_bytes() + b" ")
+    with pytest.raises(CorpusError, match="files_sha256"):
+        next(read_dataset(dataset))
+
+
+def test_duplicate_shard_name_is_rejected(dataset: Path) -> None:
+    manifest = _load_manifest(dataset)
+    manifest["files"][1] = manifest["files"][0].copy()
+    _save_manifest(dataset, manifest)
+    with pytest.raises(
+        CorpusError, match="expected sequential data file name"
+    ):
+        check_dataset(dataset)
+
+
+def test_total_must_match_index(dataset: Path) -> None:
+    manifest = _load_manifest(dataset)
+    manifest["record_count"] += 1
+    _save_manifest(dataset, manifest)
+    with pytest.raises(
+        CorpusError, match="does not equal the file record counts"
+    ):
         check_dataset(dataset)

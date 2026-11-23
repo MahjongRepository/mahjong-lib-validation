@@ -1,8 +1,11 @@
 import gzip
 import os
+import sqlite3
 import stat
+from contextlib import closing
 from pathlib import Path
-lazy from collections.abc import Iterator
+from tempfile import TemporaryDirectory
+lazy from collections.abc import Generator, Iterator
 
 SUFFIXES = (".xml.gz", ".mjlog.gz", ".xml", ".mjlog")
 
@@ -41,7 +44,7 @@ def _find_files(directory: Path) -> Iterator[Path]:
                 yield candidate
 
 
-def discover(path: Path, log_id: str | None) -> list[tuple[Path, str]]:
+def discover(path: Path, log_id: str | None) -> Generator[tuple[Path, str]]:
     if is_link(path):
         msg = "input must not be a link or junction"
         raise ValueError(msg)
@@ -50,7 +53,8 @@ def discover(path: Path, log_id: str | None) -> list[tuple[Path, str]]:
         if log_id is not None and not log_id.strip():
             msg = "log_id must not be empty"
             raise ValueError(msg)
-        return [(path, log_id if log_id is not None else derived)]
+        yield path, log_id if log_id is not None else derived
+        return
 
     if not path.is_dir():
         msg = "input must be a file or directory"
@@ -58,17 +62,36 @@ def discover(path: Path, log_id: str | None) -> list[tuple[Path, str]]:
     if log_id is not None:
         msg = "log_id requires a single file"
         raise ValueError(msg)
-    files = list(_find_files(path))
-    files.sort(key=lambda candidate: candidate.relative_to(path).as_posix())
-    inputs = [(candidate, log_id_from_path(candidate)) for candidate in files]
-    ids = [identifier for _, identifier in inputs]
-    if len(set(ids)) != len(ids):
-        msg = "duplicate_log_id: input contains repeated log IDs"
-        raise ValueError(msg)
-    if not inputs:
-        msg = "input contains no mjlog files"
-        raise ValueError(msg)
-    return inputs
+    with (
+        TemporaryDirectory(prefix="tenhou-inputs-") as temporary,
+        closing(sqlite3.connect(Path(temporary) / "inputs.db")) as index,
+    ):
+        index.execute(
+            "CREATE TABLE inputs (path TEXT PRIMARY KEY, log_id TEXT UNIQUE) "
+            "WITHOUT ROWID"
+        )
+        try:
+            index.executemany(
+                "INSERT INTO inputs VALUES (?, ?)",
+                (
+                    (
+                        candidate.relative_to(path).as_posix(),
+                        log_id_from_path(candidate),
+                    )
+                    for candidate in _find_files(path)
+                ),
+            )
+        except sqlite3.IntegrityError as error:
+            msg = "duplicate_log_id: input contains repeated log IDs"
+            raise ValueError(msg) from error
+
+        rows = index.execute("SELECT path, log_id FROM inputs ORDER BY path")
+        if (first := rows.fetchone()) is None:
+            msg = "input contains no mjlog files"
+            raise ValueError(msg)
+        yield path / first[0], first[1]
+        for relative_path, identifier in rows:
+            yield path / relative_path, identifier
 
 
 def read_xml(path: Path) -> bytes:

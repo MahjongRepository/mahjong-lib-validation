@@ -19,9 +19,9 @@ The converter accepts a file or a directory containing XML or gzip-compressed
 `.xml` / `.mjlog` files. It supports four-player and three-player ranked games
 with red fives and open tanyao, including north extraction.
 
-Output contains a `manifest.json` and compressed scoring JSONL files.
+Output contains `manifest.json`, the `files.jsonl` shard index, and compressed scoring JSONL files.
 Use `--no-compress` for plain JSONL, `--cases-per-file` to change shard size,
-and `--report artifacts/conversion.json` to save conversion diagnostics.
+and `--report artifacts/conversion.json` to save conversion totals and up to 100 per-log diagnostics.
 Output directories must be new. Failed conversions prevent dataset publication.
 SQLite input is not available yet.
 
@@ -36,7 +36,7 @@ uv run mahjong-validator validate data/tenhou-scoring --output validation-result
 
 It supports four-player and three-player Tenhou ranked rules. Use
 `--player-count 3` or `--player-count 4` to select a player count,
-repeat `--case-id ID` to select particular cases, or use `--limit N` to
+repeat `--case-id ID` up to 100 times to select particular cases, or use `--limit N` to
 validate the first N matching cases. The entire corpus is checked for
 integrity even when only a subset is selected.
 

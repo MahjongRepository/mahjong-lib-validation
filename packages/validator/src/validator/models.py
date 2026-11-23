@@ -1,7 +1,5 @@
 from typing import Literal, NotRequired, TypedDict
 
-lazy from corpus.models import Manifest
-
 type CaseStatus = Literal[
     "passed", "mismatch", "error", "unsupported", "skipped"
 ]
@@ -34,7 +32,6 @@ class ValidationSummary(TypedDict):
     purpose: Literal["validate"]
     complete: bool
     field_counts: dict[str, dict[str, int]]
-    field_reasons: dict[str, dict[str, int]]
     selection_sha256: str
     selection: dict[str, object]
     corpus: CorpusIdentity
@@ -43,7 +40,6 @@ class ValidationSummary(TypedDict):
 
 
 class CorpusIdentity(TypedDict):
-    manifest: Manifest
     manifest_sha256: str
 
 
