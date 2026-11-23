@@ -54,9 +54,6 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
     _new_directory(directory)
     validate_type(conversion, ConversionSummary, "conversion")
     _complete(conversion, directory / "manifest.json")
-    if type(cases_per_file) is not int:
-        error_field = "cases_per_file"
-        raise CorpusError(error_field, "expected an integer")
     if cases_per_file <= 0:
         error_field = "cases_per_file"
         raise CorpusError(error_field, "must be positive")

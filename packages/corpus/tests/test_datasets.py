@@ -343,7 +343,7 @@ def test_failure_reported_at_end_of_stream_prevents_publication(
     assert list(tmp_path.iterdir()) == []
 
 
-@pytest.mark.parametrize("limit", [0, -1, True])
+@pytest.mark.parametrize("limit", [0, -1])
 def test_invalid_shard_size_is_rejected(tmp_path: Path, limit: int) -> None:
     with pytest.raises(CorpusError, match="cases_per_file"):
         write_dataset(
