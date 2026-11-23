@@ -14,15 +14,15 @@ dev = [
     { include-group = "test" },
 ]
 hooks = [
-    "prek>=0.5.9,<0.6",
+    "prek>=0.5.11,<0.6",
     { include-group = "lint" },
     { include-group = "typing" },
 ]
 lint = [
-    "ruff>=0.17.3,<0.18",
+    "ruff>=0.17.6,<0.18",
 ]
 typing = [
-    "ty>=0.0.95",
+    "ty>=0.0.108",
 ]
 test = [
     "pytest>=9.2.0,<10",
