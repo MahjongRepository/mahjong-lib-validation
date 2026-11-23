@@ -208,8 +208,8 @@ def extract(
         "schema_version": "v1",
         "case_type": "scoring",
         "case_id": (
-            f"tenhou:{quote(log_id, safe='')}:{wind}:"
-            f"{number}:{seed[1]}:{win_number}"
+            f"tenhou:{quote(log_id, safe='')}:"
+            f"{wind}:{number}:{seed[1]}:{win_number}"
         ),
         "source": {
             "platform": "tenhou",
