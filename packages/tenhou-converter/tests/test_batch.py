@@ -1,7 +1,6 @@
 import gzip
 import json
 from pathlib import Path
-from typing import cast
 
 import pytest
 from corpus import read_dataset
@@ -39,23 +38,17 @@ def test_existing_output_is_rejected_before_missing_input_is_read(
 
 @pytest.mark.parametrize(
     "cases_per_file",
-    [True, 1.5, "1", 0, -1],
-    ids=[
-        "boolean-size",
-        "float-size",
-        "string-size",
-        "zero-size",
-        "negative-size",
-    ],
+    [0, -1],
+    ids=["zero-size", "negative-size"],
 )
 def test_invalid_shard_size_is_rejected_before_input_or_output_io(
-    tmp_path: Path, cases_per_file: object
+    tmp_path: Path, cases_per_file: int
 ) -> None:
     with pytest.raises(ValueError) as caught:  # noqa: PT011 -- message wording is not a contract
         convert_files(
             tmp_path / "missing.xml",
             tmp_path / "new" / "output",
-            cases_per_file=cast("int", cases_per_file),
+            cases_per_file=cases_per_file,
             report_path=tmp_path / "report.json",
         )
 

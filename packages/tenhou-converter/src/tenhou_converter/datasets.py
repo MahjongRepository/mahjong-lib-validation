@@ -104,12 +104,10 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
     source, output = Path(input_path), Path(output_directory)
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
-    if type(cases_per_file) is not int:
-        msg = "cases_per_file must be an integer"
-        raise ValueError(msg)
     if cases_per_file <= 0:
         msg = "cases_per_file must be positive"
         raise ValueError(msg)
+
     report_file = Path(report_path) if report_path is not None else None
     _check_paths(source, output, report_file)
     inputs = discover(source, log_id)
