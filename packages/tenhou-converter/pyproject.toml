@@ -1,6 +1,6 @@
 [project]
 name = "tenhou-converter"
-version = "0.0.1"
+version = "0.1.0"
 description = "Convert Tenhou mjlog records to validation corpora."
 authors = [
     { name = "Apricot S." },
