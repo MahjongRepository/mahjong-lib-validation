@@ -79,9 +79,7 @@ def _start_round(
     return RoundState.start(event, count)
 
 
-def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
-    xml: bytes, *, log_id: str
-) -> list[ScoringCase]:
+def convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]:  # noqa: C901 -- chronological dispatch and completion checks
     """Convert completed rounds with positioned conversion errors."""
     if not log_id.strip():
         message = "log_id must not be empty"
