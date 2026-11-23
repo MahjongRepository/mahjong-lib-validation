@@ -1,7 +1,6 @@
 """Validate scoring records without calculating expected scores."""
 
 from collections import Counter
-from typing import cast
 
 from corpus._validation import minimum, validate_json, validate_type
 from corpus.errors import CorpusError
@@ -12,8 +11,7 @@ MAX_TILE_COPIES = 4
 
 
 def parse_case(value: object) -> ScoringCase:
-    validate_type(value, ScoringCase, "")
-    case = cast("ScoringCase", value)
+    case = validate_type(value, ScoringCase, "")
     _tiles(case)
     _seats(case)
     _bounds(case)

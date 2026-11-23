@@ -3,7 +3,15 @@
 from functools import cache
 from math import isfinite
 from types import UnionType
-from typing import Literal, Union, get_args, get_origin, get_type_hints
+from typing import (
+    Literal,
+    TypeForm,
+    Union,
+    cast,
+    get_args,
+    get_origin,
+    get_type_hints,
+)
 
 from corpus.errors import CorpusError
 
@@ -38,7 +46,12 @@ def _fields(model: type) -> dict[str, object]:
     return get_type_hints(model)
 
 
-def validate_type(value: object, annotation: object, field: str) -> None:
+def validate_type[T](value: object, annotation: TypeForm[T], field: str) -> T:
+    _validate_type(value, annotation, field)
+    return cast("T", value)
+
+
+def _validate_type(value: object, annotation: object, field: str) -> None:
     origin = get_origin(annotation)
     args = get_args(annotation)
     if origin is Literal:
@@ -63,13 +76,13 @@ def _container(
         if not isinstance(value, list):
             raise CorpusError(field, "expected array")
         for index, item in enumerate(value):
-            validate_type(item, args[0], f"{field}[{index}]")
+            _validate_type(item, args[0], f"{field}[{index}]")
     else:
         if not isinstance(value, dict):
             raise CorpusError(field, "expected object")
         for key, item in value.items():
-            validate_type(key, args[0], field)
-            validate_type(item, args[1], f"{field}.{key}")
+            _validate_type(key, args[0], field)
+            _validate_type(item, args[1], f"{field}.{key}")
 
 
 def _union(value: object, choices: tuple[object, ...], field: str) -> None:
@@ -77,11 +90,11 @@ def _union(value: object, choices: tuple[object, ...], field: str) -> None:
     if type(None) in choices and len(non_null) == 1:
         if value is None:
             return
-        validate_type(value, non_null[0], field)
+        _validate_type(value, non_null[0], field)
         return
     for choice in choices:
         try:
-            validate_type(value, choice, field)
+            _validate_type(value, choice, field)
         except CorpusError:
             continue
         return
@@ -96,7 +109,7 @@ def _record(value: object, model: type, field: str) -> None:
         child = f"{field}.{name}" if field else name
         if name not in value:
             raise CorpusError(child, "required field is missing")
-        validate_type(value[name], annotation, child)
+        _validate_type(value[name], annotation, child)
     for name in value:
         if name not in fields:
             child = f"{field}.{name}" if field else str(name)

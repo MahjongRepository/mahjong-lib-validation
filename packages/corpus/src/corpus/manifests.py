@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 from re import fullmatch
-from typing import cast
 
 from corpus._fileio import atomic_path, decode_json
 from corpus._validation import minimum, validate_json, validate_type
@@ -14,8 +13,7 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 
 
 def parse_manifest(value: object) -> Manifest:
-    validate_type(value, Manifest, "")
-    manifest = cast("Manifest", value)
+    manifest = validate_type(value, Manifest, "")
     minimum(manifest["record_count"], 0, "record_count")
     validate_digest(manifest["files_sha256"], "files_sha256")
     _conversion(manifest["conversion"])

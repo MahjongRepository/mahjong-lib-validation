@@ -7,7 +7,7 @@ from itertools import chain, islice
 from os import scandir
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from corpus._fileio import decode_json
 from corpus._validation import minimum, validate_type
@@ -155,8 +155,7 @@ def _read_dataset(
                     field, "file index row exceeds 4 KiB", path=path
                 )
             value = decode_json(line, path, line=index + 1)
-            validate_type(value, DataFile, field)
-            entry = cast("DataFile", value)
+            entry = validate_type(value, DataFile, field)
             stem = f"scoring-{index + 1:06d}"
             if entry["path"] not in (stem + ".jsonl", stem + ".jsonl.gz"):
                 raise CorpusError(
