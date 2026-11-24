@@ -32,3 +32,11 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "validator"
+
+# Uncomment one source to test a development version of mahjong.
+# The source must satisfy the version range in project.dependencies.
+[tool.uv.sources]
+# Local edits. The path is relative to this file.
+# mahjong = { path = "../../../mahjong", editable = true }
+# Reproducible runs. Replace COMMIT_SHA with the full commit hash.
+# mahjong = { git = "https://github.com/MahjongRepository/mahjong", rev = "COMMIT_SHA" }
