@@ -11,6 +11,7 @@ from validator.validation import _validate_dataset
 if TYPE_CHECKING:
     from validator.models import (
         BenchmarkSample,
+        BenchmarkStatistics,
         BenchmarkSummary,
         ValidationSummary,
     )
@@ -67,7 +68,7 @@ def benchmark_dataset(
                     exit_code = 1
                     break
 
-        statistics = None
+        statistics: BenchmarkStatistics | None = None
         if not exit_code:
             elapsed = [
                 sample["elapsed_ns"]

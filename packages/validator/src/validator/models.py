@@ -54,15 +54,31 @@ class FailedSample(TypedDict):
 type BenchmarkSample = SuccessfulSample | FailedSample
 
 
+class BenchmarkSettings(TypedDict):
+    samples: int
+    warmup_batches: int
+    regenerate_inputs: bool
+    cache: str
+    gc_enabled: bool
+
+
+class BenchmarkStatistics(TypedDict):
+    median_ns: int | float
+    min_ns: int
+    max_ns: int
+    stdev_ns: float | None
+    cases_per_second: float | None
+
+
 class BenchmarkSummary(TypedDict):
     schema_version: Literal["v1"]
     purpose: Literal["benchmark"]
     complete: bool
     exit_code: int
     preflight: ValidationSummary
-    settings: dict[str, object]
+    settings: BenchmarkSettings
     sample_count: int
-    statistics: dict[str, float | int | None] | None
+    statistics: BenchmarkStatistics | None
 
 
 class CorpusIdentity(TypedDict):
