@@ -46,17 +46,37 @@ def _indicator_to_136(tile: str) -> int:
     return ("mpsz".index(tile[1]) * 9 + (number or FIVE) - 1) * 4
 
 
+def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:
+    return OptionalRules(
+        has_open_tanyao=True,
+        has_aka_dora=True,
+        has_double_yakuman=False,
+        kazoe_limit=HandConfig.KAZOE_LIMITED,
+        kiriage=False,
+        fu_for_open_pinfu=True,
+        fu_for_pinfu_tsumo=False,
+        renhou_as_yakuman=False,
+        has_daisharin=False,
+        has_daisharin_other_suits=False,
+        has_sashikomi_yakuman=False,
+        limit_to_sextuple_yakuman=True,
+        paarenchan_needs_yaku=True,
+        has_daichisei=False,
+        is_three_player=is_three_player,
+    )
+
+
 def prepare_hand(
     hand: ScoringInput, round_: Round, player_count: int, ruleset: str
 ) -> PreparedHand:
     if ruleset != "tenhou-ranked-match":
         raise UnsupportedInputError(ruleset)
-
     unknown = [
         key for key, value in hand["situation"].items() if value is None
     ]
     if unknown:
         raise MissingInputError(", ".join(unknown))
+
     used: set[int] = set()
 
     def allocate(tile: str) -> int:
@@ -123,22 +143,8 @@ def prepare_hand(
         tsumi_number=round_["honba"],
         kyoutaku_number=round_["riichi_sticks"],
         num_nuki_dora=hand["nuki_count"],
-        options=OptionalRules(
-            has_open_tanyao=True,
-            has_aka_dora=True,
-            has_double_yakuman=False,
-            kazoe_limit=HandConfig.KAZOE_LIMITED,
-            kiriage=False,
-            fu_for_open_pinfu=True,
-            fu_for_pinfu_tsumo=False,
-            renhou_as_yakuman=False,
-            has_daisharin=False,
-            has_daisharin_other_suits=False,
-            has_sashikomi_yakuman=False,
-            limit_to_sextuple_yakuman=True,
-            paarenchan_needs_yaku=True,
-            has_daichisei=False,
-            is_three_player=player_count == SANMA_PLAYERS,
+        options=_tenhou_ranked_rules(
+            is_three_player=player_count == SANMA_PLAYERS
         ),
     )
 
