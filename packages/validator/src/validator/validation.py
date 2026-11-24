@@ -167,7 +167,8 @@ def _validate_dataset(
         "unsupported": 0,
         "skipped": 0,
     }
-    scanned = selected = 0
+    scanned = 0
+    selected = 0
     digest = hashlib.sha256()
     field_counts: dict[str, dict[str, int]] = {}
 
