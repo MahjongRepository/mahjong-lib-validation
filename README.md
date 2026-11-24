@@ -27,7 +27,7 @@ SQLite input is not available yet.
 
 ## Validate a scoring corpus
 
-The validator requires Python 3.15 or newer and uses `mahjong` 2.1.x.
+The validator requires Python 3.15 or newer and uses `mahjong` 2.3.x.
 Run it against a dataset produced by the converter:
 
 ```console
