@@ -24,6 +24,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--version", action="version", version=version("tenhou-converter")
     )
     commands = parser.add_subparsers(dest="command", required=True)
+
     mjlog = commands.add_parser("mjlog")
     mjlog.add_argument("input")
     mjlog.add_argument("--output", required=True)
@@ -31,6 +32,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     mjlog.add_argument("--cases-per-file", type=positive, default=100_000)
     mjlog.add_argument("--no-compress", action="store_true")
     mjlog.add_argument("--report")
+
     args = parser.parse_args(argv)
 
     try:
