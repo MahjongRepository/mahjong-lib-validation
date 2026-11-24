@@ -4,7 +4,7 @@ Validation and benchmarking tools for the [mahjong](https://github.com/MahjongRe
 
 > 🚧 **Work in Progress**
 >
-> Scoring validation is available. Benchmarking and profiling are planned.
+> Scoring validation and benchmarking are available. Profiling is planned.
 
 ## Convert Tenhou logs
 
