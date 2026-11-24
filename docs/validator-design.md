@@ -37,7 +37,7 @@ worker の互換性を別途設計する。Tachyon で新しい Python から古
 | --- | --- | --- |
 | 初期実装 | corpus v1 scoring の検証 API・CLI | 四麻・三麻、役・符・翻・役満倍率・点数の比較、比較除外、失敗分類、逐次処理と結果保存を確認する |
 | 性能計測 | benchmark | 計測範囲、事前検証、入力再生成、プロセス分離、無効標本の検出と生の計測値保存を確認する |
-| プロファイル | profile | sampling / tracing と calculation / pipeline の範囲を確認する |
+| プロファイル | profile | scoring の計算バッチを tracing / sampling で収集する |
 | 対象間比較 | compare | 同じ選択・設定による別環境の実行、import 元の確認、比較条件の一致を確認する |
 
 初期実装は `tenhou-ranked-match` の四麻・三麻を対象とする。
@@ -223,38 +223,9 @@ corpus の不正や出力の書込失敗は実行全体の失敗とする。
 
 ## プロファイル
 
-プロファイラを起動しない benchmark と、原因調査用の profile を分離する。
-profile の時間や sample 数を速度改善・悪化の判定に使わない。
-
-| 方式 | 用途 | 成果物 |
-| --- | --- | --- |
-| sampling（既定） | Tachyon による時間分布・ボトルネックの調査 | 標準の HTML フレームグラフと収集情報 |
-| tracing | `profiling.tracing` による呼出回数・呼出関係の調査 | pstats 形式と収集情報 |
-
-範囲は `calculation`（既定）と `pipeline` を設ける。
-calculation は入力準備後の一括計算、pipeline は読込・入力変換・計算・
-正規化・比較を対象とし、事前検証と成果物の書込は含めない。
-どちらも範囲の名前・反復回数・ケース数・キャッシュ条件を保存する。
-
-sampling は標準 CLI の run / attach を使い、非公開 Python API に依存しない。
-calculation では worker が入力準備後に待機し、制御側が attach の収集開始を
-確認してから計算を開始させる。終了時にも同期して収集を止める。
-入力準備のスタックを関数名で隠すだけで、計算部分だけを収集したと扱わない。
-この同期方法は対応 Python / OS で実証してから提供する。
-標準 CLI だけで開始確認を実現できない場合は未対応として明示し、
-全プロセスの収集を calculation と偽って提供しない。
-
-短い計算は指定時間以上になるまでバッチを反復し、標本を確保する。
-反復では入力を再利用するため、benchmark の入力再生成条件との違いを記録する。
-再利用で入力が変化しないことは実装時に検査する。
-pipeline の反復では読込からやり直す。tracing は対象区間を直接囲む。
-
-Tachyon は Python 3.15 で追加された標準の sampling profiler である。
-収集側と対象側は同じ Python minor 版を要求し、pre-release 版や
-free-threaded ビルドについても公式の互換条件を確認する。
-Windows では管理者権限または `SeDebugPrivilege` が必要とされる。
-ツールは自動的に昇格せず、利用できない理由と tracing の選択方法を表示する。
-別方式への無言の切替はしない。OS に依存する live TUI は初期対象外とする。
+[scoring プロファイリングの設計](validator-profile-design.md) に収集方式、
+範囲、反復、成果物を記録する。初回は tracing を提供し、sampling は
+対応環境で収集境界を確認してから追加する。速度の比較には benchmark を使う。
 
 ## baseline / candidate の比較
 
@@ -287,7 +258,7 @@ CLI の形は次を基本とする。validate は実装済みで、その他は�
 ```text
 mahjong-validator validate <dataset> --output <new-result-directory>
 mahjong-validator benchmark <dataset> --limit 20000 --samples 10 --output <new-result-directory>
-mahjong-validator profile <dataset> --limit 20000 --method sampling --scope calculation --output <new-result-directory>
+mahjong-validator profile <dataset> --limit 20000 --method tracing --output <new-result-directory>
 mahjong-validator compare <dataset> --limit 20000 --baseline-python <python> --baseline-library <directory> --candidate-python <python> --candidate-library <directory> --output <new-result-directory>
 ```
 
@@ -317,7 +288,7 @@ validate の v1 結果形式は [初期版の結果形式](validator-results.md)
 - corpus の全役 ID とライブラリの役・役満倍率の対応。
 - 点数区分・費用内訳から正規化できる項目と、ライブラリに出力がない項目。
 - 複数ロン・責任払いの除外条件を適用した部分比較の具体例。
-- Tachyon の Windows 上での利用条件と、calculation の収集開始・終了の同期。
+- Tachyon の Windows 上での利用条件と、計算バッチの収集開始・終了の同期。
 - 入力の再利用・キャッシュの影響と、標本取得に必要な件数・時間。
 
 上記の未確認事項を推測で対応済みにせず、fixture・公式 API・実行確認で

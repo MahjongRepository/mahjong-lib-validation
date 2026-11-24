@@ -109,8 +109,12 @@ Ruff の lint・format と ty の型検査も成功した。
 
 ## 6. profile
 
-- [ ] sampling と tracing の方式・成果物を明示して実行する。
-- [ ] calculation と pipeline の範囲を実証し、準備と事前検証の混入を検出する。
+収集範囲と成果物は [scoring プロファイリングの設計](validator-profile-design.md)
+を参照する。tracing から実装し、sampling は収集境界を実証してから追加する。
+
+- [ ] 事前検証が不成立なら収集を開始せず、診断を保存する。
+- [ ] tracing で計算バッチを囲み、準備・事前検証・書き込みを収集区間の外に置いて pstats を保存する。
+- [ ] sampling の HTML と収集件数を保存する。
 - [ ] Tachyon の収集開始・終了同期と Windows の利用条件を確認する。
 - [ ] 未対応条件を明示し、別方式へ黙って切り替えない。
 - [ ] 反復時間・回数・入力再利用・標本情報を保存する。

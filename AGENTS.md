@@ -49,6 +49,8 @@ validator の公開 API と保存する JSON の契約は
 
 scoring ベンチマークの計測区間と正確性の確認方法は
 [scoring ベンチマークの設計](docs/validator-benchmark-design.md) を参照する。
+プロファイリングの方式と収集範囲は
+[scoring プロファイリングの設計](docs/validator-profile-design.md) を参照する。
 
 ## 実装方針
 
