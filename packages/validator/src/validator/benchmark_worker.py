@@ -56,6 +56,11 @@ def _prepare_calls(
     ]
 
 
+def _warm_up(selected: list[tuple[int, ScoringCase]]) -> None:
+    for _, _, calculate in _prepare_calls(selected):
+        calculate()
+
+
 def _run() -> BenchmarkSample:
     request = json.load(sys.stdin)
     dataset = Path(request["dataset"])
@@ -79,9 +84,7 @@ def _run() -> BenchmarkSample:
         msg = "benchmark worker selected a different dataset or case sequence"
         raise ValueError(msg)
 
-    for _, _, calculate in _prepare_calls(selected):
-        calculate()
-        del calculate
+    _warm_up(selected)
     return measure_batch(_prepare_calls(selected))
 
 
