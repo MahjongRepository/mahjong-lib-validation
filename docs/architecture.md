@@ -33,12 +33,12 @@ uv workspace で複数の Python パッケージを管理する。
 
 | パッケージ | 責務 | 固有の実行時依存 |
 | --- | --- | --- |
-| corpus | 共通モデル、読み書き、形式・整合性の検査 | 当初は標準ライブラリを基本とする |
+| mahjong-corpus | 共通モデル、読み書き、形式・整合性の検査 | 当初は標準ライブラリを基本とする |
 | tenhou-converter | 天鳳牌譜から共通コーパスへの変換 | 当初は標準ライブラリを基本とする |
 | mahjong-validator | `mahjong` の検証・計測・比較・プロファイル | `mahjong` |
 | majsoul-converter（将来） | 雀魂牌譜から共通コーパスへの変換 | `protobuf` など |
 
-corpus の配布名・import 名は、ともに `corpus` とする。
+corpus の配布名は `mahjong-corpus`、import 名は `corpus` とする。
 validator の配布名・CLI 名は `mahjong-validator`、import 名は `validator` とする。
 実装先は `packages/validator/`、最低 Python は 3.15 とする。
 検証・計測・プロファイルは入力変換とライブラリ呼び出しを共有し、

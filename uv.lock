@@ -4,7 +4,7 @@ requires-python = ">=3.15"
 
 [manifest]
 members = [
-    "corpus",
+    "mahjong-corpus",
     "mahjong-validator",
     "tenhou-converter",
 ]
@@ -35,11 +35,6 @@ wheels = [
 ]
 
 [[package]]
-name = "corpus"
-version = "0.1.0"
-source = { editable = "packages/corpus" }
-
-[[package]]
 name = "iniconfig"
 version = "2.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -58,18 +53,23 @@ wheels = [
 ]
 
 [[package]]
+name = "mahjong-corpus"
+version = "0.1.0"
+source = { editable = "packages/corpus" }
+
+[[package]]
 name = "mahjong-validator"
 version = "0.0.1"
 source = { editable = "packages/validator" }
 dependencies = [
-    { name = "corpus" },
     { name = "mahjong" },
+    { name = "mahjong-corpus" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "corpus", editable = "packages/corpus" },
     { name = "mahjong", specifier = ">=2.3.0,<2.4" },
+    { name = "mahjong-corpus", editable = "packages/corpus" },
 ]
 
 [[package]]
@@ -162,11 +162,11 @@ name = "tenhou-converter"
 version = "0.1.0"
 source = { editable = "packages/tenhou-converter" }
 dependencies = [
-    { name = "corpus" },
+    { name = "mahjong-corpus" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "corpus", editable = "packages/corpus" }]
+requires-dist = [{ name = "mahjong-corpus", editable = "packages/corpus" }]
 
 [[package]]
 name = "ty"

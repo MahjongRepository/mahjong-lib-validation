@@ -8,7 +8,7 @@
 `packages/corpus`、`packages/tenhou-converter`、`packages/validator` を
 uv workspace のメンバーとしている。
 ロックファイルと開発用の仮想環境はルートで共有する。
-corpus の配布名・import 名は、ともに `corpus` である。
+corpus の配布名は `mahjong-corpus`、import 名は `corpus` である。
 天鳳変換器の配布名・CLI 名は `tenhou-converter`、import 名は
 `tenhou_converter` とする。
 
@@ -32,7 +32,7 @@ uv run --no-sync python -c "import corpus; print(corpus.__file__)"
 uv run --no-sync ruff check
 uv run --no-sync ruff format --check
 uv run --no-sync ty check
-uv build --package corpus
+uv build --package mahjong-corpus
 uv build --package tenhou-converter
 uv build --package mahjong-validator
 ```
