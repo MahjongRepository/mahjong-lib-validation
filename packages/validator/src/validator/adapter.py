@@ -17,6 +17,26 @@ WINDS = {"east": EAST, "south": SOUTH, "west": WEST, "north": NORTH}
 FIVE = 5
 SANMA_PLAYERS = 3
 YAKUMAN_HAN = 13
+MELD_KINDS = {
+    "chii": Meld.CHI,
+    "pon": Meld.PON,
+    "daiminkan": Meld.KAN,
+    "ankan": Meld.KAN,
+    "kakan": Meld.SHOUMINKAN,
+}
+TITLES: dict[str, Title] = {
+    "": "below_mangan",
+    "mangan": "mangan",
+    "haneman": "haneman",
+    "baiman": "baiman",
+    "sanbaiman": "sanbaiman",
+    "yakuman": "yakuman",
+    "2x yakuman": "yakuman",
+    "3x yakuman": "yakuman",
+    "4x yakuman": "yakuman",
+    "5x yakuman": "yakuman",
+    "6x yakuman": "yakuman",
+}
 
 
 class UnsupportedInputError(ValueError):
@@ -100,20 +120,13 @@ def prepare_hand(
     win_tile = allocate(hand["winning_tile"])
     tiles.append(win_tile)
     melds = []
-    kinds = {
-        "chii": Meld.CHI,
-        "pon": Meld.PON,
-        "daiminkan": Meld.KAN,
-        "ankan": Meld.KAN,
-        "kakan": Meld.SHOUMINKAN,
-    }
     for value in hand["melds"]:
         meld_tiles = [allocate(tile) for tile in value["tiles"]]
         tiles.extend(meld_tiles)
         called = value["called_tile_index"]
         melds.append(
             Meld(
-                meld_type=kinds[value["type"]],
+                meld_type=MELD_KINDS[value["type"]],
                 tiles=meld_tiles,
                 opened=value["type"] != "ankan",
                 called_tile=None if called is None else meld_tiles[called],
@@ -233,23 +246,10 @@ def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
 
     multiplier = sum(item["yakuman_multiplier"] for item in yaku)
     cost = raw.cost
-    titles: dict[str, Title] = {
-        "": "below_mangan",
-        "mangan": "mangan",
-        "haneman": "haneman",
-        "baiman": "baiman",
-        "sanbaiman": "sanbaiman",
-        "yakuman": "yakuman",
-        "2x yakuman": "yakuman",
-        "3x yakuman": "yakuman",
-        "4x yakuman": "yakuman",
-        "5x yakuman": "yakuman",
-        "6x yakuman": "yakuman",
-    }
     title = (
         "kazoe_yakuman"
         if raw.han >= YAKUMAN_HAN and not multiplier
-        else titles[cost["yaku_level"]]
+        else TITLES[cost["yaku_level"]]
     )
     additional_count = hand.player_count - 2 if hand.config.is_tsumo else 0
     base_points = cost["main"] + additional_count * cost["additional"]
