@@ -85,10 +85,8 @@ def compare_result(
         else:
             left, right = expected, value
             if name == "yaku":
-                expected_yaku, actual_yaku = (
-                    case["expected"]["yaku"],
-                    actual["yaku"],
-                )
+                expected_yaku = case["expected"]["yaku"]
+                actual_yaku = actual["yaku"]
                 if expected_yaku is not None and actual_yaku is not None:
                     left = comparable_yaku(expected_yaku)
                     right = comparable_yaku(actual_yaku)
