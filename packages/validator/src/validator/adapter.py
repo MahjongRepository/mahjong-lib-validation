@@ -31,6 +31,7 @@ class MissingInputError(ValueError):
 class PreparedHand:
     tiles: list[int]
     win_tile: int
+    melds: list[Meld]
     dora: list[int]
     ura: list[int]
     config: HandConfig
@@ -38,7 +39,6 @@ class PreparedHand:
     winner: int
     dealer: int
     discarder: int | None
-    melds: list[Meld]
 
 
 def prepare_hand(
@@ -143,6 +143,7 @@ def prepare_hand(
     return PreparedHand(
         tiles,
         win_tile,
+        melds,
         [indicator(tile) for tile in hand["dora_indicators"]],
         [indicator(tile) for tile in hand["ura_dora_indicators"]],
         config,
@@ -150,7 +151,6 @@ def prepare_hand(
         hand["winner_seat"],
         round_["dealer_seat"],
         hand["discarder_seat"],
-        melds,
     )
 
 
