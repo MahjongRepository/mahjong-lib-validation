@@ -68,7 +68,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mahjong", specifier = ">=2.3.0,<2.4" },
+    { name = "mahjong", specifier = ">=2.3.0,<3.0" },
     { name = "mahjong-corpus", editable = "packages/corpus" },
 ]
 

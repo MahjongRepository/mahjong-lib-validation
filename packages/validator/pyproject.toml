@@ -20,7 +20,7 @@ classifiers = [
 ]
 dependencies = [
     "mahjong-corpus==0.1.0",
-    "mahjong>=2.3.0,<2.4",
+    "mahjong>=2.3.0,<3.0",
 ]
 
 [project.scripts]
