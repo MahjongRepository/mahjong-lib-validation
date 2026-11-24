@@ -47,6 +47,9 @@ corpus を使った検証・計測・比較・プロファイルは
 validator の公開 API と保存する JSON の契約は
 [validator 初期版の API と結果形式](docs/validator-results.md) を参照する。
 
+scoring ベンチマークの計測区間と正確性の確認方法は
+[scoring ベンチマークの設計](docs/validator-benchmark-design.md) を参照する。
+
 ## 実装方針
 
 本プロジェクトは開発中であり、利用先も同じプロジェクト内に限られる。
