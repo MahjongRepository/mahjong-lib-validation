@@ -41,11 +41,17 @@ class PreparedHand:
     discarder: int | None
 
 
+def _indicator_to_136(tile: str) -> int:
+    number = int(tile[0])
+    return ("mpsz".index(tile[1]) * 9 + (number or FIVE) - 1) * 4
+
+
 def prepare_hand(
     hand: ScoringInput, round_: Round, player_count: int, ruleset: str
 ) -> PreparedHand:
     if ruleset != "tenhou-ranked-match":
         raise UnsupportedInputError(ruleset)
+
     unknown = [
         key for key, value in hand["situation"].items() if value is None
     ]
@@ -136,16 +142,12 @@ def prepare_hand(
         ),
     )
 
-    def indicator(tile: str) -> int:
-        number = int(tile[0])
-        return ("mpsz".index(tile[1]) * 9 + (number or FIVE) - 1) * 4
-
     return PreparedHand(
         tiles,
         win_tile,
         melds,
-        [indicator(tile) for tile in hand["dora_indicators"]],
-        [indicator(tile) for tile in hand["ura_dora_indicators"]],
+        [_indicator_to_136(tile) for tile in hand["dora_indicators"]],
+        [_indicator_to_136(tile) for tile in hand["ura_dora_indicators"]],
         config,
         player_count,
         hand["winner_seat"],
