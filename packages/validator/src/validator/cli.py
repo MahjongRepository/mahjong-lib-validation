@@ -15,6 +15,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--version", action="version", version=version("mahjong-validator")
     )
+
     commands = parser.add_subparsers(dest="command", required=True)
     validate = commands.add_parser("validate")
     validate.add_argument("dataset")
@@ -22,6 +23,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     validate.add_argument("--player-count", type=int, choices=(3, 4))
     validate.add_argument("--case-id", action="append", default=[])
     validate.add_argument("--limit", type=int)
+
     args = parser.parse_args(argv)
 
     try:
