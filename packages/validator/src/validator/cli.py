@@ -4,7 +4,7 @@ import sys
 from importlib.metadata import version
 lazy from collections.abc import Sequence
 
-from validator import Selection, validate_dataset
+from validator import Selection, benchmark_dataset, validate_dataset
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -50,9 +50,17 @@ def _run_validate(args: argparse.Namespace) -> int:
     return summary["exit_code"]
 
 
-def _run_benchmark(_args: argparse.Namespace) -> int:
-    sys.stderr.write("benchmark is not implemented yet\n")
-    return 2
+def _run_benchmark(args: argparse.Namespace) -> int:
+    summary = benchmark_dataset(
+        args.dataset,
+        args.output,
+        selection=Selection(
+            args.player_count, tuple(args.case_id), args.limit
+        ),
+        samples=args.samples,
+    )
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return summary["exit_code"]
 
 
 def main(argv: Sequence[str] | None = None) -> int:

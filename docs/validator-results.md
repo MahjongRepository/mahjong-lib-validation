@@ -3,7 +3,8 @@
 作成日: 2026-11-03
 
 [設計](validator-design.md) に基づく scoring 検証の実装契約を記録する。
-benchmark・profile・compare の結果形式は未実装である。
+benchmark の API と結果は [scoring ベンチマークの設計](validator-benchmark-design.md)
+を参照する。profile・compare は未実装である。
 
 ## API
 

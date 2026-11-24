@@ -39,6 +39,32 @@ class ValidationSummary(TypedDict):
     comparison_policy: str
 
 
+class SuccessfulSample(TypedDict):
+    status: Literal["ok"]
+    elapsed_ns: int
+
+
+class FailedSample(TypedDict):
+    status: Literal["error"]
+    position: int
+    case_id: str
+    reason: str
+
+
+type BenchmarkSample = SuccessfulSample | FailedSample
+
+
+class BenchmarkSummary(TypedDict):
+    schema_version: Literal["v1"]
+    purpose: Literal["benchmark"]
+    complete: bool
+    exit_code: int
+    preflight: ValidationSummary
+    settings: dict[str, object]
+    sample_count: int
+    statistics: dict[str, float | int | None] | None
+
+
 class CorpusIdentity(TypedDict):
     manifest_sha256: str
 

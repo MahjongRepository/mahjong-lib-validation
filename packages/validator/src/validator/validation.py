@@ -13,7 +13,7 @@ from validator.adapter import (
     prepare_hand,
 )
 from validator.reporting import environment_info, result_directory
-from validator.selection import Selection
+from validator.selection import Selection, selection_digest_entry
 from validator.yaku import comparable_yaku
 
 if TYPE_CHECKING:
@@ -177,12 +177,7 @@ def _validate_dataset(
             if not selection.matches(case, selected):
                 continue
             selected += 1
-            digest.update(
-                (
-                    json.dumps([scanned, case["case_id"]], ensure_ascii=False)
-                    + "\n"
-                ).encode("utf-8")
-            )
+            digest.update(selection_digest_entry(scanned, case["case_id"]))
             result = validate_case(case)
             result["position"] = scanned
             counts[result["status"]] += 1

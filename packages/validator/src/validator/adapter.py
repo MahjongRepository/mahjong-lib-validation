@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING
 
 from mahjong.constants import EAST, NORTH, SOUTH, WEST
@@ -175,8 +176,9 @@ def prepare_hand(
     )
 
 
-def calculate(hand: PreparedHand) -> HandResponse:
-    return HandCalculator.estimate_hand_value(
+def prepare_calculation(hand: PreparedHand) -> partial[HandResponse]:
+    return partial(
+        HandCalculator.estimate_hand_value,
         hand.tiles,
         hand.win_tile,
         melds=hand.melds,
@@ -184,6 +186,10 @@ def calculate(hand: PreparedHand) -> HandResponse:
         ura_dora_indicators=hand.ura,
         config=hand.config,
     )
+
+
+def calculate(hand: PreparedHand) -> HandResponse:
+    return prepare_calculation(hand)()
 
 
 def _payments(hand: PreparedHand, cost: ScoresResult) -> list[int]:

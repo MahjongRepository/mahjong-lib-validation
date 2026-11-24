@@ -4,7 +4,7 @@
 
 [全体設計](architecture.md) を具体化し、corpus を入力とする
 `mahjong` の正確性検証・性能計測・プロファイルの責務と境界を定める。
-scoring の初期検証 API・CLI は実装済み。benchmark・profile・compare は未実装である。
+scoring の初期検証と benchmark の API・CLI は実装済み。profile・compare は未実装である。
 確認結果は [実装記録](validator-implementation.md)、出力と API は
 [初期版の結果形式](validator-results.md) を参照する。
 実装は [テストリスト](validator-implementation.md) から一件ずつ進める。
@@ -253,7 +253,8 @@ import ディレクトリを明示的に受け取る。
 候補名とし、具体的な引数と結果型は各段階のテストで確定する。
 API は標準出力や `sys.exit` に依存せず、CLI が表示と終了コードを担う。
 
-CLI の形は次を基本とする。validate は実装済みで、その他は未実装の使用例である。
+CLI の形は次を基本とする。validate と benchmark は実装済みで、
+profile と compare は未実装の使用例である。
 
 ```text
 mahjong-validator validate <dataset> --output <new-result-directory>

@@ -1,8 +1,15 @@
+import json
 from dataclasses import dataclass
 
 lazy from corpus.models import ScoringCase
 
 MAX_CASE_IDS = 100
+
+
+def selection_digest_entry(position: int, case_id: str) -> bytes:
+    return (json.dumps([position, case_id], ensure_ascii=False) + "\n").encode(
+        "utf-8"
+    )
 
 
 @dataclass(frozen=True)

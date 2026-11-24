@@ -15,7 +15,7 @@ lazy from validator.models import Environment
 def environment_info() -> Environment:
     return {
         "validator_version": version("mahjong-validator"),
-        "corpus_version": version("corpus"),
+        "corpus_version": version("mahjong-corpus"),
         "mahjong_version": version("mahjong"),
         "mahjong_path": str(Path(mahjong.__file__).resolve().parent),
         "python": sys.version,
