@@ -549,13 +549,15 @@ RYUUKYOKU は 2 件、抜き北の N は 19 件。
 
 ## 和了判定・シャンテン数コーパスの生成
 
-以下は実装前の設計とする。出力のケース契約は
+以下の生成対象は実装済み。出力のケース契約は
 [corpus の設計](corpus-design.md#和了判定とシャンテン数のケース)を参照する。
 
 `mjlog` の `--target` は `scoring`、`agari-complete`、`agari-tenpai`、
 `shanten-tenpai`、`shanten-agari` を選べるようにする。
 既定値は `scoring` とし、一回の実行につき一つの出力ディレクトリを生成する。
 入力、圧縮、分割、診断レポートには既存のオプションを使う。
+Python API の `convert_log` と `convert_files` にも同じ値を取る
+キーワード引数 `target` を追加する。
 
 ```console
 tenhou-converter mjlog data/mjlog --target agari-complete --output data/agari-complete
@@ -581,7 +583,8 @@ tenhou-converter mjlog data/mjlog --target shanten-agari --output data/shanten-a
 和了牌を除く場合は、共通の牌表記へ変換する前に `machi` と一致する物理牌 ID を
 一枚だけ除く。同じ種類の別の牌は残す。ロン・ツモ・槍槓で同じ規則を適用し、
 副露・暗槓は面子として保持する。抜き北は牌姿と面子から除く。
-得点計算用の役、符、支払いの期待値への変換は scoring の経路が担う。
+得点計算用の役、符、支払いの期待値への変換と和了精算の照合は
+scoring の経路が担う。
 複数ロンでは和了イベントごとに出力し、流局や三家和には和了ケースを付けない。
 
 牌譜の処理順・和了イベント順を保ち、同じ牌姿の重複も保持する。

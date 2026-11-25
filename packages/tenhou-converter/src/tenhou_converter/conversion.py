@@ -1,9 +1,17 @@
 # Numeric constants below describe the mjlog wire layout.
 # ruff: noqa: PLR2004
 import re
+from typing import Literal, get_args, overload
 from urllib.parse import quote
+lazy from collections.abc import Sequence
 
-from corpus import CorpusError, ScoringCase, parse_scoring_case
+from corpus import (
+    Case,
+    CorpusError,
+    ScoringCase,
+    parse_case,
+    parse_scoring_case,
+)
 
 from tenhou_converter.errors import ConversionError
 from tenhou_converter.melds import decode_meld, tile
@@ -14,6 +22,15 @@ from tenhou_converter.scoring import expected_values
 
 METADATA = frozenset({"SHUFFLE", "UN", "TAIKYOKU", "BYE"})
 _DRAW_OR_DISCARD_TAG = re.compile(r"([T-WD-G])([0-9]+)")
+
+ShapeTarget = Literal[
+    "agari-complete",
+    "agari-tenpai",
+    "shanten-tenpai",
+    "shanten-agari",
+]
+Target = Literal["scoring", ShapeTarget]
+TARGETS = get_args(Target)
 
 
 def shared_score_indices(events: list[Event]) -> set[int]:
@@ -80,35 +97,56 @@ def _start_round(
     return RoundState.start(event, count)
 
 
-def convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]:  # noqa: C901 -- chronological dispatch and completion checks
+@overload
+def convert_log(
+    xml: bytes, *, log_id: str, target: Literal["scoring"] = "scoring"
+) -> list[ScoringCase]: ...
+
+
+@overload
+def convert_log(
+    xml: bytes, *, log_id: str, target: Target
+) -> Sequence[Case]: ...
+
+
+def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
+    xml: bytes, *, log_id: str, target: Target = "scoring"
+) -> Sequence[Case]:
     """Convert completed rounds with positioned conversion errors."""
     if not log_id.strip():
         message = "log_id must not be empty"
         raise ValueError(message)
+    if target not in TARGETS:
+        message = f"unknown conversion target {target!r}"
+        raise ValueError(message)
 
     events = parse_xml(xml)
     go = _header(events)
-    shared_scores = shared_score_indices(events)
+    players = player_count(go)
+    shared_scores = (
+        shared_score_indices(events) if target == "scoring" else set()
+    )
 
     state: RoundState | None = None
-    cases: list[ScoringCase] = []
+    cases: list[Case] = []
     ids: set[str] = set()
 
     for event in events:
         if event.tag in METADATA or event.tag == "GO":
             continue
         if event.tag == "INIT":
-            state = _start_round(state, event, player_count(go))
+            state = _start_round(state, event, players)
             continue
         if state is None:
             reason = "inconsistent_events"
             raise event.error(reason, "INIT required before play")
         if event.tag == "AGARI":
-            case = extract(
+            case = _extract_win(
                 event,
                 state,
                 go,
                 log_id,
+                target,
                 shared_scores=event.index in shared_scores,
             )
             if case["case_id"] in ids:
@@ -116,8 +154,6 @@ def convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]:  # noqa: C901 
                 raise event.error(reason, "duplicate case ID")
             ids.add(case["case_id"])
             cases.append(case)
-            state.results.append(case["expected"])
-            state.win_events.append(event)
             state.winners.add(event.integer("who"))
             state.finished = True
         elif state.finished:
@@ -133,6 +169,27 @@ def convert_log(xml: bytes, *, log_id: str) -> list[ScoringCase]:  # noqa: C901 
         raise ConversionError(reason, "log must end after a completed round")
     state.check_settlement()
     return cases
+
+
+def _extract_win(  # noqa: PLR0913 -- input and round context plus conversion target
+    event: Event,
+    state: RoundState,
+    go: Event,
+    log_id: str,
+    target: Target,
+    *,
+    shared_scores: bool,
+) -> Case:
+    if state.finished and not state.winners:
+        reason = "inconsistent_events"
+        raise event.error(reason, "win after drawn round")
+    if target != "scoring":
+        return _extract_shape(event, state, log_id, target)
+
+    case = extract(event, state, go, log_id, shared_scores=shared_scores)
+    state.results.append(case["expected"])
+    state.win_events.append(event)
+    return case
 
 
 def advance(state: RoundState, event: Event) -> None:
@@ -162,9 +219,6 @@ def extract(
     *,
     shared_scores: bool = False,
 ) -> ScoringCase:
-    if state.finished and not state.winners:
-        reason = "inconsistent_events"
-        raise event.error(reason, "win after drawn round")
     situation = state.situation(event)
     who = event.integer("who")
     source = event.integer("fromWho")
@@ -255,6 +309,47 @@ def extract(
 
     try:
         return parse_scoring_case(data)
+    except CorpusError as e:
+        reason = "invalid_case"
+        raise event.error(reason, e.message, e.field) from e
+
+
+def _extract_shape(
+    event: Event, state: RoundState, log_id: str, target: ShapeTarget
+) -> Case:
+    state.check_win(event)
+    who = event.integer("who")
+    hand = event.numbers("hai")
+    complete = target in ("agari-complete", "shanten-agari")
+    if not complete:
+        hand.remove(event.integer("machi"))
+    case_type = "agari" if target.startswith("agari-") else "shanten"
+    shape = "complete" if complete else "tenpai"
+    escaped_id = quote(log_id, safe="")
+    data = {
+        "schema_version": "v1",
+        "case_type": case_type,
+        "case_id": f"tenhou:{escaped_id}:{event.index}:{case_type}:{shape}",
+        "source": {
+            "platform": "tenhou",
+            "log_id": log_id,
+            "event_index": event.index,
+        },
+        "player_count": len(state.players),
+        "input": {
+            "concealed_tiles": [tile(value) for value in hand],
+            "melds": [
+                meld.corpus_value() for meld in state.players[who].melds
+            ],
+        },
+        "expected": (
+            {"is_agari": complete}
+            if case_type == "agari"
+            else {"shanten": -1 if complete else 0}
+        ),
+    }
+    try:
+        return parse_case(data)
     except CorpusError as e:
         reason = "invalid_case"
         raise event.error(reason, e.message, e.field) from e

@@ -4,6 +4,7 @@ import sys
 from importlib.metadata import version
 lazy from collections.abc import Sequence
 
+from tenhou_converter.conversion import TARGETS
 from tenhou_converter.datasets import BatchConversionError, convert_files
 
 
@@ -18,7 +19,7 @@ def positive(value: str) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="tenhou-converter",
-        description="Convert Tenhou mjlog to scoring corpus v1.",
+        description="Convert Tenhou mjlog to a v1 corpus dataset.",
     )
     parser.add_argument(
         "--version", action="version", version=version("tenhou-converter")
@@ -28,6 +29,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     mjlog = commands.add_parser("mjlog")
     mjlog.add_argument("input")
     mjlog.add_argument("--output", required=True)
+    mjlog.add_argument("--target", choices=TARGETS, default="scoring")
     mjlog.add_argument("--log-id")
     mjlog.add_argument("--cases-per-file", type=positive, default=100_000)
     mjlog.add_argument("--no-compress", action="store_true")
@@ -43,6 +45,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             cases_per_file=args.cases_per_file,
             compress=not args.no_compress,
             report_path=args.report,
+            target=args.target,
         )
     except BatchConversionError as e:
         sys.stderr.write(json.dumps(e.report, ensure_ascii=False) + "\n")

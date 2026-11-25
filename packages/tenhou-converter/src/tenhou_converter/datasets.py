@@ -7,9 +7,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, TypedDict
 lazy from collections.abc import Generator
 
-from corpus import CorpusError, Manifest, ScoringCase, write_dataset
+from corpus import Case, CorpusError, Manifest, write_dataset
 
-from tenhou_converter.conversion import convert_log
+from tenhou_converter.conversion import TARGETS, Target, convert_log
 from tenhou_converter.errors import ConversionError, UnsupportedLogError
 from tenhou_converter.sources import discover, read_xml
 
@@ -109,6 +109,7 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
     cases_per_file: int = 100_000,
     compress: bool = True,
     report_path: str | Path | None = None,
+    target: Target = "scoring",
 ) -> Manifest:
     """Publish a new dataset, with diagnostic reports on failure."""
     source, output = Path(input_path), Path(output_directory)
@@ -116,6 +117,9 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
         raise FileExistsError(output)
     if cases_per_file <= 0:
         msg = "cases_per_file must be positive"
+        raise ValueError(msg)
+    if target not in TARGETS:
+        msg = f"unknown conversion target {target!r}"
         raise ValueError(msg)
 
     report_file = Path(report_path) if report_path is not None else None
@@ -131,6 +135,7 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
         "version": version("tenhou-converter"),
         "settings": {
             "source": "mjlog",
+            "target": target,
             "ruleset": "tenhou-ranked-match",
             "player_counts": [3, 4],
             "log_id": "override"
@@ -156,12 +161,14 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
         "error": None,
     }
 
-    def cases() -> Generator[ScoringCase]:
+    def cases() -> Generator[Case]:
         with closing(discover(source, log_id)) as inputs:
             for path, identifier in inputs:
                 summary["input_count"] += 1
                 try:
-                    converted = convert_log(read_xml(path), log_id=identifier)
+                    converted = convert_log(
+                        read_xml(path), log_id=identifier, target=target
+                    )
                 except (ConversionError, OSError, EOFError, zlib.error) as e:
                     _record_input_failure(report, path, identifier, e)
                 else:

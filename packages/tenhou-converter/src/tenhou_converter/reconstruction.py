@@ -463,10 +463,10 @@ class RoundState:
         self.indicators.append(value)
         self.seen.add(value)
 
-    def situation(self, event: Event) -> Situation:
+    def check_win(self, event: Event) -> Action:
         who = event.integer("who")
         source = event.integer("fromWho")
-        player = self.player(who, event)
+        self.player(who, event)
         self.player(source, event)
         winning = event.integer("machi")
         tsumo = who == source
@@ -492,8 +492,13 @@ class RoundState:
         ):
             self.fail(event, "win before riichi confirmation")
         self._check_agari_tiles(event, who, winning, tsumo=tsumo)
+        return self.last
 
-        last_kind = self.last.kind
+    def situation(self, event: Event) -> Situation:
+        last_kind = self.check_win(event).kind
+        who = event.integer("who")
+        tsumo = who == event.integer("fromWho")
+        player = self.players[who]
         first_uninterrupted_draw = (
             tsumo and player.draws == 1 and not self.interrupted
         )

@@ -1,5 +1,5 @@
 # tenhou-converter
 
-Convert Tenhou mjlog records to scoring validation corpora.
+Convert Tenhou mjlog records to scoring, winning hand detection, and shanten validation corpora.
 
-Run `tenhou-converter --help` for available commands.
+Run `tenhou-converter mjlog --help` for generation targets and options.
