@@ -72,22 +72,26 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
         elapsed_ns = None
         repetitions = 0
         sample_count = 0
-        settings: ProfileSettings = {
-            "warmup_batches": 0,
-            "reuse_inputs": False,
-            "cache": "preserved_after_preflight",
-            "gc_enabled": gc.isenabled(),
-        }
-        if method == "sampling":
+
+        settings: ProfileSettings
+        if method == "tracing":
+            settings = {
+                "warmup_batches": 0,
+                "reuse_inputs": False,
+                "cache": "preserved_after_preflight",
+                "gc_enabled": gc.isenabled(),
+            }
+        else:
             settings = {
                 "warmup_batches": 2,
                 "reuse_inputs": True,
                 "cache": "preserved_after_worker_warmup",
-                "gc_enabled": settings["gc_enabled"],
+                "gc_enabled": gc.isenabled(),
                 "min_seconds": duration,
                 "sampling_rate_hz": rate,
                 "synchronization_frames": ["wait_for_sampling"],
             }
+
         if not exit_code:
             if method == "tracing":
                 calls = prepare_calls(selected)
