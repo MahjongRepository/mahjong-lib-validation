@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, assert_never, cast
 
 from corpus import file_sha256, read_dataset, read_manifest
 
@@ -9,14 +9,17 @@ from validator.adapter import (
     UnsupportedInputError,
     calculate,
     normalize_result,
+    prepare_agari_call,
     prepare_scoring_case,
-    prepare_shape_call,
+    prepare_shanten_call,
 )
 from validator.reporting import environment_info, result_directory
 from validator.selection import Selection, SelectionScan
 from validator.yaku import comparable_yaku
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from corpus.models import (
         AgariCase,
         Case,
@@ -103,20 +106,36 @@ def compare_result(
 
 
 def validate_case(case: Case) -> CaseResult:
-    if case["case_type"] == "scoring":
-        return _validate_scoring_case(case)
-    return _validate_shape_case(case)
+    match case["case_type"]:
+        case "scoring":
+            return _validate_scoring_case(case)
+        case "agari":
+            return _validate_value(
+                case,
+                "is_agari",
+                expected=case["expected"]["is_agari"],
+                prepare=prepare_agari_call,
+            )
+        case "shanten":
+            return _validate_value(
+                case,
+                "shanten",
+                expected=case["expected"]["shanten"],
+                prepare=prepare_shanten_call,
+            )
+        case _ as case_type:
+            assert_never(case_type)
 
 
-def _validate_shape_case(case: AgariCase | ShantenCase) -> CaseResult:
-    if case["case_type"] == "agari":
-        name = "is_agari"
-        expected: bool | int = case["expected"]["is_agari"]
-    else:
-        name = "shanten"
-        expected = case["expected"]["shanten"]
+def _validate_value[T: (AgariCase, ShantenCase)](
+    case: T,
+    name: str,
+    *,
+    expected: bool | int,
+    prepare: Callable[[T], Callable[[], bool | int]],
+) -> CaseResult:
     try:
-        actual = prepare_shape_call(case)()
+        actual = prepare(case)()
     except Exception as e:  # noqa: BLE001 -- isolate target library failures
         return {
             "case_id": case["case_id"],

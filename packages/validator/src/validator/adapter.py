@@ -23,6 +23,7 @@ if TYPE_CHECKING:
         ScoringCase,
         ScoringInput,
         ShantenCase,
+        Tile,
         Title,
         Yaku,
     )
@@ -84,21 +85,16 @@ def _indicator_to_136(tile: str) -> int:
     return _tile_index(tile) * 4
 
 
-def prepare_shape_call(
-    case: AgariCase | ShantenCase,
-) -> Callable[[], bool | int]:
-    hand = case["input"]
+def _tile_counts(tiles: list[Tile]) -> list[int]:
     counts = [0] * 34
-    for tile in hand["concealed_tiles"]:
+    for tile in tiles:
         counts[_tile_index(tile)] += 1
+    return counts
 
-    if case["case_type"] == "shanten":
-        return partial(
-            Shanten.calculate_shanten,
-            counts,
-            is_three_player=case["player_count"] == SANMA_PLAYERS,
-        )
 
+def prepare_agari_call(case: AgariCase) -> Callable[[], bool]:
+    hand = case["input"]
+    counts = _tile_counts(hand["concealed_tiles"])
     melds = [
         [_tile_index(tile) for tile in meld["tiles"]] for meld in hand["melds"]
     ]
@@ -106,6 +102,15 @@ def prepare_shape_call(
         for index in meld:
             counts[index] += 1
     return partial(Agari.is_agari, counts, melds or None)
+
+
+def prepare_shanten_call(case: ShantenCase) -> Callable[[], int]:
+    counts = _tile_counts(case["input"]["concealed_tiles"])
+    return partial(
+        Shanten.calculate_shanten,
+        counts,
+        is_three_player=case["player_count"] == SANMA_PLAYERS,
+    )
 
 
 def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:

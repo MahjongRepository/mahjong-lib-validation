@@ -160,7 +160,8 @@ def test_measures_generated_cases(
         Stats(str(output / "profile.pstats")).get_stats_profile().func_profiles
     )
     assert functions[function_name].ncalls == "1"
-    assert "prepare_shape_call" not in functions
+    assert "prepare_agari_call" not in functions
+    assert "prepare_shanten_call" not in functions
 
 
 def test_shanten_positive_and_failed_preflight(tmp_path: Path) -> None:
