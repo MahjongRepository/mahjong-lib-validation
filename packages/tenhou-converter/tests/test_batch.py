@@ -227,6 +227,7 @@ def test_cli_exit_codes_and_json_report(tmp_path: Path) -> None:
         == 0
     )
     (case,) = read_dataset(output)
+    assert case["case_type"] == "scoring"
     assert case["input"]["nuki_count"] == 3
     assert case["round"]["wind"] == "south"
     assert case["expected"]["honba_points"] == 600

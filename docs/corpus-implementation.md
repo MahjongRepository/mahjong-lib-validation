@@ -64,8 +64,9 @@ manifest、変換器、未決の役対応表や精算規則は今回の対象に
 | API | 振る舞い |
 | --- | --- |
 | `ScoringCase` | v1 scoring ケースの型。型注釈自体は実行時の検査を行わない |
-| `parse_case(value)` | 型・形式・基本的な整合性を検査し、`ScoringCase` として返す。入力を変更しない |
-| `read_cases(path)` | UTF-8 の JSONL を順次読み込み、各ケースを検査して返すイテレータ |
+| `parse_case(value)` | `case_type` に応じて検査し、`Case` として返す。入力を変更しない |
+| `parse_scoring_case(value)` | scoring 専用の経路で検査し、`ScoringCase` として返す |
+| `read_cases(path, *, case_type=None)` | UTF-8 の JSONL を順次読み込み、検査した `Case` を返す。種別を指定すると全レコードと照合する |
 | `write_cases(path, cases)` | 各ケースを再検査して JSONL を出力する。成功時に出力先を置換し、書き込み件数を返す |
 | `CorpusError` | 不正なデータを表す `ValueError`。`field`、`message`、`path`、`line` を保持する |
 

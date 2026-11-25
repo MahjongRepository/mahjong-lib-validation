@@ -1,6 +1,8 @@
-"""JSON-native models for v1 scoring records."""
+"""JSON-native models for v1 corpus records."""
 
 from typing import Literal, TypedDict
+
+CaseType = Literal["scoring", "agari", "shanten"]
 
 Tile = Literal[
     "0m", "1m", "2m", "3m", "4m", "5m", "6m", "7m", "8m", "9m",
@@ -185,6 +187,46 @@ class ScoringCase(TypedDict):
     comparison: Comparison
 
 
+class ShapeSource(TypedDict):
+    platform: Literal["tenhou", "majsoul"]
+    log_id: str
+    event_index: int
+
+
+class ShapeInput(TypedDict):
+    concealed_tiles: list[Tile]
+    melds: list[Meld]
+
+
+class AgariExpected(TypedDict):
+    is_agari: bool
+
+
+class ShantenExpected(TypedDict):
+    shanten: int
+
+
+class ShapeCase(TypedDict):
+    schema_version: Literal["v1"]
+    case_id: str
+    source: ShapeSource
+    player_count: Literal[3, 4]
+    input: ShapeInput
+
+
+class AgariCase(ShapeCase):
+    case_type: Literal["agari"]
+    expected: AgariExpected
+
+
+class ShantenCase(ShapeCase):
+    case_type: Literal["shanten"]
+    expected: ShantenExpected
+
+
+type Case = ScoringCase | AgariCase | ShantenCase
+
+
 class GeneratorInfo(TypedDict):
     name: str
     version: str
@@ -206,7 +248,7 @@ class DataFile(TypedDict):
 
 class Manifest(TypedDict):
     schema_version: Literal["v1"]
-    case_type: Literal["scoring"]
+    case_type: CaseType
     generator: GeneratorInfo
     conversion: ConversionSummary
     record_count: int

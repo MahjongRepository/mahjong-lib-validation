@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from corpus import parse_case, write_dataset
+from corpus import parse_scoring_case, write_dataset
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -19,7 +19,9 @@ def load_case() -> Callable[..., ScoringCase]:
             / "corpus/tests/fixtures"
             / f"{name}.json"
         )
-        return parse_case(json.loads(fixture.read_text(encoding="utf-8")))
+        return parse_scoring_case(
+            json.loads(fixture.read_text(encoding="utf-8"))
+        )
 
     return load
 

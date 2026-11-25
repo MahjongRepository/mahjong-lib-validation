@@ -3,7 +3,7 @@
 import re
 from urllib.parse import quote
 
-from corpus import CorpusError, ScoringCase, parse_case
+from corpus import CorpusError, ScoringCase, parse_scoring_case
 
 from tenhou_converter.errors import ConversionError
 from tenhou_converter.melds import decode_meld, tile
@@ -254,7 +254,7 @@ def extract(
     }
 
     try:
-        return parse_case(data)
+        return parse_scoring_case(data)
     except CorpusError as e:
         reason = "invalid_case"
         raise event.error(reason, e.message, e.field) from e

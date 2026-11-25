@@ -7,7 +7,7 @@ import pytest
 from corpus import (
     CorpusError,
     check_dataset,
-    parse_case,
+    parse_scoring_case,
     read_cases,
     read_dataset,
     write_cases,
@@ -36,11 +36,12 @@ def _fixture(name: str) -> dict[str, Any]:
 def test_negative_balance_and_net_loss_keep_positive_individual_gain(
     tmp_path: Path, *, compress: bool
 ) -> None:
-    case = parse_case(_fixture("synthetic-sanma-pao-double-ron.json"))
+    case = parse_scoring_case(_fixture("synthetic-sanma-pao-double-ron.json"))
     path = tmp_path / ("pao.jsonl.gz" if compress else "pao.jsonl")
     write_cases(path, [case])
 
     (saved,) = read_cases(path)
+    assert saved["case_type"] == "scoring"
     assert saved["source"]["scoring_values"]["scores_after_first"] == [
         98000,
         -14000,
@@ -52,7 +53,7 @@ def test_negative_balance_and_net_loss_keep_positive_individual_gain(
 
     saved["expected"]["winner_gain"] = -20800
     with pytest.raises(CorpusError) as caught:
-        parse_case(saved)
+        parse_scoring_case(saved)
     assert caught.value.field == "expected.winner_gain"
 
 
@@ -64,7 +65,7 @@ def test_unknown_situation_reason_is_preserved(
         "ippatsu": "missing_events"
     }
 
-    case = parse_case(example)
+    case = parse_scoring_case(example)
 
     assert case["situation_provenance"]["unknown_fields"] == {
         "ippatsu": "missing_events"
@@ -90,7 +91,7 @@ def test_unknown_reasons_match_only_unknown_situation_fields(
     example["input"]["situation"]["ippatsu"] = value
     example["situation_provenance"]["unknown_fields"] = reasons
     with pytest.raises(CorpusError) as error:
-        parse_case(example)
+        parse_scoring_case(example)
     assert error.value.field == "situation_provenance.unknown_fields." + field
 
 
@@ -131,12 +132,12 @@ def test_meld_origin_matches_open_or_closed_kind(
         }
     ]
     with pytest.raises(CorpusError) as error:
-        parse_case(example)
+        parse_scoring_case(example)
     assert error.value.field == "input.melds[0]." + field
 
 
 def test_sanma_tsumo_and_nuki_fixture() -> None:
-    case = parse_case(_fixture("synthetic-sanma-tsumo.json"))
+    case = parse_scoring_case(_fixture("synthetic-sanma-tsumo.json"))
     assert case["player_count"] == 3
     assert case["input"]["situation"]["tsumo"] is True
     assert case["input"]["nuki_count"] == 2
@@ -146,8 +147,8 @@ def test_sanma_tsumo_and_nuki_fixture() -> None:
 
 
 def test_ankan_and_kakan_fixture_metadata() -> None:
-    ankan = parse_case(_fixture("synthetic-ankan.json"))
-    kakan = parse_case(_fixture("synthetic-kakan.json"))
+    ankan = parse_scoring_case(_fixture("synthetic-ankan.json"))
+    kakan = parse_scoring_case(_fixture("synthetic-kakan.json"))
     assert ankan["input"]["melds"][0] == {
         "type": "ankan",
         "tiles": ["5z"] * 4,
@@ -165,8 +166,8 @@ def test_ankan_and_kakan_fixture_metadata() -> None:
 
 
 def test_actual_double_ron_keeps_each_gain_and_shared_event_delta() -> None:
-    first = parse_case(_fixture("majsoul-double-ron-first.json"))
-    second = parse_case(_fixture("majsoul-double-ron-second.json"))
+    first = parse_scoring_case(_fixture("majsoul-double-ron-first.json"))
+    second = parse_scoring_case(_fixture("majsoul-double-ron-second.json"))
     assert [first["win_number"], second["win_number"]] == [1, 2]
     assert [
         first["source"]["winner_index"],
@@ -190,7 +191,7 @@ def test_actual_double_ron_keeps_each_gain_and_shared_event_delta() -> None:
 
 
 def test_liability_payments_are_preserved_but_excluded() -> None:
-    case = parse_case(_fixture("synthetic-liability.json"))
+    case = parse_scoring_case(_fixture("synthetic-liability.json"))
     assert case["source"]["scoring_values"]["paoWho"] == 2
     assert case["expected"]["payments_by_seat"] == [16000, 0, 16300, 0]
     assert {
@@ -200,8 +201,8 @@ def test_liability_payments_are_preserved_but_excluded() -> None:
 
 
 def test_actual_kokushi_fu_and_counterfactual_ippatsu() -> None:
-    recorded = parse_case(_fixture("tenhou-kokushi.json"))
-    ippatsu = parse_case(_fixture("synthetic-yakuman-ippatsu.json"))
+    recorded = parse_scoring_case(_fixture("tenhou-kokushi.json"))
+    ippatsu = parse_scoring_case(_fixture("synthetic-yakuman-ippatsu.json"))
     assert recorded["expected"]["fu"] == 0
     assert {"field": "fu", "reason": "kokushi_fu_not_comparable"} in recorded[
         "comparison"
@@ -217,7 +218,7 @@ def test_edge_fixtures_survive_manifest_dataset(
     tmp_path: Path, *, compress: bool
 ) -> None:
     values = [_fixture(name) for name in EDGE_FIXTURES]
-    cases = [parse_case(value) for value in values]
+    cases = [parse_scoring_case(value) for value in values]
     path = tmp_path / "dataset"
     manifest = write_dataset(
         path,
@@ -250,7 +251,7 @@ def test_chankan_records_the_provider_in_discarder_seat(
 ) -> None:
     example["input"]["situation"]["chankan"] = True
     example["input"]["discarder_seat"] = 1
-    case = parse_case(example)
+    case = parse_scoring_case(example)
     assert case["input"]["situation"]["tsumo"] is False
     assert case["input"]["situation"]["chankan"] is True
     assert case["input"]["discarder_seat"] == 1
@@ -265,11 +266,12 @@ def test_unknown_reason_survives_jsonl(
         "ippatsu": "missing_events"
     }
     path = tmp_path / ("unknown" + suffix)
-    write_cases(path, [parse_case(example)])
-    values = list(read_cases(path))
-    assert values[0]["input"]["situation"]["ippatsu"] is None
+    write_cases(path, [parse_scoring_case(example)])
+    (saved,) = read_cases(path)
+    assert saved["case_type"] == "scoring"
+    assert saved["input"]["situation"]["ippatsu"] is None
     assert (
-        values[0]["situation_provenance"]["unknown_fields"]["ippatsu"]
+        saved["situation_provenance"]["unknown_fields"]["ippatsu"]
         == "missing_events"
     )
 
@@ -283,7 +285,7 @@ def test_unknown_yaku_values_survive_files_and_dataset(
         {"field": "yaku", "reason": "not_recorded"},
         {"field": "yakuman_multiplier", "reason": "not_recorded"},
     ]
-    case = parse_case(example)
+    case = parse_scoring_case(example)
     path = tmp_path / ("unknown.jsonl.gz" if compress else "unknown.jsonl")
     write_cases(path, [case])
     assert list(read_cases(path)) == [example]

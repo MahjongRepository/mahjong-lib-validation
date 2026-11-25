@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from corpus import parse_case, write_dataset
+from corpus import parse_scoring_case, write_dataset
 from mahjong.hand_calculating.hand_response import HandResponse
 from validator import validate_dataset
 from validator.adapter import calculate, prepare_hand
@@ -154,7 +154,7 @@ def test_yaku_identity_is_compared_even_when_han_matches(
     fixture = (
         Path(__file__).parents[2] / "corpus/tests/fixtures/tenhou-scoring.json"
     )
-    case = parse_case(json.loads(fixture.read_text(encoding="utf-8")))
+    case = parse_scoring_case(json.loads(fixture.read_text(encoding="utf-8")))
     assert case["expected"]["yaku"] is not None
     case["expected"]["yaku"][0]["id"] = "pinfu"
     dataset = tmp_path / "corpus"
@@ -182,7 +182,7 @@ def test_validate_ron_from_corpus(tmp_path: Path) -> None:
     fixture = (
         Path(__file__).parents[2] / "corpus/tests/fixtures/tenhou-scoring.json"
     )
-    case = parse_case(json.loads(fixture.read_text(encoding="utf-8")))
+    case = parse_scoring_case(json.loads(fixture.read_text(encoding="utf-8")))
     dataset = tmp_path / "corpus"
     write_dataset(
         dataset,

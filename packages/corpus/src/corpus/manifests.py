@@ -1,4 +1,4 @@
-"""Manifest models and storage for scoring datasets."""
+"""Manifest models and storage for corpus datasets."""
 
 import json
 from pathlib import Path

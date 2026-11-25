@@ -13,7 +13,7 @@ from validator.validation import validate_case
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator
 
-    from corpus.models import ScoringCase
+    from corpus.models import Case, ScoringCase
 
 
 def test_case_id_filter_keeps_duplicates_and_zero_selection_fails(
@@ -49,7 +49,7 @@ def test_validation_consumes_cases_incrementally(
         "validator.validation.validate_case", wraps=validate_case
     ) as validate:
 
-        def cases(directory: Path) -> Iterator[ScoringCase]:
+        def cases(directory: Path) -> Iterator[Case]:
             for index, case in enumerate(read_dataset(directory)):
                 assert validate.call_count == index
                 yield case

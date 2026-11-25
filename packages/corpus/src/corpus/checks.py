@@ -1,16 +1,55 @@
-"""Validate scoring records without calculating expected scores."""
+"""Validate records without calculating expected results."""
 
 from collections import Counter
+from typing import assert_never
 
 from corpus._validation import minimum, validate_json, validate_type
 from corpus.errors import CorpusError
-from corpus.models import Expected, Meld, ScoringCase, Yaku
+from corpus.models import (
+    AgariCase,
+    Case,
+    CaseType,
+    Expected,
+    Meld,
+    ScoringCase,
+    ShantenCase,
+    ShapeCase,
+    Yaku,
+)
 
 MAX_MELDS = 4
 MAX_TILE_COPIES = 4
+SANMA_PLAYERS = 3
 
 
-def parse_case(value: object) -> ScoringCase:
+def parse_case(value: object) -> Case:
+    if not isinstance(value, dict):
+        msg = "expected object"
+        field = ""
+        raise CorpusError(field, msg)
+    if "case_type" not in value:
+        msg = "required field is missing"
+        field = "case_type"
+        raise CorpusError(field, msg)
+
+    case_type = validate_type(value["case_type"], CaseType, "case_type")
+    match case_type:
+        case "agari":
+            agari = validate_type(value, AgariCase, "")
+            _shape(agari)
+            return agari
+        case "shanten":
+            shanten = validate_type(value, ShantenCase, "")
+            _shape(shanten)
+            minimum(shanten["expected"]["shanten"], -1, "expected.shanten")
+            return shanten
+        case "scoring":
+            return parse_scoring_case(value)
+        case _:
+            assert_never(case_type)
+
+
+def parse_scoring_case(value: object) -> ScoringCase:
     case = validate_type(value, ScoringCase, "")
     _tiles(case)
     _seats(case)
@@ -19,6 +58,39 @@ def parse_case(value: object) -> ScoringCase:
     _expected(case)
     validate_json(case["source"]["scoring_values"], "source.scoring_values")
     return case
+
+
+def _shape(case: ShapeCase) -> None:
+    minimum(case["source"]["event_index"], 0, "source.event_index")
+    hand = case["input"]
+    melds = hand["melds"]
+    if len(melds) > MAX_MELDS:
+        field = "input.melds"
+        msg = "at most four melds are allowed"
+        raise CorpusError(field, msg)
+    if len(hand["concealed_tiles"]) + 3 * len(melds) not in (13, 14):
+        msg = "expected 13 or 14 tiles counting each meld as three"
+        field = "input.concealed_tiles"
+        raise CorpusError(field, msg)
+
+    tiles = list(hand["concealed_tiles"])
+    for index, meld in enumerate(melds):
+        field = f"input.melds[{index}]"
+        _meld(meld, field)
+        seat = meld["from_seat"]
+        if seat is not None and not 0 <= seat < case["player_count"]:
+            msg = "seat outside player count"
+            raise CorpusError(field + ".from_seat", msg)
+        tiles.extend(meld["tiles"])
+
+    counts = Counter(_kind(tile) for tile in tiles)
+    _tile_copies(counts)
+    if case["player_count"] == SANMA_PLAYERS and any(
+        f"{rank}m" in counts for rank in range(2, 9)
+    ):
+        msg = "tiles 2m through 8m are unavailable in three-player cases"
+        field = "input"
+        raise CorpusError(field, msg)
 
 
 def _situation(case: ScoringCase) -> None:
@@ -277,6 +349,10 @@ def _tiles(case: ScoringCase) -> None:
         tiles.extend(meld["tiles"])
     counts = Counter(_kind(tile) for tile in tiles)
     counts["4z"] += hand["nuki_count"]
+    _tile_copies(counts)
+
+
+def _tile_copies(counts: Counter[str]) -> None:
     if any(count > MAX_TILE_COPIES for count in counts.values()):
         error_field = "input"
         raise CorpusError(error_field, "a tile kind has more than four copies")

@@ -6,6 +6,7 @@ lazy from pathlib import Path
 
 import pytest
 from corpus import (
+    Case,
     CorpusError,
     ScoringCase,
     parse_case,
@@ -27,12 +28,14 @@ def test_read_jsonl_preserves_order_and_real_ids(
         first + "\n" + json.dumps(example) + "\n", encoding="utf-8"
     )
 
-    cases = list(read_cases(path))
+    first, second = read_cases(path)
 
-    assert [case["win_number"] for case in cases] == [1, 2]
-    assert cases[0]["source"]["log_id"] == "synthetic-unmasked-id"
-    assert cases[0]["case_id"] == "tenhou:synthetic-unmasked-id:east:1:0:1"
-    assert cases[0]["expected"]["fu"] == 40
+    assert first["case_type"] == "scoring"
+    assert second["case_type"] == "scoring"
+    assert [first["win_number"], second["win_number"]] == [1, 2]
+    assert first["source"]["log_id"] == "synthetic-unmasked-id"
+    assert first["case_id"] == "tenhou:synthetic-unmasked-id:east:1:0:1"
+    assert first["expected"]["fu"] == 40
 
 
 @pytest.mark.parametrize("bad_line", ["not json", "", "{}"])
@@ -55,7 +58,7 @@ def test_read_is_lazy_and_errors_identify_line(
 def test_iterable_failure_leaves_no_partial_output(
     tmp_path: Path, example: dict[str, Any]
 ) -> None:
-    def failing_cases() -> Iterator[ScoringCase]:
+    def failing_cases() -> Iterator[Case]:
         yield parse_case(example)
         message = "source failed"
         raise RuntimeError(message)
@@ -127,8 +130,9 @@ def test_title_survives_jsonl_round_trip(
     example["expected"]["title"] = "mangan"
     path = tmp_path / ("titles" + suffix)
     write_cases(path, [parse_case(example)])
-    cases = list(read_cases(path))
-    assert cases[0]["expected"]["title"] == "mangan"
+    (case,) = read_cases(path)
+    assert case["case_type"] == "scoring"
+    assert case["expected"]["title"] == "mangan"
 
 
 def test_invalid_utf8_reports_the_line(
@@ -137,7 +141,9 @@ def test_invalid_utf8_reports_the_line(
     path = tmp_path / "encoding.jsonl"
     path.write_bytes(json.dumps(example).encode() + b"\n\xff\n")
     cases = read_cases(path)
-    assert next(cases)["expected"]["fu"] == 40
+    case = next(cases)
+    assert case["case_type"] == "scoring"
+    assert case["expected"]["fu"] == 40
     with pytest.raises(CorpusError) as error:
         next(cases)
     assert error.value.path == path

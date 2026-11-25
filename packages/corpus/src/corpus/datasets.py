@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING
 from corpus._fileio import decode_json
 from corpus._validation import minimum, validate_type
 from corpus.case_io import read_cases, write_cases
+from corpus.checks import parse_case
 from corpus.errors import CorpusError
 from corpus.manifests import (
     parse_manifest,
@@ -20,11 +21,12 @@ from corpus.manifests import (
     write_manifest,
 )
 from corpus.models import (
+    Case,
+    CaseType,
     ConversionSummary,
     DataFile,
     GeneratorInfo,
     Manifest,
-    ScoringCase,
 )
 
 if TYPE_CHECKING:
@@ -34,7 +36,7 @@ if TYPE_CHECKING:
 MAX_INDEX_ROW_BYTES = 4096
 
 
-def read_dataset(directory: str | Path) -> Generator[ScoringCase]:
+def read_dataset(directory: str | Path) -> Generator[Case]:
     directory = Path(directory)
     manifest = read_manifest(directory / "manifest.json")
     yield from _read_dataset(directory, manifest)
@@ -50,7 +52,7 @@ def check_dataset(directory: str | Path) -> Manifest:
 
 def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
     directory: str | Path,
-    cases: Iterable[ScoringCase],
+    cases: Iterable[Case],
     *,
     generator: GeneratorInfo,
     conversion: ConversionSummary,
@@ -65,13 +67,29 @@ def write_dataset(  # noqa: PLR0913 -- explicit metadata and output options
         error_field = "cases_per_file"
         raise CorpusError(error_field, "must be positive")
     with _staging_directory(directory.parent) as staging:
+        records = iter(cases)
+        try:
+            first = next(records)
+        except StopIteration:
+            validate_type(conversion, ConversionSummary, "conversion")
+            _complete(conversion, directory / "manifest.json")
+            field = "files"
+            msg = "dataset contains no cases"
+            raise CorpusError(
+                field, msg, path=directory / "manifest.json"
+            ) from None
+        case_type = parse_case(first)["case_type"]
         record_count = _write_files(
-            staging, iter(cases), cases_per_file, compress=compress
+            staging,
+            chain((first,), records),
+            cases_per_file,
+            case_type=case_type,
+            compress=compress,
         )
         manifest = parse_manifest(
             {
                 "schema_version": "v1",
-                "case_type": "scoring",
+                "case_type": case_type,
                 "generator": generator,
                 "conversion": conversion,
                 "files_sha256": file_sha256(staging / "files.jsonl"),
@@ -108,19 +126,22 @@ def _new_directory(directory: Path) -> None:
 
 def _write_files(
     directory: Path,
-    cases: Iterator[ScoringCase],
+    cases: Iterator[Case],
     limit: int,
     *,
+    case_type: CaseType,
     compress: bool,
 ) -> int:
     total = 0
     suffix = ".jsonl.gz" if compress else ".jsonl"
     with (directory / "files.jsonl").open("wb") as index:
         for position, first in enumerate(cases, start=1):
-            name = f"scoring-{position:06d}{suffix}"
+            name = f"{case_type}-{position:06d}{suffix}"
             path = directory / name
             count = write_cases(
-                path, chain((first,), islice(cases, limit - 1))
+                path,
+                chain((first,), islice(cases, limit - 1)),
+                case_type=case_type,
             )
             entry = {
                 "path": name,
@@ -132,9 +153,7 @@ def _write_files(
     return total
 
 
-def _read_dataset(
-    directory: Path, manifest: Manifest
-) -> Generator[ScoringCase]:
+def _read_dataset(directory: Path, manifest: Manifest) -> Generator[Case]:
     _ready(manifest, directory / "manifest.json")
     path = directory / "files.jsonl"
     index_field = "files_sha256"
@@ -156,7 +175,7 @@ def _read_dataset(
                 )
             value = decode_json(line, path, line=index + 1)
             entry = validate_type(value, DataFile, field)
-            stem = f"scoring-{index + 1:06d}"
+            stem = f"{manifest['case_type']}-{index + 1:06d}"
             if entry["path"] not in (stem + ".jsonl", stem + ".jsonl.gz"):
                 raise CorpusError(
                     field + ".path",
@@ -165,7 +184,9 @@ def _read_dataset(
                 )
             minimum(entry["record_count"], 1, field + ".record_count")
             validate_digest(entry["sha256"], field + ".sha256")
-            yield from _read_file(directory, entry, index)
+            yield from _read_file(
+                directory, entry, index, manifest["case_type"]
+            )
             total += entry["record_count"]
     if total != manifest["record_count"]:
         field = "record_count"
@@ -175,8 +196,8 @@ def _read_dataset(
 
 
 def _read_file(
-    directory: Path, entry: DataFile, index: int
-) -> Generator[ScoringCase]:
+    directory: Path, entry: DataFile, index: int, case_type: CaseType
+) -> Generator[Case]:
     field = f"files[{index}]"
     path = directory / entry["path"]
     if path.resolve().parent != directory.resolve():
@@ -191,7 +212,7 @@ def _read_file(
         raise CorpusError(field + ".sha256", "hash mismatch", path=path)
 
     count = 0
-    with closing(read_cases(path)) as cases:
+    with closing(read_cases(path, case_type=case_type)) as cases:
         for case in cases:
             count += 1
             yield case

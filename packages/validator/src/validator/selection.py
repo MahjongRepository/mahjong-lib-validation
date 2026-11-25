@@ -3,7 +3,8 @@ import json
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-lazy from corpus.models import ScoringCase
+from corpus import CorpusError
+lazy from corpus.models import Case, ScoringCase
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -64,10 +65,12 @@ class SelectionScan:
     def selection_sha256(self) -> str:
         return self._digest.hexdigest()
 
-    def select(
-        self, cases: Iterable[ScoringCase]
-    ) -> Iterator[SelectedScoringCase]:
+    def select(self, cases: Iterable[Case]) -> Iterator[SelectedScoringCase]:
         for self.scanned_count, case in enumerate(cases, start=1):
+            if case["case_type"] != "scoring":
+                msg = f"expected scoring, got {case['case_type']!r}"
+                field = "case_type"
+                raise CorpusError(field, msg)
             if self.selection.matches(case, self.selected_count):
                 self.selected_count += 1
                 self._digest.update(

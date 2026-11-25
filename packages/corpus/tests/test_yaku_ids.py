@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from corpus import CorpusError, parse_case
+from corpus import CorpusError, parse_scoring_case
 
 
 @pytest.mark.parametrize("name", ["riichi", "dora", "daisangen"])
@@ -29,7 +29,7 @@ def test_duplicate_yaku_id_is_rejected(
         ]
 
     with pytest.raises(CorpusError) as error:
-        parse_case(example)
+        parse_scoring_case(example)
 
     assert error.value.field == "expected.yaku[1].id"
     assert "duplicate" in str(error.value)
@@ -44,7 +44,7 @@ def test_undefined_yaku_name_is_rejected(
     example["expected"]["yaku"][0]["id"] = name
 
     with pytest.raises(CorpusError) as error:
-        parse_case(example)
+        parse_scoring_case(example)
 
     assert error.value.field == "expected.yaku[0].id"
 
@@ -68,7 +68,7 @@ def test_common_yaku_names_are_preserved(
 ) -> None:
     example["expected"]["yaku"][0]["id"] = name
 
-    yaku = parse_case(example)["expected"]["yaku"]
+    yaku = parse_scoring_case(example)["expected"]["yaku"]
     assert yaku is not None
     assert yaku[0]["id"] == name
 
@@ -94,7 +94,7 @@ def test_special_yakuman_forms_keep_their_own_names(
         }
     )
 
-    case = parse_case(example)
+    case = parse_scoring_case(example)
 
     yaku = case["expected"]["yaku"]
     assert yaku is not None

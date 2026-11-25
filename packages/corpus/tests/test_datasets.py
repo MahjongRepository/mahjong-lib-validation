@@ -15,7 +15,7 @@ from corpus import (
 )
 
 if TYPE_CHECKING:
-    from corpus.models import ConversionSummary, ScoringCase
+    from corpus.models import Case, ConversionSummary
 
 
 @pytest.fixture
@@ -89,7 +89,11 @@ def test_read_dataset_uses_manifest_order(dataset: Path) -> None:
         "tenhou",
         "majsoul",
     ]
-    assert [case["expected"]["winner_gain"] for case in cases] == [3600, 4600]
+    first, second = cases
+    assert first["case_type"] == "scoring"
+    assert second["case_type"] == "scoring"
+    assert first["expected"]["winner_gain"] == 3600
+    assert second["expected"]["winner_gain"] == 4600
 
 
 def test_check_dataset_consumes_every_file(dataset: Path) -> None:
@@ -223,7 +227,7 @@ def test_existing_dataset_is_rejected_without_consuming_input(
 ) -> None:
     consumed = False
 
-    def cases() -> Iterator[ScoringCase]:
+    def cases() -> Iterator[Case]:
         nonlocal consumed
         consumed = True
         yield parse_case(example)
@@ -265,7 +269,7 @@ def test_empty_input_is_not_published(tmp_path: Path) -> None:
 def test_input_failure_does_not_publish_partial_dataset(
     tmp_path: Path, example: dict[str, Any]
 ) -> None:
-    def cases() -> Iterator[ScoringCase]:
+    def cases() -> Iterator[Case]:
         yield parse_case(example)
         message = "conversion interrupted"
         raise RuntimeError(message)
@@ -324,7 +328,7 @@ def test_conversion_summary_can_be_finalized_while_streaming(
         "excluded_by_reason": {},
     }
 
-    def cases() -> Iterator[ScoringCase]:
+    def cases() -> Iterator[Case]:
         yield parse_case(example)
         summary["converted_count"] = 1
 
@@ -347,7 +351,7 @@ def test_failure_reported_at_end_of_stream_prevents_publication(
         "excluded_by_reason": {},
     }
 
-    def cases() -> Iterator[ScoringCase]:
+    def cases() -> Iterator[Case]:
         yield parse_case(example)
         summary["input_count"] = 2
         summary["failed_by_reason"] = {"invalid_log": 1}
