@@ -21,6 +21,3 @@ uv run python -c "from corpus import check_dataset; manifest = check_dataset('co
   and their metadata to a new dataset directory.
 - `read_cases(path)` and `write_cases(path, cases)` handle standalone JSONL
   case files.
-
-See the [dataset format](../../docs/reference.md#コーパス) for the supported
-case types and files.
