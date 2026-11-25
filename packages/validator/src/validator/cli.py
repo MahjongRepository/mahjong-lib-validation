@@ -37,7 +37,19 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_dataset_arguments(profile)
     profile.add_argument("--limit", type=int, required=True)
     profile.add_argument(
-        "--method", required=True, help="collection method: tracing"
+        "--method",
+        required=True,
+        help="collection method: tracing or sampling",
+    )
+    profile.add_argument(
+        "--min-seconds",
+        type=float,
+        help="sampling batch duration (default: 3 seconds)",
+    )
+    profile.add_argument(
+        "--sampling-rate",
+        type=int,
+        help="sampling frequency in Hz (default: 1000)",
     )
     profile.set_defaults(handler=_run_profile)
 
@@ -84,6 +96,8 @@ def _run_profile(args: argparse.Namespace) -> int:
             args.player_count, tuple(args.case_id), args.limit
         ),
         method=args.method,
+        min_seconds=args.min_seconds,
+        sampling_rate_hz=args.sampling_rate,
     )
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return summary["exit_code"]

@@ -4,8 +4,8 @@
 
 [全体設計](architecture.md) を具体化し、corpus を入力とする
 `mahjong` の正確性検証・性能計測・プロファイルの責務と境界を定める。
-scoring の初期検証、benchmark、tracing profile の API・CLI は実装済み。
-sampling profile と compare は後続段階である。
+scoring の初期検証、benchmark、profile の API・CLI は実装済み。
+compare は後続段階である。
 確認結果は [実装記録](validator-implementation.md)、出力と API は
 [初期版の結果形式](validator-results.md) を参照する。
 実装は [テストリスト](validator-implementation.md) から一件ずつ進める。
@@ -225,8 +225,8 @@ corpus の不正や出力の書込失敗は実行全体の失敗とする。
 ## プロファイル
 
 [scoring プロファイリングの設計](validator-profile-design.md) に収集方式、
-範囲、反復、成果物を記録する。初回は tracing を提供し、sampling は
-対応環境で収集境界を確認してから追加する。速度の比較には benchmark を使う。
+範囲、反復、成果物および sampling の収集境界を記録する。
+速度の比較には benchmark を使う。
 
 ## baseline / candidate の比較
 
@@ -254,13 +254,14 @@ import ディレクトリを明示的に受け取る。
 候補名とし、具体的な引数と結果型は各段階のテストで確定する。
 API は標準出力や `sys.exit` に依存せず、CLI が表示と終了コードを担う。
 
-CLI の形は次を基本とする。validate、benchmark、tracing profile は実装済みで、
+CLI の形は次を基本とする。validate、benchmark、profile は実装済みで、
 compare は実装予定の使用例である。
 
 ```text
 mahjong-validator validate <dataset> --output <new-result-directory>
 mahjong-validator benchmark <dataset> --limit 20000 --samples 10 --output <new-result-directory>
 mahjong-validator profile <dataset> --limit 20000 --method tracing --output <new-result-directory>
+mahjong-validator profile <dataset> --limit 20000 --method sampling --output <new-result-directory>
 mahjong-validator compare <dataset> --limit 20000 --baseline-python <python> --baseline-library <directory> --candidate-python <python> --candidate-library <directory> --output <new-result-directory>
 ```
 

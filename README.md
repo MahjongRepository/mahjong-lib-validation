@@ -4,7 +4,7 @@ Validation, benchmarking, and profiling tools for the [mahjong](https://github.c
 
 > 🚧 **Work in Progress**
 >
-> Scoring validation, benchmarking, and tracing are available.
+> Scoring validation, benchmarking, tracing, and sampling are available.
 
 ## Convert Tenhou logs
 
@@ -66,6 +66,17 @@ The validator checks the selected cases before tracing one scoring batch.
 The new output directory contains `profile.pstats`, `summary.json`, and
 `cases.jsonl`. A failed preflight saves diagnostics and exits with code 1.
 An unavailable collection method or a collection failure exits with code 2.
+
+Use sampling to generate an interactive flame graph in `profile.html`.
+
+```console
+uv run mahjong-validator profile data/tenhou-scoring --limit 1000 --method sampling --min-seconds 3 --sampling-rate 1000 --output scoring-flamegraph
+```
+
+The defaults are 3 seconds of scoring and a requested frequency of 1000 Hz.
+Sampling requires permission for Tachyon to attach to the scoring worker.
+`summary.json` records the captured sample count and identifies the startup
+wait frame that may also appear in the flame graph.
 
 ## License
 

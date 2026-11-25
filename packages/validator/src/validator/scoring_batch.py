@@ -11,6 +11,11 @@ if TYPE_CHECKING:
 type ScoringCall = tuple[int, str, Callable[[], object]]
 
 
+def run_batch(calls: list[ScoringCall]) -> None:
+    for _, _, calculate in calls:
+        calculate()
+
+
 def prepare_calls(
     selected: list[tuple[int, ScoringCase]],
 ) -> list[ScoringCall]:

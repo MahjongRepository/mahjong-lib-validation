@@ -86,6 +86,16 @@ class ProfileSettings(TypedDict):
     reuse_inputs: bool
     cache: str
     gc_enabled: bool
+    min_seconds: NotRequired[float]
+    sampling_rate_hz: NotRequired[int]
+    synchronization_frames: NotRequired[list[str]]
+
+
+class SamplingResult(TypedDict):
+    repetitions: int
+    elapsed_ns: int
+    gc_enabled: bool
+    sample_count: int
 
 
 class ProfileSummary(TypedDict):
@@ -93,7 +103,7 @@ class ProfileSummary(TypedDict):
     purpose: Literal["profile"]
     complete: bool
     exit_code: int
-    method: Literal["tracing"]
+    method: Literal["tracing", "sampling"]
     scope: Literal["scoring_batch"]
     preflight: ValidationSummary
     settings: ProfileSettings
@@ -101,6 +111,7 @@ class ProfileSummary(TypedDict):
     repetitions: int
     processed_count: int
     elapsed_ns: int | None
+    sample_count: NotRequired[int]
 
 
 class CorpusIdentity(TypedDict):

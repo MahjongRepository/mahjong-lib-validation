@@ -3,7 +3,7 @@
 作成日: 2026-11-03
 
 [validator の設計](validator-design.md) を実装する順序と確認事項を記録する。
-第 1〜5 節と profile の tracing を実装した。sampling と compare は後続段階である。[実装・テスト方針](development.md) に従い、
+第 1〜6 節を実装した。compare は後続段階である。[実装・テスト方針](development.md) に従い、
 一件を選び Red → Green → Refactor で進める。
 このリスト全体を先にテストコードへ変換しない。
 実装から得た知見で API・設計・リストを更新する。
@@ -114,11 +114,11 @@ Ruff の lint・format と ty の型検査も成功した。
 
 - [x] 事前検証が不成立なら収集を開始せず、診断を保存する。
 - [x] tracing で計算バッチを囲み、準備・事前検証・書き込みを収集区間の外に置いて pstats を保存する。
-- [ ] sampling の HTML と収集件数を保存する。
-- [ ] Tachyon の収集開始・終了同期と Windows の利用条件を確認する。
+- [x] sampling の HTML と収集件数を保存する。
+- [x] Tachyon の収集開始・終了同期と Windows の利用条件を確認する。
 - [x] 未対応条件を明示し、別方式へ黙って切り替えない。
 - [x] tracing の収集時間・反復回数・処理件数・入力再利用条件を保存する。
-- [ ] sampling の標本情報を保存する。
+- [x] sampling の標本情報を保存する。
 - [x] profiler を通常の benchmark で起動しない。
 
 ## 7. compare

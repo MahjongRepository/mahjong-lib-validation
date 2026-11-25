@@ -7,6 +7,7 @@ scoring の処理時間が集中する箇所と、関数の呼び出し回数・
 
 ```text
 mahjong-validator profile DATASET --limit N --method tracing --output OUTPUT
+mahjong-validator profile DATASET --limit N --method sampling --output OUTPUT
 ```
 
 `--limit` は正の整数で必須とし、`--player-count` と `--case-id` は
@@ -15,8 +16,7 @@ mahjong-validator profile DATASET --limit N --method tracing --output OUTPUT
 ケース全体の未対応・スキップがあれば収集を開始しない。
 項目単位の比較除外や期待値不足は既存の判定に従う。
 
-初回は `--method tracing` を明示して実行する。sampling は収集境界を
-実行環境で確認した後に追加する。
+`--method` で `tracing` または `sampling` を明示する。
 
 収集対象はベンチマークと同じ計算バッチとする。準備済み入力を順に
 計算 API へ渡し、戻り値をその場で破棄する。ループと戻り値の解放を含む。
@@ -32,8 +32,8 @@ mahjong-validator profile DATASET --limit N --method tracing --output OUTPUT
 
 tracing の既定は一反復とする。短い処理から標本を得る sampling では、
 指定した最短時間に達するまでバッチの完了単位で反復する。
-sampling の時間と収集頻度の引数名・既定値は、実機で収集を確認してから
-確定する。実行後に、実際の反復回数と処理件数を記録する。
+sampling の既定は `--min-seconds 3`、`--sampling-rate 1000` Hz とする。
+実行後に、実際の反復回数と処理件数を記録する。
 
 収集前に入力を準備し、必要な反復では準備済み入力を
 再利用する。入力が計算で変化しないことを再利用の提供前に検証する。
@@ -44,14 +44,21 @@ tracing は事前検証と同じプロセスで、検証済みのレコードか
 新たに準備する。専用のウォームアップは行わず、事前検証後の
 プロセス内キャッシュと実行時の GC 設定を維持する。
 
-## sampling の提供条件
+## sampling の同期と再利用
 
-独立した worker に対象処理を担当させ、Tachyon の標準 CLI で収集する。
-worker の準備完了後、収集開始を確認できてから対象処理を開始し、
-処理終了後は成果物の保存に入る前に収集を終える。`run` または
-`attach` でこの境界を実証できてから sampling を提供する。
-同期に伴う待機のサンプルが残る場合は、対象処理のサンプルと識別できる
-ことを確認し、収集情報に記録する。
+worker に検証済みのレコードを渡し、入力準備と 2 回のウォームアップを
+済ませてから Tachyon の標準 CLI で `attach` する。
+mahjong は得点計算で設定内のドラ翻数などを更新するため、
+初回の計算後に入力を記録し、次の計算で値が変化する入力を拒否する。
+
+worker は準備完了時に自身の PID を通知する。Tachyon の
+`--realtime-stats` に正の収集カウンターが現れてから worker を開始し、
+worker の終了で収集を止めて HTML を生成する。
+Windows 11 / CPython 3.15.2 の通常権限でこの経路を確認した。
+`sample_batches` が得点計算区間、`wait_for_sampling` が開始待機を表す。
+同期や終了処理の標本は HTML に残り、`sample_count` は
+Tachyon が HTML に格納した全標本数を表す。
+`elapsed_ns` は worker のバッチ反復時間を表す。
 
 対応する Python ビルドと OS で開始・終了の同期、収集件数の取得、
 HTML の生成を確認する。Windows では利用可能な権限で実際に収集できるかを
