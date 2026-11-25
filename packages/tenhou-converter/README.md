@@ -17,9 +17,9 @@ uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpo
 | `--target` | Expected result |
 | --- | --- |
 | `scoring` (default) | Scoring values from the win record |
-| `agari-complete` | Winning shape with the winning tile included |
-| `agari-tenpai` | Incomplete shape with the winning tile removed |
-| `shanten-agari` | Shanten −1 for the completed shape |
+| `agari-complete` | Winning hand with the winning tile included |
+| `agari-tenpai` | Incomplete hand with the winning tile removed |
+| `shanten-agari` | Shanten −1 for the winning hand |
 | `shanten-tenpai` | Shanten 0 with the winning tile removed |
 
 ## Output and options
