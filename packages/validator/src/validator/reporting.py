@@ -36,6 +36,7 @@ def require_new_directory(output: Path) -> None:
 @contextmanager
 def result_directory(output: Path) -> Generator[Path]:
     require_new_directory(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
     with TemporaryDirectory(
         dir=output.parent, prefix=".validator-"
     ) as temporary:

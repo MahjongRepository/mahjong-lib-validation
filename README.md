@@ -15,7 +15,7 @@ Supported calculations:
 
 Install [uv](https://docs.astral.sh/uv/), then clone and set up the workspace.
 
-```console
+```sh
 git clone https://github.com/MahjongRepository/mahjong-lib-validation.git
 cd mahjong-lib-validation
 uv sync --locked --all-packages --python 3.15
@@ -29,20 +29,19 @@ Put your Tenhou mjlog files in `logs/tenhou/`, or use your own directory path.
 The converter accepts `.mjlog` and `.xml` files, including gzip-compressed
 `.mjlog.gz` and `.xml.gz` files.
 
-```console
+```sh
 uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
 ```
 
 ### Validate and measure
 
-Create the `results/` directory if it does not exist. Each command writes
-to a new subdirectory.
+Each command requires `--output` to point to a new directory. The validator
+creates any missing parent directories.
 
-```console
-mkdir results
-uv run mahjong-validator validate corpora/scoring --output results/scoring-validation
-uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring-benchmark
-uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring-profile
+```sh
+uv run mahjong-validator validate corpora/scoring --output results/scoring/validation
+uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring/benchmark
+uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring/profile
 ```
 
 ## Tools

@@ -50,10 +50,10 @@ def test_cli_validates_and_reports_partial_coverage(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
-    code = main(
-        ["validate", str(dataset), "--output", str(tmp_path / "result")]
-    )
+    output = tmp_path / "results" / "scoring" / "validation"
+    code = main(["validate", str(dataset), "--output", str(output)])
     assert code == 0
+    assert (output / "summary.json").is_file()
     report = json.loads(capsys.readouterr().out)
     assert report["counts"]["passed"] == 1
     assert report["field_counts"]["event_score_deltas"] == {"unsupported": 1}

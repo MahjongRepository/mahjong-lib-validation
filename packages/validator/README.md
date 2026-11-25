@@ -8,13 +8,13 @@ the calculation for all three commands.
 ## Commands and results
 
 The examples use the dataset from the [quick start](../../README.md#quick-start).
-Create the `results/` directory if it does not exist. Each command requires
-`--output` to point to a new directory with an existing parent.
+Each command requires `--output` to point to a new directory. The validator
+creates any missing parent directories.
 
-```console
-uv run mahjong-validator validate corpora/scoring --output results/scoring-validation
-uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring-benchmark
-uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring-profile
+```sh
+uv run mahjong-validator validate corpora/scoring --output results/scoring/validation
+uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring/benchmark
+uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring/profile
 ```
 
 - `validate` checks expected results. Read `summary.json` for totals and

@@ -9,7 +9,7 @@ and run Python from the repository root through `uv run`.
 Check the dataset from the [quick start](../../README.md#quick-start).
 The command prints its case type and record count after checking all records.
 
-```console
+```sh
 uv run python -c "from corpus import check_dataset; manifest = check_dataset('corpora/scoring'); print(manifest['case_type'], manifest['record_count'])"
 ```
 
