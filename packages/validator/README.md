@@ -11,24 +11,40 @@ The examples use the dataset from the [quick start](../../README.md#quick-start)
 Each command requires `--output` to point to a new directory. The validator
 creates any missing parent directories.
 
+Benchmarking and profiling measure only after the selected cases pass
+validation. Both commands also save the validation reports.
+
+### Validate
+
 ```sh
 uv run mahjong-validator validate corpora/scoring --output results/scoring/validation
+```
+
+Read `summary.json` for totals and comparison coverage. Read `cases.jsonl`
+for individual results. A passing case means all compared fields matched.
+Check the report for excluded fields.
+
+### Benchmark
+
+```sh
 uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring/benchmark
+```
+
+The benchmark measures calculation time and writes raw timings to
+`timings.json`. Use `--samples N` to change the number of timing samples.
+
+### Profile
+
+```sh
 uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring/profile
 ```
 
-- `validate` checks expected results. Read `summary.json` for totals and
-  comparison coverage, and `cases.jsonl` for individual results. A passing
-  case means all compared fields matched. Check the report for excluded fields.
-- `benchmark` measures calculation time and writes raw timings to
-  `timings.json`. Use `--samples N` to change the number of timing samples.
-- `profile` shows where calculation time is spent. Use `--method tracing`
-  for `profile.pstats` or `--method sampling` for an interactive
-  `profile.html`. Sampling requires permission for Tachyon to attach to the
-  worker. Adjust it with `--min-seconds` and `--sampling-rate`.
+Profiling shows where calculation time is spent.
 
-Benchmarking and profiling measure only after the selected cases pass
-validation. Both commands also save the validation reports.
+- `--method tracing` writes `profile.pstats`.
+- `--method sampling` writes an interactive `profile.html`. Sampling requires
+  permission for Tachyon to attach to the worker. Adjust it with
+  `--min-seconds` and `--sampling-rate`.
 
 ## Select cases
 
