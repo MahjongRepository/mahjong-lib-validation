@@ -16,7 +16,7 @@ uv run tenhou-converter mjlog logs/tenhou --output data/tenhou-scoring
 ```
 
 The converter accepts a file or a directory containing XML or gzip-compressed
-`.xml` / `.mjlog` files. It supports four-player and three-player ranked games
+`.xml` / `.mjlog` files. It supports four-player and three-player ranked matches
 with red fives and open tanyao, including north extraction.
 
 Output contains `manifest.json`, the `files.jsonl` shard index, and compressed scoring JSONL files.
