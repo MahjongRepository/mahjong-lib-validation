@@ -138,7 +138,7 @@ profile は既存の tracing と sampling の方式を使う。コーパスの�
 
 `summary.json` と標準出力の summary に `case_type` を記録する。
 benchmark と profile の `preflight` にも検証した `case_type` を記録する。
-profile の `scope` は `scoring_batch`、`shanten_batch`、`agari_batch` のいずれかとする。
+profile の収集範囲は各種別の計算バッチに固定する。
 ケース診断には全体位置と case ID を残し、新種別ではシャンテン数または和了形の
 期待値と実測値を、既存の項目別比較結果と同じ形式で記録する。
 

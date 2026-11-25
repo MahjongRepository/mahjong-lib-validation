@@ -102,9 +102,6 @@ class SamplingResult(TypedDict):
     sample_count: int
 
 
-type ProfileScope = Literal["scoring_batch", "agari_batch", "shanten_batch"]
-
-
 class ProfileSummary(TypedDict):
     case_type: CaseType
     schema_version: Literal["v1"]
@@ -112,7 +109,6 @@ class ProfileSummary(TypedDict):
     complete: bool
     exit_code: int
     method: Literal["tracing", "sampling"]
-    scope: ProfileScope
     preflight: ValidationSummary
     settings: ProfileSettings
     case_count: int

@@ -154,7 +154,7 @@ def test_measures_generated_cases(
         dataset, output, selection=selection, method="tracing"
     )
     assert profile["case_type"] == case_type
-    assert profile["scope"] == f"{case_type}_batch"
+    assert profile["preflight"]["case_type"] == case_type
     assert profile["processed_count"] == 1
     functions = (
         Stats(str(output / "profile.pstats")).get_stats_profile().func_profiles

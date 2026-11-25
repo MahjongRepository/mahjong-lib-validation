@@ -13,19 +13,12 @@ from validator.sampling_profile import collect_sampling
 from validator.validation import _validate_dataset
 
 if TYPE_CHECKING:
-    from corpus import CaseType
-
     from validator.batch import PreparedCall
-    from validator.models import ProfileScope, ProfileSettings, ProfileSummary
+    from validator.models import ProfileSettings, ProfileSummary
     from validator.selection import SelectedCase, Selection
 
 
 MAX_SAMPLING_RATE_HZ = 1_000_000
-PROFILE_SCOPES: dict[CaseType, ProfileScope] = {
-    "scoring": "scoring_batch",
-    "agari": "agari_batch",
-    "shanten": "shanten_batch",
-}
 
 
 def _collect_tracing(calls: list[PreparedCall], output: Path) -> int:
@@ -126,7 +119,6 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
             "complete": exit_code == 0,
             "exit_code": exit_code,
             "method": method,
-            "scope": PROFILE_SCOPES[preflight["case_type"]],
             "preflight": preflight,
             "settings": settings,
             "case_count": preflight["selected_count"],
