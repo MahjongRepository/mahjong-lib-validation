@@ -3,46 +3,37 @@
 Validate, benchmark, and profile scoring, winning hand detection, and shanten
 calculation in the [mahjong](https://github.com/MahjongRepository/mahjong) library.
 
-## Installation
+## Quick start
 
-Use [uv](https://docs.astral.sh/uv/) with Python 3.15.
+Install [uv](https://docs.astral.sh/uv/), then clone and set up the workspace.
 
 ```console
+git clone https://github.com/MahjongRepository/mahjong-lib-validation.git
+cd mahjong-lib-validation
 uv sync --locked --all-packages --python 3.15
 ```
 
-## Usage
-
-### Convert Tenhou logs
-
-```console
-uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
-uv run tenhou-converter mjlog logs/tenhou --target agari-complete --output corpora/agari-complete
-uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpora/shanten-tenpai
-```
-
-The converter accepts XML or mjlog files, including gzip-compressed files, or
-a directory of logs. It supports four-player and three-player Tenhou ranked
-games with red fives and open tanyao. The available targets are `scoring`
-(default), `agari-complete`, `agari-tenpai`, `shanten-agari`, and
-`shanten-tenpai`.
-
-### Validate and measure
+Convert the bundled example from the repository root. To use your own logs,
+replace the input path with a Tenhou log file or directory.
 
 ```console
-uv run mahjong-validator validate corpora/scoring --output validation-results
-uv run mahjong-validator benchmark corpora/shanten-tenpai --limit 1000 --output shanten-benchmark
-uv run mahjong-validator profile corpora/agari-complete --limit 1000 --method tracing --output agari-profile
+uv run tenhou-converter mjlog packages/tenhou-converter/tests/fixtures/four-ron.xml --output scoring-corpus
 ```
 
-All three commands select the calculation from the dataset manifest. Use a
-new output directory. Validation writes `summary.json` and `cases.jsonl`,
-including comparison coverage and exclusions. Benchmarking and profiling run
-after preflight validation succeeds. Tracing writes `profile.pstats`.
-Sampling writes an interactive `profile.html` and requires permission
-for Tachyon to attach to the scoring or hand calculation worker.
+Validate, benchmark, and profile the same dataset. Each command needs a new
+output directory.
 
-Run `tenhou-converter mjlog --help` or `mahjong-validator --help` for options.
+```console
+uv run mahjong-validator validate scoring-corpus --output scoring-validation
+uv run mahjong-validator benchmark scoring-corpus --limit 1000 --output scoring-benchmark
+uv run mahjong-validator profile scoring-corpus --limit 1000 --method tracing --output scoring-profile
+```
+
+## Tools
+
+- [tenhou-converter](packages/tenhou-converter/README.md) describes supported logs and dataset targets.
+- [mahjong-validator](packages/validator/README.md) covers case selection, measurements, and reports.
+- [mahjong-corpus](packages/corpus/README.md) shows how to inspect and use datasets in Python.
 
 ## License
 
