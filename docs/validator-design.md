@@ -5,6 +5,8 @@
 [全体設計](architecture.md) を具体化し、corpus を入力とする
 `mahjong` の正確性検証・性能計測・プロファイルの責務と境界を定める。
 scoring の初期検証、benchmark、profile の API・CLI は実装済み。
+シャンテン数計算と和了判定については
+[CLI 拡張の設計](#シャンテン数計算と和了判定の-cli)を参照する。
 確認結果は [実装記録](validator-implementation.md)、出力と API は
 [初期版の結果形式](validator-results.md) を参照する。
 実装は [テストリスト](validator-implementation.md) から一件ずつ進める。
@@ -45,9 +47,110 @@ worker の互換性を別途設計する。Tachyon で新しい Python から古
 役満、抜き北、副露、複数ロン、責任払いのケースも受け取り、
 ケースに記録された比較除外とライブラリ側の対応範囲を区別する。
 
-和了判定・向聴数は将来の独立したケース種別とする。
-scoring の和了牌姿から作る正例だけの検査を、一般的な正確性検証として
-提供しない。初期段階でケース種別や対象ライブラリの汎用実行基盤を作らない。
+## シャンテン数計算と和了判定の CLI
+
+以下は実装前の設計とする。
+
+### 対象の指定
+
+`validate`、`benchmark`、`profile` を三つのケース種別で使う。
+`DATASET` は単一種別の manifest 付きデータセットとし、
+`manifest.json` の `case_type` で実行対象を決める。
+対象の指定はデータセットに集約し、既存の scoring の呼び出し方を維持する。
+manifest とケースの種別が一致しない場合はコーパス形式のエラーとする。
+
+| `case_type` | 実行対象 | 検証する期待値 |
+| --- | --- | --- |
+| `scoring` | 得点計算 | 役・符・翻・点数など |
+| `shanten` | シャンテン数計算 | 全対象形の最小シャンテン数 |
+| `agari` | 牌姿の和了形判定 | 和了形かどうかの真偽値 |
+
+和了判定は牌姿の完成を判定する。役の有無やフリテンなどを含む
+対局上の和了可否は、別の検証対象とする。
+聴牌と和了形のシャンテン数は、同じ `shanten` 型の別データセットで扱う。
+和了判定も同じ `agari` 型を使い、14枚形の正例と13枚形の負例を
+別データセットで扱う。
+期待値とフィールドの契約は
+[corpus の設計](corpus-design.md#和了判定とシャンテン数のケース)、
+牌譜からの派生規則は
+[天鳳 converter の設計](tenhou-converter-design.md#和了判定シャンテン数コーパスの生成)
+を参照する。
+
+### 計算 API と入力準備
+
+- 和了判定は `Agari.is_agari` を一回呼ぶ。残りの手牌と宣言済み面子の
+  全構成牌を合わせた34種の枚数配列を渡し、面子の牌種列も第二引数に渡す。
+  暗槓を含む槓は四枚分を両方の引数に含める。面子がなければ第二引数は `None`。
+- シャンテン数は `Shanten.calculate_shanten` を一回呼ぶ。宣言済み面子を除いた
+  残りの手牌だけを34種の枚数配列にし、三麻では `is_three_player=True` を渡す。
+  通常形・七対子・国士無双の計算対象の選択は API の既定動作に従う。
+- 34形式への変換では赤牌を同じ牌種に合算する。
+  入力準備に期待値を使わず、事前検証と計測で同じ引数を用意する。
+  結果は `is_agari` または `shanten` の一項目を比較する。
+- コマンド、ケース選択、結果保存、バッチ実行は既存の流れを共有する。
+  聴牌形と完成形のデータセットは、ケース種別ごとに同じアダプターで処理する。
+
+実装は、コーパスの読み書きと種別照合、牌譜からの各対象の出力、
+validator の検証、benchmark、tracing、sampling の順に確認する。
+牌譜の変換では、同種牌を残す和了牌の除去、副露・暗槓、三麻の抜き北、
+複数ロンと出力順を確認する。pytest では正のシャンテン数、形別の値、
+14枚の非和了形も小さな手作りの入力で扱う。
+形別の値は各計算方法の違いを確認するテストに使い、CLI の計測単位は最小値とする。
+
+### コマンドとオプション
+
+```console
+mahjong-validator validate data/shanten-agari --output artifacts/shanten-agari-check
+mahjong-validator benchmark data/shanten-tenpai --limit 20000 --samples 10 --output artifacts/shanten-tenpai-bench
+mahjong-validator profile data/agari-complete --limit 20000 --method tracing --output artifacts/agari-complete-trace
+mahjong-validator profile data/agari-tenpai --limit 20000 --method sampling --min-seconds 3 --output artifacts/agari-tenpai-sampling
+```
+
+| オプション | 対象 | 契約 |
+| --- | --- | --- |
+| `--output OUTPUT` | 全コマンド | 必須。既存ディレクトリの上書きはエラー |
+| `--player-count {3,4}` | 全コマンド | 人数で絞り込む。省略時は全人数 |
+| `--case-id ID` | 全コマンド | 繰り返し指定できる。省略時は全 ID |
+| `--limit N` | 全コマンド | 絞り込み後の件数上限。正の整数。benchmark と profile では必須 |
+| `--samples K` | benchmark | 正の整数。既定値は 10 |
+| `--method {tracing,sampling}` | profile | 必須 |
+| `--min-seconds SECONDS` | profile の sampling | 反復バッチの最小実行時間。既定値は 3 秒 |
+| `--sampling-rate HZ` | profile の sampling | サンプリング頻度。既定値は 1000 Hz |
+
+選択順は manifest に従い、上限に達した後も全件の整合性を検査する。
+`validate` で `--limit` を省略した場合は、絞り込みに該当する全件を検証する。
+benchmark と profile は、選択した全ケースの事前検証が成功した場合に計測する。
+benchmark は標本ごとに worker を起動し、ウォームアップ後に計測用入力を再生成する。
+worker は制御側が確認したケース種別、manifest のハッシュ、選択順序のハッシュを照合する。
+profile は既存の tracing と sampling の方式を使う。コーパスの読み込み、
+入力準備、期待値との比較は、どのケース種別でも計測区間の外に置く。
+計測区間と反復・ウォームアップの詳細は
+[ベンチマークの設計](validator-benchmark-design.md)と
+[プロファイリングの設計](validator-profile-design.md)に従う。
+
+### 出力と終了コード
+
+| コマンド | 保存する成果物 |
+| --- | --- |
+| `validate` | `summary.json`、`cases.jsonl` |
+| `benchmark` | `summary.json`、`cases.jsonl`、`timings.json` |
+| `profile` | `summary.json`、`cases.jsonl`、方式に応じて `profile.pstats` または `profile.html` |
+
+`summary.json` と標準出力の summary に `case_type` を記録する。
+benchmark と profile の `preflight` にも検証した `case_type` を記録する。
+profile の `scope` は `scoring_batch`、`shanten_batch`、`agari_batch` のいずれかとする。
+ケース診断には全体位置と case ID を残し、新種別ではシャンテン数または和了形の
+期待値と実測値を、既存の項目別比較結果と同じ形式で記録する。
+
+| 終了コード | 意味 |
+| --- | --- |
+| `0` | 検証または計測が成功した |
+| `1` | 検証で不一致、選択ゼロ、未対応、スキップ、計算エラーのいずれかが生じたか、benchmark の標本が計算時の例外で無効になった |
+| `2` | 引数、コーパス形式、I/O、worker の照合、または収集基盤のエラー。未対応の `case_type` も含む |
+
+事前検証に失敗した場合はケース診断と失敗の summary を保存する。
+benchmark の `timings.json` は空の標本一覧とし、profile の収集ファイルは
+生成しない。終了コード `2` では stderr に診断を出し、結果ディレクトリを公開しない。
 
 ## 共通部分と実行フロー
 
