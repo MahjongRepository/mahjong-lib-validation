@@ -8,11 +8,12 @@ the calculation for all three commands.
 ## Commands and results
 
 The examples use the dataset from the [quick start](../../README.md#quick-start).
-Each command requires `--output` to point to a new directory. The validator
-creates any missing parent directories.
 
 Benchmarking and profiling measure only after the selected cases pass
 validation. Both commands also save the validation reports.
+
+- `--output DIR` is required for each command. Specify a new directory.
+  The validator creates any missing parent directories.
 
 ### Validate
 
@@ -31,7 +32,9 @@ uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results
 ```
 
 The benchmark measures calculation time and writes raw timings to
-`timings.json`. Use `--samples N` to change the number of timing samples.
+`timings.json`.
+
+- `--samples N` sets the number of timing samples. Defaults to 10.
 
 ### Profile
 
@@ -41,17 +44,22 @@ uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing -
 
 Profiling shows where calculation time is spent.
 
-- `--method tracing` writes `profile.pstats`.
-- `--method sampling` writes an interactive `profile.html`. Sampling requires
-  permission for Tachyon to attach to the worker. Adjust it with
-  `--min-seconds` and `--sampling-rate`.
+- `--method METHOD` is required. Use `tracing` to write `profile.pstats` or
+  `sampling` to write an interactive `profile.html`. Sampling requires
+  permission for Tachyon to attach to the worker.
+- `--min-seconds SECONDS` sets the minimum sampling duration. Defaults to 3
+  seconds. Available only with `sampling`.
+- `--sampling-rate HZ` sets the requested sampling frequency. Defaults to
+  1,000 Hz. Available only with `sampling`.
 
 ## Select cases
 
-- `--player-count 3` or `--player-count 4` selects a game size.
-- `--case-id ID` selects a case. Specify this option up to 100 times.
+- `--player-count 3` or `--player-count 4` selects a player count. By default,
+  neither player count is filtered out.
+- `--case-id ID` selects a case. Specify this option up to 100 times. By
+  default, cases are not filtered by ID.
 - `--limit N` caps the number of selected cases. It is required for
-  `benchmark` and `profile`.
+  `benchmark` and `profile`. By default, `validate` checks all matching cases.
 
 ## Exit codes
 
