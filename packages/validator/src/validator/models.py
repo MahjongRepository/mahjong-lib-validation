@@ -81,6 +81,28 @@ class BenchmarkSummary(TypedDict):
     statistics: BenchmarkStatistics | None
 
 
+class ProfileSettings(TypedDict):
+    warmup_batches: int
+    reuse_inputs: bool
+    cache: str
+    gc_enabled: bool
+
+
+class ProfileSummary(TypedDict):
+    schema_version: Literal["v1"]
+    purpose: Literal["profile"]
+    complete: bool
+    exit_code: int
+    method: Literal["tracing"]
+    scope: Literal["scoring_batch"]
+    preflight: ValidationSummary
+    settings: ProfileSettings
+    case_count: int
+    repetitions: int
+    processed_count: int
+    elapsed_ns: int | None
+
+
 class CorpusIdentity(TypedDict):
     manifest_sha256: str
 

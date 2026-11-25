@@ -7,20 +7,17 @@ from typing import TYPE_CHECKING
 
 from corpus import file_sha256, read_dataset
 
-from validator.adapter import prepare_calculation, prepare_hand
+from validator.scoring_batch import prepare_calls
 from validator.selection import Selection, selection_digest_entry
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from corpus.models import ScoringCase
 
     from validator.models import BenchmarkSample
+    from validator.scoring_batch import ScoringCall
 
 
-def measure_batch(
-    calls: list[tuple[int, str, Callable[[], object]]],
-) -> BenchmarkSample:
+def measure_batch(calls: list[ScoringCall]) -> BenchmarkSample:
     start = perf_counter_ns()
     try:
         for position, case_id, calculate in calls:  # noqa: B007 -- retain case identity on failure
@@ -36,28 +33,8 @@ def measure_batch(
     return {"status": "ok", "elapsed_ns": elapsed_ns}
 
 
-def _prepare_calls(
-    selected: list[tuple[int, ScoringCase]],
-) -> list[tuple[int, str, Callable[[], object]]]:
-    return [
-        (
-            position,
-            case["case_id"],
-            prepare_calculation(
-                prepare_hand(
-                    case["input"],
-                    case["round"],
-                    case["player_count"],
-                    case["ruleset"],
-                )
-            ),
-        )
-        for position, case in selected
-    ]
-
-
 def _warm_up(selected: list[tuple[int, ScoringCase]]) -> None:
-    for _, _, calculate in _prepare_calls(selected):
+    for _, _, calculate in prepare_calls(selected):
         calculate()
 
 
@@ -85,7 +62,7 @@ def _run() -> BenchmarkSample:
         raise ValueError(msg)
 
     _warm_up(selected)
-    return measure_batch(_prepare_calls(selected))
+    return measure_batch(prepare_calls(selected))
 
 
 if __name__ == "__main__":

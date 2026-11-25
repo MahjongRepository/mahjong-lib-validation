@@ -1,10 +1,10 @@
 # mahjong-lib-validation
 
-Validation and benchmarking tools for the [mahjong](https://github.com/MahjongRepository/mahjong) library.
+Validation, benchmarking, and profiling tools for the [mahjong](https://github.com/MahjongRepository/mahjong) library.
 
 > 🚧 **Work in Progress**
 >
-> Scoring validation and benchmarking are available. Profiling is planned.
+> Scoring validation, benchmarking, and tracing are available.
 
 ## Convert Tenhou logs
 
@@ -54,6 +54,18 @@ together because the library returns them as a combined value.
 Identifiably ambiguous multiple-ron bonuses and payments are also reported
 as unsupported fields; individual bonus allocation is not present in corpus v1 input.
 Majsoul rules are currently reported as unsupported.
+
+## Profile scoring
+
+```console
+uv run mahjong-validator profile data/tenhou-scoring --limit 1000 --method tracing --output scoring-profile
+uv run python -m pstats scoring-profile/profile.pstats
+```
+
+The validator checks the selected cases before tracing one scoring batch.
+The new output directory contains `profile.pstats`, `summary.json`, and
+`cases.jsonl`. A failed preflight saves diagnostics and exits with code 1.
+An unavailable collection method or a collection failure exits with code 2.
 
 ## License
 

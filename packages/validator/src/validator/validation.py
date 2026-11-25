@@ -156,7 +156,11 @@ def validate_dataset(
 
 
 def _validate_dataset(
-    dataset: str | Path, output: Path, selection: Selection
+    dataset: str | Path,
+    output: Path,
+    selection: Selection,
+    *,
+    selected_cases: list[tuple[int, ScoringCase]] | None = None,
 ) -> ValidationSummary:
     manifest_path = Path(dataset) / "manifest.json"
     manifest_sha256 = file_sha256(manifest_path)
@@ -177,6 +181,8 @@ def _validate_dataset(
             if not selection.matches(case, selected):
                 continue
             selected += 1
+            if selected_cases is not None:
+                selected_cases.append((scanned, case))
             digest.update(selection_digest_entry(scanned, case["case_id"]))
             result = validate_case(case)
             result["position"] = scanned

@@ -4,7 +4,12 @@ import sys
 from importlib.metadata import version
 lazy from collections.abc import Sequence
 
-from validator import Selection, benchmark_dataset, validate_dataset
+from validator import (
+    Selection,
+    benchmark_dataset,
+    profile_dataset,
+    validate_dataset,
+)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -27,6 +32,14 @@ def _build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--limit", type=int, required=True)
     benchmark.add_argument("--samples", type=int, default=10)
     benchmark.set_defaults(handler=_run_benchmark)
+
+    profile = commands.add_parser("profile")
+    _add_dataset_arguments(profile)
+    profile.add_argument("--limit", type=int, required=True)
+    profile.add_argument(
+        "--method", required=True, help="collection method: tracing"
+    )
+    profile.set_defaults(handler=_run_profile)
 
     return parser
 
@@ -58,6 +71,19 @@ def _run_benchmark(args: argparse.Namespace) -> int:
             args.player_count, tuple(args.case_id), args.limit
         ),
         samples=args.samples,
+    )
+    sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
+    return summary["exit_code"]
+
+
+def _run_profile(args: argparse.Namespace) -> int:
+    summary = profile_dataset(
+        args.dataset,
+        args.output,
+        selection=Selection(
+            args.player_count, tuple(args.case_id), args.limit
+        ),
+        method=args.method,
     )
     sys.stdout.write(json.dumps(summary, ensure_ascii=False) + "\n")
     return summary["exit_code"]
