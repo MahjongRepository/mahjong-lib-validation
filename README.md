@@ -1,9 +1,17 @@
 # mahjong-lib-validation
 
-Validate, benchmark, and profile scoring, winning hand detection, and shanten
-calculation in the [mahjong](https://github.com/MahjongRepository/mahjong) library.
+Validation, benchmarking, and profiling tools for the
+[mahjong](https://github.com/MahjongRepository/mahjong) library.
+
+Supported calculations:
+
+- Scoring
+- Winning hand detection
+- Shanten calculation
 
 ## Quick start
+
+### Set up the workspace
 
 Install [uv](https://docs.astral.sh/uv/), then clone and set up the workspace.
 
@@ -13,20 +21,28 @@ cd mahjong-lib-validation
 uv sync --locked --all-packages --python 3.15
 ```
 
-Convert the bundled example from the repository root. To use your own logs,
-replace the input path with a Tenhou log file or directory.
+Run the remaining commands from the repository root.
+
+### Convert Tenhou logs
+
+Put your Tenhou mjlog files in `logs/tenhou/`, or use your own directory path.
+The converter accepts `.mjlog` and `.xml` files, including gzip-compressed
+`.mjlog.gz` and `.xml.gz` files.
 
 ```console
-uv run tenhou-converter mjlog packages/tenhou-converter/tests/fixtures/four-ron.xml --output scoring-corpus
+uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
 ```
 
-Validate, benchmark, and profile the same dataset. Each command needs a new
-output directory.
+### Validate and measure
+
+Create the `results/` directory if it does not exist. Each command writes
+to a new subdirectory.
 
 ```console
-uv run mahjong-validator validate scoring-corpus --output scoring-validation
-uv run mahjong-validator benchmark scoring-corpus --limit 1000 --output scoring-benchmark
-uv run mahjong-validator profile scoring-corpus --limit 1000 --method tracing --output scoring-profile
+mkdir results
+uv run mahjong-validator validate corpora/scoring --output results/scoring-validation
+uv run mahjong-validator benchmark corpora/scoring --limit 1000 --output results/scoring-benchmark
+uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing --output results/scoring-profile
 ```
 
 ## Tools

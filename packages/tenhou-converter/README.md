@@ -11,7 +11,7 @@ supported. The converter handles four-player and three-player Tenhou ranked
 games with red fives and open tanyao.
 
 ```console
-uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output shanten-corpus
+uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpora/shanten-tenpai
 ```
 
 | `--target` | Expected result |

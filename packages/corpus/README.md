@@ -10,7 +10,7 @@ Check the dataset from the [quick start](../../README.md#quick-start).
 The command prints its case type and record count after checking all records.
 
 ```console
-uv run python -c "from corpus import check_dataset; manifest = check_dataset('scoring-corpus'); print(manifest['case_type'], manifest['record_count'])"
+uv run python -c "from corpus import check_dataset; manifest = check_dataset('corpora/scoring'); print(manifest['case_type'], manifest['record_count'])"
 ```
 
 ## Work with cases in Python
