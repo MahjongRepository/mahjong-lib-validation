@@ -1,68 +1,36 @@
 # 開発ガイド
 
-## ドキュメントの配置
+## 構成
 
-- README.md は利用者向けの情報に限定する。
-- 開発向けの情報へのリンクは、この AGENTS.md に記載する。
+この uv workspace は、牌譜由来の期待値を使って `mahjong` の計算を検証・計測する。
 
-## 設計資料
+| パッケージ | 責務 |
+| --- | --- |
+| `packages/corpus` | 共通ケース形式、manifest、データセットの読み書きと整合性検査 |
+| `packages/tenhou-converter` | 天鳳牌譜からの局面復元とコーパス生成 |
+| `packages/validator` | ケースの検証、ベンチマーク、プロファイリング |
 
-開発時は [プロジェクト構成と設計方針](docs/architecture.md) を参照する。
-uv workspace の構成、各パッケージの責務と依存関係、
-コーパス形式、初期実装の範囲と未決事項を記録している。
+変換器と validator は corpus に依存する。牌譜由来の期待値は変換器で抽出し、
+`mahjong` の呼び出しは validator で行う。
+[現行仕様](docs/reference.md)と[残課題](docs/roadmap.md)を参照する。
+利用者向けのコマンドは [README](README.md) に記載する。
 
-corpus パッケージの開発では [corpus パッケージの設計](docs/corpus-design.md)
-も参照する。対応範囲、牌・和了状況・期待値の表現方針、
-比較条件と、JSON 例で具体化する未決事項を記録している。
+## 開発と検証
 
-具体的なフィールドの検討には
-[scoring コーパスの JSON 例](docs/corpus-json-examples.md) を参照する。
-この文書の未確定項目は、確定済みの仕様と区別する。
+ルートで Python 3.15 と uv を使う。
 
-corpus の初期実装と API の確認事項は
-[corpus 初期実装のテストリスト](docs/corpus-implementation.md) に記録する。
+```console
+uv sync --locked --all-packages --python 3.15
+uv run --no-sync ruff check
+uv run --no-sync ruff format --check
+uv run --no-sync ty check
+uv run --no-sync python -m pytest
+```
 
-データセット単位の保存・検査は
-[manifest とデータセット](docs/corpus-manifest.md) を参照する。
+- テストは各パッケージの `tests/` に置く。共有 fixture は `conftest.py` に置く。
+- 振る舞いを変更するときは、小さなテストで期待する結果を定め、Red → Green → Refactor で進める。
+- 期待値は仕様、牌譜、小さな手計算などから独立して求める。検証対象のライブラリの出力を期待値に流用しない。
+- 小さな fixture で変換と異常入力を確認し、パッケージをまたぐ変更は牌譜から検証結果までの経路も確認する。大規模な牌譜や計測速度に依存する確認は通常のテストから分離する。
+- API や保存形式の変更では、workspace 内の呼び出し元、テスト、文書を合わせて更新する。後方互換性の要件は個別のタスクに従う。
 
-副露・不明な状況・三麻・複数ロンなどの具体例と補完仕様は
-[scoring ケースの補完](docs/corpus-edge-cases.md) に記録する。
-
-共通の役名は [共通の役 ID](docs/corpus-yaku.md) を参照する。
-
-包・複数ロンで精算中の持ち点が負になる場合の調査結果と実装記録は
-[負の持ち点からの和了](docs/negative-balance-win-proposal.md) を参照する。
-
-天鳳牌譜の変換器は [天鳳 converter の設計](docs/tenhou-converter-design.md)
-を参照する。入力・局面復元・期待値の抽出・出力と、対応段階を記録する。
-実装は [天鳳 converter のテストリスト](docs/tenhou-converter-implementation.md)
-から一件ずつ進める。
-
-corpus を使った検証・計測・比較・プロファイルは
-[validator パッケージの設計](docs/validator-design.md) を参照する。
-実装先は `packages/validator/` とし、
-[validator の実装テストリスト](docs/validator-implementation.md) から
-一件ずつ進める。
-
-validator の公開 API と保存する JSON の契約は
-[validator 初期版の API と結果形式](docs/validator-results.md) を参照する。
-
-scoring ベンチマークの計測区間と正確性の確認方法は
-[scoring ベンチマークの設計](docs/validator-benchmark-design.md) を参照する。
-プロファイリングの方式と収集範囲は
-[scoring プロファイリングの設計](docs/validator-profile-design.md) を参照する。
-
-## 実装方針
-
-本プロジェクトは開発中であり、利用先も同じプロジェクト内に限られる。
-API・モジュール構成・保存形式などの後方互換性を維持する必要はなく、
-現在の要件に合うよう変更してよい。互換性維持だけを目的とする
-ラッパー・別名・移行処理は設けず、関連する呼び出し元・テスト・
-ドキュメントを合わせて更新する。個別のタスクで互換性維持を
-明示された場合は、その指示を優先する。
-
-t-wada 氏が説明するテスト駆動開発（TDD）を基本とする。
-期待する振る舞いのテストリストを作り、一件ずつ
-Red → Green → Refactor の短いサイクルで実装する。
-テストリスト全体を先にテストコードへ変換しない。
-具体的な進め方は [実装・テスト方針](docs/development.md) を参照する。
+初期実装時の設計、検証記録、テストリストは[アーカイブ](docs/archive/initial-implementation/README.md)を参照する。
