@@ -1,6 +1,6 @@
 [project]
 name = "mahjong-validator"
-version = "0.0.5"
+version = "0.1.0"
 description = "Validate the mahjong library against scoring corpora."
 authors = [
     { name = "Apricot S." },
