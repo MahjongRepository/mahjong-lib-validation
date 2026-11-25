@@ -24,7 +24,7 @@ uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpo
 
 ## Output and options
 
-Use a new output directory. A successful conversion writes `manifest.json`,
+Set `--output` to a new directory. A successful conversion writes `manifest.json`,
 an index, and case files. A failed conversion prevents dataset publication.
 The command prints a summary or diagnostic to stderr.
 
@@ -32,6 +32,3 @@ The command prints a summary or diagnostic to stderr.
 - `--cases-per-file N` sets the maximum number of cases per file.
 - `--no-compress` writes plain JSONL.
 - `--log-id ID` overrides the ID for a single input file.
-
-Run `uv run tenhou-converter mjlog --help` for all options. Use
-[mahjong-validator](../validator/README.md) to validate or measure the output.
