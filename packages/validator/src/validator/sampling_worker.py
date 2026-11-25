@@ -7,13 +7,14 @@ from pathlib import Path
 from time import perf_counter_ns
 from typing import TYPE_CHECKING
 
-from validator.scoring_batch import prepare_calls, run_batch
+from validator.batch import run_batch
+from validator.scoring_batch import prepare_calls
 
 if TYPE_CHECKING:
-    from validator.scoring_batch import ScoringCall
+    from validator.batch import PreparedCall
 
 
-def warm_and_check_inputs(calls: list[ScoringCall]) -> None:
+def warm_and_check_inputs(calls: list[PreparedCall]) -> None:
     run_batch(calls)
     for position, case_id, calculate in calls:
         before = pickle.dumps(calculate)
@@ -28,7 +29,7 @@ def wait_for_sampling() -> bool:
 
 
 def sample_batches(
-    calls: list[ScoringCall], min_seconds: float
+    calls: list[PreparedCall], min_seconds: float
 ) -> tuple[int, int]:
     start = perf_counter_ns()
     repetitions = 0

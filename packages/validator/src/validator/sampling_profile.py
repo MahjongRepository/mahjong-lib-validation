@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Generator
 
-    from corpus.models import ScoringCase
-
     from validator.models import SamplingResult
+    from validator.selection import SelectedScoringCase
 
 
 @contextmanager
@@ -98,7 +97,7 @@ def _start_worker(worker: subprocess.Popen[str]) -> None:
 
 
 def collect_sampling(
-    selected: list[tuple[int, ScoringCase]],
+    selected: list[SelectedScoringCase],
     output: Path,
     *,
     min_seconds: float,

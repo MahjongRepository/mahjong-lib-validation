@@ -1,36 +1,18 @@
 from typing import TYPE_CHECKING
 
-from validator.adapter import prepare_calculation, prepare_hand
+from validator.adapter import prepare_calculation, prepare_scoring_case
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
-    from corpus.models import ScoringCase
-
-
-type ScoringCall = tuple[int, str, Callable[[], object]]
+    from validator.batch import PreparedCall
+    from validator.selection import SelectedScoringCase
 
 
-def run_batch(calls: list[ScoringCall]) -> None:
-    for _, _, calculate in calls:
-        calculate()
-
-
-def prepare_calls(
-    selected: list[tuple[int, ScoringCase]],
-) -> list[ScoringCall]:
+def prepare_calls(selected: list[SelectedScoringCase]) -> list[PreparedCall]:
     return [
         (
             position,
             case["case_id"],
-            prepare_calculation(
-                prepare_hand(
-                    case["input"],
-                    case["round"],
-                    case["player_count"],
-                    case["ruleset"],
-                )
-            ),
+            prepare_calculation(prepare_scoring_case(case)),
         )
         for position, case in selected
     ]

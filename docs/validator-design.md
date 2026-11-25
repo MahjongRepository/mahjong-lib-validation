@@ -80,6 +80,8 @@ packages/validator/
 │   ├── selection.py
 │   ├── adapter.py
 │   ├── validation.py
+│   ├── scoring_batch.py
+│   ├── batch.py
 │   ├── benchmark.py
 │   ├── profiling.py
 │   ├── comparison.py
@@ -87,8 +89,13 @@ packages/validator/
 └── tests/
 ```
 
-`selection` は読込・選択・順序・識別、`adapter` は mahjong 固有の
-入力生成・呼び出し・結果正規化、`validation` は期待値比較と検証フローを担う。
+`selection` はデータセットの走査中に選択件数と順序のダイジェストを
+記録する。検証と benchmark worker は同じ走査処理を使う。
+`adapter` は mahjong 固有の入力生成・呼び出し・結果正規化、
+`validation` は期待値比較と検証フローを担う。
+`scoring_batch` は選択した scoring ケースから実行可能な呼び出しを準備する。
+`batch` は準備済みの呼び出しを順に実行し、benchmark 用の経過時間や
+失敗したケースの位置を記録する。profile でも同じバッチ実行関数を使う。
 `reporting` は用途別結果の保存と表示を担い、合否や計測方針を決めない。
 ファイル分割と内部モデル名は、TDD で利用側を確認しながら調整する。
 

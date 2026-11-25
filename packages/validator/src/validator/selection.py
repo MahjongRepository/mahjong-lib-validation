@@ -1,7 +1,12 @@
+import hashlib
 import json
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 lazy from corpus.models import ScoringCase
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Iterator
 
 MAX_CASE_IDS = 100
 
@@ -10,6 +15,9 @@ def selection_digest_entry(position: int, case_id: str) -> bytes:
     return (json.dumps([position, case_id], ensure_ascii=False) + "\n").encode(
         "utf-8"
     )
+
+
+type SelectedScoringCase = tuple[int, ScoringCase]
 
 
 @dataclass(frozen=True)
@@ -41,3 +49,28 @@ class Selection:
             and (not self.case_ids or case["case_id"] in self.case_ids)
             and (self.limit is None or selected < self.limit)
         )
+
+
+class SelectionScan:
+    """Track one full scan and hash the selected cases."""
+
+    def __init__(self, selection: Selection) -> None:
+        self.selection = selection
+        self.scanned_count = 0
+        self.selected_count = 0
+        self._digest = hashlib.sha256()
+
+    @property
+    def selection_sha256(self) -> str:
+        return self._digest.hexdigest()
+
+    def select(
+        self, cases: Iterable[ScoringCase]
+    ) -> Iterator[SelectedScoringCase]:
+        for self.scanned_count, case in enumerate(cases, start=1):
+            if self.selection.matches(case, self.selected_count):
+                self.selected_count += 1
+                self._digest.update(
+                    selection_digest_entry(self.scanned_count, case["case_id"])
+                )
+                yield self.scanned_count, case

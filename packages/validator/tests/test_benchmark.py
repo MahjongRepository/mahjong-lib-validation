@@ -2,7 +2,7 @@ import json
 from typing import TYPE_CHECKING
 
 from validator import Selection, benchmark_dataset
-from validator.benchmark_worker import measure_batch
+from validator.batch import measure_batch
 from validator.cli import main
 
 if TYPE_CHECKING:
@@ -74,7 +74,7 @@ def test_measurement_encloses_all_calls_in_order(
         events.append("clock")
         return next(times)
 
-    monkeypatch.setattr("validator.benchmark_worker.perf_counter_ns", clock)
+    monkeypatch.setattr("validator.batch.perf_counter_ns", clock)
     result = measure_batch(
         [
             (1, "first", lambda: events.append("first")),

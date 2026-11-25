@@ -12,7 +12,14 @@ lazy from mahjong.hand_calculating.scores import ScoresResult
 from validator.yaku import YAKU_IDS
 
 if TYPE_CHECKING:
-    from corpus.models import Expected, Round, ScoringInput, Title, Yaku
+    from corpus.models import (
+        Expected,
+        Round,
+        ScoringCase,
+        ScoringInput,
+        Title,
+        Yaku,
+    )
 
 WINDS = {"east": EAST, "south": SOUTH, "west": WEST, "north": NORTH}
 FIVE = 5
@@ -173,6 +180,12 @@ def prepare_hand(
         hand["winner_seat"],
         round_["dealer_seat"],
         hand["discarder_seat"],
+    )
+
+
+def prepare_scoring_case(case: ScoringCase) -> PreparedHand:
+    return prepare_hand(
+        case["input"], case["round"], case["player_count"], case["ruleset"]
     )
 
 

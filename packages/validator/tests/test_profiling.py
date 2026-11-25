@@ -87,6 +87,7 @@ def test_tracing_collects_only_the_prepared_scoring_batch(
     assert not {
         "read_dataset",
         "prepare_hand",
+        "prepare_scoring_case",
         "prepare_calculation",
         "validate_case",
         "dump_stats",

@@ -6,23 +6,22 @@ from time import perf_counter_ns
 from typing import TYPE_CHECKING
 lazy from profiling.tracing import Profile
 
+from validator.batch import run_batch
 from validator.reporting import result_directory
 from validator.sampling_profile import collect_sampling
-from validator.scoring_batch import prepare_calls, run_batch
+from validator.scoring_batch import prepare_calls
 from validator.validation import _validate_dataset
 
 if TYPE_CHECKING:
-    from corpus.models import ScoringCase
-
+    from validator.batch import PreparedCall
     from validator.models import ProfileSettings, ProfileSummary
-    from validator.scoring_batch import ScoringCall
-    from validator.selection import Selection
+    from validator.selection import SelectedScoringCase, Selection
 
 
 MAX_SAMPLING_RATE_HZ = 1_000_000
 
 
-def _collect_tracing(calls: list[ScoringCall], output: Path) -> int:
+def _collect_tracing(calls: list[PreparedCall], output: Path) -> int:
     try:
         profiler = Profile()
         start = perf_counter_ns()
@@ -65,7 +64,7 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
         raise ValueError(msg)
 
     with result_directory(Path(output)) as staging:
-        selected: list[tuple[int, ScoringCase]] = []
+        selected: list[SelectedScoringCase] = []
         preflight = _validate_dataset(
             dataset, staging, selection, selected_cases=selected
         )

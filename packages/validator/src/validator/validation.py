@@ -1,4 +1,3 @@
-import hashlib
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
@@ -10,10 +9,10 @@ from validator.adapter import (
     UnsupportedInputError,
     calculate,
     normalize_result,
-    prepare_hand,
+    prepare_scoring_case,
 )
 from validator.reporting import environment_info, result_directory
-from validator.selection import Selection, selection_digest_entry
+from validator.selection import Selection, SelectionScan
 from validator.yaku import comparable_yaku
 
 if TYPE_CHECKING:
@@ -25,6 +24,7 @@ if TYPE_CHECKING:
         FieldResult,
         ValidationSummary,
     )
+    from validator.selection import SelectedScoringCase
 
 
 def _unsupported_fields(case: ScoringCase) -> dict[str, str]:
@@ -97,9 +97,7 @@ def compare_result(
 
 def validate_case(case: ScoringCase) -> CaseResult:
     try:
-        hand = prepare_hand(
-            case["input"], case["round"], case["player_count"], case["ruleset"]
-        )
+        hand = prepare_scoring_case(case)
     except (MissingInputError, UnsupportedInputError) as e:
         return {
             "case_id": case["case_id"],
@@ -160,7 +158,7 @@ def _validate_dataset(
     output: Path,
     selection: Selection,
     *,
-    selected_cases: list[tuple[int, ScoringCase]] | None = None,
+    selected_cases: list[SelectedScoringCase] | None = None,
 ) -> ValidationSummary:
     manifest_path = Path(dataset) / "manifest.json"
     manifest_sha256 = file_sha256(manifest_path)
@@ -171,21 +169,15 @@ def _validate_dataset(
         "unsupported": 0,
         "skipped": 0,
     }
-    scanned = 0
-    selected = 0
-    digest = hashlib.sha256()
+    scan = SelectionScan(selection)
     field_counts: dict[str, dict[str, int]] = {}
 
     with (output / "cases.jsonl").open("w", encoding="utf-8") as stream:
-        for scanned, case in enumerate(read_dataset(dataset), start=1):
-            if not selection.matches(case, selected):
-                continue
-            selected += 1
+        for position, case in scan.select(read_dataset(dataset)):
             if selected_cases is not None:
-                selected_cases.append((scanned, case))
-            digest.update(selection_digest_entry(scanned, case["case_id"]))
+                selected_cases.append((position, case))
             result = validate_case(case)
-            result["position"] = scanned
+            result["position"] = position
             counts[result["status"]] += 1
             for name, field in result["fields"].items():
                 statuses = field_counts.setdefault(name, {})
@@ -196,13 +188,13 @@ def _validate_dataset(
 
     summary: ValidationSummary = {
         "counts": counts,
-        "scanned_count": scanned,
-        "selected_count": selected,
+        "scanned_count": scan.scanned_count,
+        "selected_count": scan.selected_count,
         "schema_version": "v1",
         "purpose": "validate",
         "complete": True,
         "field_counts": field_counts,
-        "selection_sha256": digest.hexdigest(),
+        "selection_sha256": scan.selection_sha256,
         "selection": {
             "player_count": selection.player_count,
             "case_ids": list(selection.case_ids),

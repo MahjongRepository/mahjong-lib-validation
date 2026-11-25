@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from corpus.models import ScoringCase
-    from validator.scoring_batch import ScoringCall
+    from validator.batch import PreparedCall
 
 
 @pytest.mark.parametrize(
@@ -50,6 +50,6 @@ def test_sampling_stops_at_the_end_of_a_batch(
     )
     first = ChangingInput()
     second = ChangingInput()
-    calls: list[ScoringCall] = [(1, "first", first), (2, "second", second)]
+    calls: list[PreparedCall] = [(1, "first", first), (2, "second", second)]
     assert sample_batches(calls, 1.0) == (2, 1_200_000_000)
     assert first.count == second.count == 2
