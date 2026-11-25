@@ -3,7 +3,7 @@
 Validate, benchmark, and profile scoring, winning hand detection, and shanten
 calculation in the [mahjong](https://github.com/MahjongRepository/mahjong) library.
 
-## Install
+## Installation
 
 Use [uv](https://docs.astral.sh/uv/) with Python 3.15.
 
@@ -11,7 +11,9 @@ Use [uv](https://docs.astral.sh/uv/) with Python 3.15.
 uv sync --locked --all-packages --python 3.15
 ```
 
-## Convert Tenhou logs
+## Usage
+
+### Convert Tenhou logs
 
 ```console
 uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
@@ -25,7 +27,7 @@ games with red fives and open tanyao. The available targets are `scoring`
 (default), `agari-complete`, `agari-tenpai`, `shanten-agari`, and
 `shanten-tenpai`.
 
-## Validate and measure
+### Validate and measure
 
 ```console
 uv run mahjong-validator validate corpora/scoring --output validation-results
