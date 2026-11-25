@@ -33,7 +33,7 @@ validation. Both commands also save the validation reports.
 ## Select cases
 
 - `--player-count 3` or `--player-count 4` selects a game size.
-- `--case-id ID` selects a case. Repeat the option to select several cases.
+- `--case-id ID` selects a case. Specify this option up to 100 times.
 - `--limit N` caps the number of selected cases. It is required for
   `benchmark` and `profile`.
 
