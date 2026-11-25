@@ -47,7 +47,7 @@ validator の配布名・CLI 名は `mahjong-validator`、import 名は `validat
 [validator パッケージの設計](validator-design.md) と
 [実装テストリスト](validator-implementation.md) に記録する。
 scoring の初期検証 API・CLI と workspace 登録は実装済み。
-benchmark と profile は実装済み。compare は後続段階である。
+benchmark と profile は実装済み。
 将来の雀魂変換器の配布名・import 名・CLI 名は、対応時に確定する。
 
 天鳳変換器の名前・初期対応範囲・変換フローは
@@ -151,7 +151,7 @@ houou-logs のコードへの依存は必須としない。
 
 以下は CLI の使用イメージである。天鳳の `mjlog` と validator の `validate` は
 実装済み。validator の benchmark と profile も実装済みで、
-`houou-db`、雀魂、compare は後続段階である。
+`houou-db` と雀魂は後続段階である。
 天鳳の CLI 名は `tenhou-converter`、検証ツールは `mahjong-validator` に確定し、
 雀魂の CLI 名は仮名称とする。
 
@@ -162,7 +162,6 @@ majsoul-to-corpus ...
 
 mahjong-validator validate <corpus-directory> --output <result-directory>
 mahjong-validator benchmark <corpus-directory> --limit 20000 --output <result-directory>
-mahjong-validator compare <corpus-directory> --limit 20000 ... --output <result-directory>
 mahjong-validator profile <corpus-directory> --limit 20000 --method tracing --output <result-directory>
 ```
 
@@ -262,7 +261,7 @@ SQLite 出力やバイナリ形式は、具体的な検索・性能要件が
 
 最初は三つのパッケージを用意し、天鳳 mjlog の読み込みから
 scoring コーパスの出力、`mahjong` の正誤検証までを通す。
-その後、計測・プロファイル・対象間比較を実装する。
+その後、計測とプロファイルを実装する。
 前身の内部構造の踏襲は要件としない。
 
 以下は後続の設計・実装で確定する。

@@ -4,7 +4,7 @@
 
 [設計](validator-design.md) に基づく scoring 検証の実装契約を記録する。
 benchmark の API と結果は [scoring ベンチマークの設計](validator-benchmark-design.md)
-を参照する。profile・compare は未実装である。
+を参照する。profile の方式と成果物は [scoring プロファイリングの設計](validator-profile-design.md) を参照する。
 
 ## API
 

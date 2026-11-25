@@ -5,7 +5,6 @@
 [全体設計](architecture.md) を具体化し、corpus を入力とする
 `mahjong` の正確性検証・性能計測・プロファイルの責務と境界を定める。
 scoring の初期検証、benchmark、profile の API・CLI は実装済み。
-compare は後続段階である。
 確認結果は [実装記録](validator-implementation.md)、出力と API は
 [初期版の結果形式](validator-results.md) を参照する。
 実装は [テストリスト](validator-implementation.md) から一件ずつ進める。
@@ -39,7 +38,6 @@ worker の互換性を別途設計する。Tachyon で新しい Python から古
 | 初期実装 | corpus v1 scoring の検証 API・CLI | 四麻・三麻、役・符・翻・役満倍率・点数の比較、比較除外、失敗分類、逐次処理と結果保存を確認する |
 | 性能計測 | benchmark | 計測範囲、事前検証、入力再生成、プロセス分離、無効標本の検出と生の計測値保存を確認する |
 | プロファイル | profile | scoring の計算バッチを tracing / sampling で収集する |
-| 対象間比較 | compare | 同じ選択・設定による別環境の実行、import 元の確認、比較条件の一致を確認する |
 
 初期実装は `tenhou-ranked-match` の四麻・三麻を対象とする。
 `majsoul-ranked-match` は corpus に保存できるが、mahjong へのルール対応を
@@ -66,7 +64,6 @@ corpus の期待値・比較条件 ───────────────
 validate  : 逐次読込 → 一件ずつ計算・比較 → 集計・保存
 benchmark : 選択固定 → 事前検証 → 準備・計測 → 区間外で比較 → 集計・保存
 profile   : 選択固定 → 事前検証 → 対象範囲を収集 → 成果物・収集情報を保存
-compare   : 同じ選択・設定で別プロセスの benchmark を制御 → 結果比較
 ```
 
 ### モジュールの目安
@@ -235,46 +232,31 @@ corpus の不正や出力の書込失敗は実行全体の失敗とする。
 範囲、反復、成果物および sampling の収集境界を記録する。
 速度の比較には benchmark を使う。
 
-## baseline / candidate の比較
+## 環境間の性能比較
 
-`compare` はそれぞれの Python 実行ファイルと、期待する mahjong の
-import ディレクトリを明示的に受け取る。
-両環境へ同じ版の validator・corpus を事前に導入し、mahjong だけを
-差し替える。ツール内で checkout・依存更新・環境構築は行わない。
-
-- 同じ選択条件と標本数を渡し、worker が返す選択ダイジェストを照合する。
-- 実際の mahjong の import 元を確認し、指定先との不一致を失敗にする。
-- Python の実装・版・ビルド、validator の版、ルール対応表、計測設定が
-  異なる結果を、ライブラリ変更だけの速度比較として扱わない。
-- A B、B A の組を交互に実行し、組数は偶数で既定 4 とする。
-  各組内では新しい worker による標本を集める。
-- 各側の生の標本値と組ごとの中央値、変化率・範囲を保存する。
-  中央値の範囲の非重複を補助表示しても、統計的有意差とは呼ばない。
-- 両側の事前検証を要求する。計測後に正確性を確認する場合は、
-  同じ選択をタイマー外で再実行して検証する。
-  corpus・選択・設定の不一致や無効標本があれば有効な比較を作らない。
+比較する環境ごとに、同じデータセット・選択条件・標本数で `benchmark` を
+手動実行する。ライブラリの変更による差を確認する場合は、Python の実装・版・
+ビルドと validator・corpus の版を揃える。両方の事前検証が成功したことを確認し、
+出力された `summary.json` と `timings.json` で実行環境と計測値を照合する。
 
 ## API・CLI・保存
 
 公開 API は、データセットと型付き設定を受けて用途別の結果を返す形とする。
-`validate_dataset`、`benchmark_dataset`、`profile_dataset`、`compare` を
+`validate_dataset`、`benchmark_dataset`、`profile_dataset` を
 候補名とし、具体的な引数と結果型は各段階のテストで確定する。
 API は標準出力や `sys.exit` に依存せず、CLI が表示と終了コードを担う。
 
-CLI の形は次を基本とする。validate、benchmark、profile は実装済みで、
-compare は実装予定の使用例である。
+CLI の使用例を以下に示す。
 
 ```text
 mahjong-validator validate <dataset> --output <new-result-directory>
 mahjong-validator benchmark <dataset> --limit 20000 --samples 10 --output <new-result-directory>
 mahjong-validator profile <dataset> --limit 20000 --method tracing --output <new-result-directory>
 mahjong-validator profile <dataset> --limit 20000 --method sampling --output <new-result-directory>
-mahjong-validator compare <dataset> --limit 20000 --baseline-python <python> --baseline-library <directory> --candidate-python <python> --candidate-library <directory> --output <new-result-directory>
 ```
 
 初期 validate は人数・case ID・上限の選択を提供し、指定なしでは全件を扱う。
-benchmark / profile / compare では正の `--limit` を必須とする。
-profiling の時間・rate、compare の組数などの追加引数は各段階で確定する。
+benchmark / profile では正の `--limit` を必須とする。
 
 保存先は新しいディレクトリとし、既存結果を上書きしない。
 一時ディレクトリに書き、全処理を終えてから公開する。
@@ -284,7 +266,7 @@ profiling の時間・rate、compare の組数などの追加引数は各段階�
 - `summary.json`：結果スキーマの版、用途、完了状態、設定、環境、
   corpus・選択の識別、変換時の失敗・除外情報、用途別の集計。
 - `cases.jsonl`：validate の各ケースの状態・項目別診断。逐次書き込む。
-- `timings.json`：benchmark / compare の生の計測値、worker 情報と検証結果。
+- `timings.json`：benchmark の生の計測値、worker 情報と検証結果。
 - プロファイラ固有の成果物：profile の HTML / pstats と収集情報。
 
 validate の v1 結果形式は [初期版の結果形式](validator-results.md) に記録した。
