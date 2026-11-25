@@ -3,6 +3,9 @@
 作成日: 2026-11-03
 
 [設計](validator-design.md) に基づく scoring 検証の実装契約を記録する。
+`agari` と `shanten` も同じ API と保存形式を使う。
+各コマンドの summary と事前検証の summary に `case_type` を記録する。
+項目別の結果は和了判定では `is_agari`、シャンテン数では `shanten` に記録する。
 benchmark の API と結果は [scoring ベンチマークの設計](validator-benchmark-design.md)
 を参照する。profile の方式と成果物は [scoring プロファイリングの設計](validator-profile-design.md) を参照する。
 

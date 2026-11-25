@@ -3,10 +3,10 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from corpus import file_sha256, read_dataset
+from corpus import file_sha256, read_dataset, read_manifest
 
 from validator.batch import measure_batch, run_batch
-from validator.scoring_batch import prepare_calls
+from validator.preparation import prepare_calls
 from validator.selection import Selection, SelectionScan
 
 if TYPE_CHECKING:
@@ -22,11 +22,14 @@ def _run() -> BenchmarkSample:
         tuple(selection_args["case_ids"]),
         selection_args["limit"],
     )
-    manifest_sha256 = file_sha256(dataset / "manifest.json")
-    scan = SelectionScan(selection)
+    manifest = dataset / "manifest.json"
+    manifest_sha256 = file_sha256(manifest)
+    case_type = read_manifest(manifest)["case_type"]
+    scan = SelectionScan(selection, case_type)
     selected = list(scan.select(read_dataset(dataset)))
     if (
         manifest_sha256 != request["manifest_sha256"]
+        or case_type != request["case_type"]
         or scan.selection_sha256 != request["selection_sha256"]
     ):
         msg = "benchmark worker selected a different dataset or case sequence"

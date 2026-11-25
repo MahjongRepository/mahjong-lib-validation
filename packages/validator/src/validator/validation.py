@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from corpus import file_sha256, read_dataset
+from corpus import file_sha256, read_dataset, read_manifest
 
 from validator.adapter import (
     MissingInputError,
@@ -10,13 +10,20 @@ from validator.adapter import (
     calculate,
     normalize_result,
     prepare_scoring_case,
+    prepare_shape_call,
 )
 from validator.reporting import environment_info, result_directory
 from validator.selection import Selection, SelectionScan
 from validator.yaku import comparable_yaku
 
 if TYPE_CHECKING:
-    from corpus.models import Expected, ScoringCase
+    from corpus.models import (
+        AgariCase,
+        Case,
+        Expected,
+        ScoringCase,
+        ShantenCase,
+    )
 
     from validator.models import (
         CaseResult,
@@ -24,7 +31,7 @@ if TYPE_CHECKING:
         FieldResult,
         ValidationSummary,
     )
-    from validator.selection import SelectedScoringCase
+    from validator.selection import SelectedCase
 
 
 def _unsupported_fields(case: ScoringCase) -> dict[str, str]:
@@ -95,7 +102,43 @@ def compare_result(
     return fields
 
 
-def validate_case(case: ScoringCase) -> CaseResult:
+def validate_case(case: Case) -> CaseResult:
+    if case["case_type"] == "scoring":
+        return _validate_scoring_case(case)
+    return _validate_shape_case(case)
+
+
+def _validate_shape_case(case: AgariCase | ShantenCase) -> CaseResult:
+    if case["case_type"] == "agari":
+        name = "is_agari"
+        expected: bool | int = case["expected"]["is_agari"]
+    else:
+        name = "shanten"
+        expected = case["expected"]["shanten"]
+    try:
+        actual = prepare_shape_call(case)()
+    except Exception as e:  # noqa: BLE001 -- isolate target library failures
+        return {
+            "case_id": case["case_id"],
+            "status": "error",
+            "fields": {},
+            "reason": f"{type(e).__name__}: {e}",
+        }
+    matched = type(actual) is type(expected) and actual == expected
+    return {
+        "case_id": case["case_id"],
+        "status": "passed" if matched else "mismatch",
+        "fields": {
+            name: {
+                "status": "matched" if matched else "mismatched",
+                "expected": expected,
+                "actual": actual,
+            }
+        },
+    }
+
+
+def _validate_scoring_case(case: ScoringCase) -> CaseResult:
     try:
         hand = prepare_scoring_case(case)
     except (MissingInputError, UnsupportedInputError) as e:
@@ -158,10 +201,11 @@ def _validate_dataset(
     output: Path,
     selection: Selection,
     *,
-    selected_cases: list[SelectedScoringCase] | None = None,
+    selected_cases: list[SelectedCase] | None = None,
 ) -> ValidationSummary:
     manifest_path = Path(dataset) / "manifest.json"
     manifest_sha256 = file_sha256(manifest_path)
+    case_type = read_manifest(manifest_path)["case_type"]
     counts: dict[CaseStatus, int] = {
         "passed": 0,
         "mismatch": 0,
@@ -169,7 +213,7 @@ def _validate_dataset(
         "unsupported": 0,
         "skipped": 0,
     }
-    scan = SelectionScan(selection)
+    scan = SelectionScan(selection, case_type)
     field_counts: dict[str, dict[str, int]] = {}
 
     with (output / "cases.jsonl").open("w", encoding="utf-8") as stream:
@@ -192,6 +236,7 @@ def _validate_dataset(
         "selected_count": scan.selected_count,
         "schema_version": "v1",
         "purpose": "validate",
+        "case_type": case_type,
         "complete": True,
         "field_counts": field_counts,
         "selection_sha256": scan.selection_sha256,
@@ -206,7 +251,9 @@ def _validate_dataset(
             "v1: yaku dora+nuki_dora combined; "
             "event_score_deltas unsupported; "
             "indeterminate multiple ron allocation unsupported"
-        ),
+        )
+        if case_type == "scoring"
+        else "v1: exact comparison",
         "exit_code": int(
             not counts["passed"]
             or any(

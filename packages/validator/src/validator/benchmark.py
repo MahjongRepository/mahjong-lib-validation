@@ -22,6 +22,7 @@ def _run_sample(
     dataset: str | Path, preflight: ValidationSummary
 ) -> BenchmarkSample:
     request = {
+        "case_type": preflight["case_type"],
         "dataset": str(Path(dataset).resolve()),
         "selection": preflight["selection"],
         "manifest_sha256": preflight["corpus"]["manifest_sha256"],
@@ -88,6 +89,7 @@ def benchmark_dataset(
                 ),
             }
         summary: BenchmarkSummary = {
+            "case_type": preflight["case_type"],
             "schema_version": "v1",
             "purpose": "benchmark",
             "complete": exit_code == 0,

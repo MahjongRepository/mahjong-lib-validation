@@ -22,7 +22,7 @@ scoring の初期検証、benchmark、profile の API・CLI は実装済み。
 - ルート・corpus・tenhou-converter とともに、最低 Python を 3.15 に統一する。
   全パッケージを導入する開発環境も Python 3.15 以上を使う。
 - 実行時依存は workspace の `corpus` と検証対象の `mahjong` とする。
-  mahjong の初期バージョン範囲は `>=2.1.0,<2.2` とし、2.1.0 で確認した。
+  mahjong の対応バージョン範囲は `>=2.3.0,<3.0` とし、2.3.0 で確認した。
 - corpus は validator・mahjong に依存しない。validator は変換器に依存しない。
   元牌譜や天鳳固有の符号を実行時に解釈しない。
 - 検証対象は mahjong に限定し、他ライブラリ向けのプラグイン機構は設けない。
@@ -49,7 +49,7 @@ worker の互換性を別途設計する。Tachyon で新しい Python から古
 
 ## シャンテン数計算と和了判定の CLI
 
-以下は実装前の設計とする。
+以下の CLI 拡張は実装済み。
 
 ### 対象の指定
 
@@ -180,7 +180,7 @@ packages/validator/
 │   ├── selection.py
 │   ├── adapter.py
 │   ├── validation.py
-│   ├── scoring_batch.py
+│   ├── preparation.py
 │   ├── batch.py
 │   ├── benchmark.py
 │   ├── profiling.py
@@ -193,7 +193,7 @@ packages/validator/
 記録する。検証と benchmark worker は同じ走査処理を使う。
 `adapter` は mahjong 固有の入力生成・呼び出し・結果正規化、
 `validation` は期待値比較と検証フローを担う。
-`scoring_batch` は選択した scoring ケースから実行可能な呼び出しを準備する。
+`preparation` は選択したケースの種別に応じて実行可能な呼び出しを準備する。
 `batch` は準備済みの呼び出しを順に実行し、benchmark 用の経過時間や
 失敗したケースの位置を記録する。profile でも同じバッチ実行関数を使う。
 `reporting` は用途別結果の保存と表示を担い、合否や計測方針を決めない。

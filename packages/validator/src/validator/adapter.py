@@ -6,17 +6,23 @@ from mahjong.constants import EAST, NORTH, SOUTH, WEST
 from mahjong.hand_calculating.hand import HandCalculator
 from mahjong.hand_calculating.hand_config import HandConfig, OptionalRules
 from mahjong.meld import Meld
+lazy from mahjong.agari import Agari
 lazy from mahjong.hand_calculating.hand_response import HandResponse
 lazy from mahjong.hand_calculating.scores import ScoresResult
+lazy from mahjong.shanten import Shanten
 
 from validator.yaku import YAKU_IDS
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from corpus.models import (
+        AgariCase,
         Expected,
         Round,
         ScoringCase,
         ScoringInput,
+        ShantenCase,
         Title,
         Yaku,
     )
@@ -69,9 +75,37 @@ class PreparedHand:
     discarder: int | None
 
 
-def _indicator_to_136(tile: str) -> int:
+def _tile_index(tile: str) -> int:
     number = int(tile[0])
-    return ("mpsz".index(tile[1]) * 9 + (number or FIVE) - 1) * 4
+    return "mpsz".index(tile[1]) * 9 + (number or FIVE) - 1
+
+
+def _indicator_to_136(tile: str) -> int:
+    return _tile_index(tile) * 4
+
+
+def prepare_shape_call(
+    case: AgariCase | ShantenCase,
+) -> Callable[[], bool | int]:
+    hand = case["input"]
+    counts = [0] * 34
+    for tile in hand["concealed_tiles"]:
+        counts[_tile_index(tile)] += 1
+
+    if case["case_type"] == "shanten":
+        return partial(
+            Shanten.calculate_shanten,
+            counts,
+            is_three_player=case["player_count"] == SANMA_PLAYERS,
+        )
+
+    melds = [
+        [_tile_index(tile) for tile in meld["tiles"]] for meld in hand["melds"]
+    ]
+    for meld in melds:
+        for index in meld:
+            counts[index] += 1
+    return partial(Agari.is_agari, counts, melds or None)
 
 
 def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:
@@ -109,7 +143,7 @@ def prepare_hand(
 
     def allocate(tile: str) -> int:
         number = int(tile[0])
-        base = ("mpsz".index(tile[1]) * 9 + (number or FIVE) - 1) * 4
+        base = _tile_index(tile) * 4
         copies = (
             [0]
             if number == 0

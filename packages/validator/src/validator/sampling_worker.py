@@ -8,7 +8,7 @@ from time import perf_counter_ns
 from typing import TYPE_CHECKING
 
 from validator.batch import run_batch
-from validator.scoring_batch import prepare_calls
+from validator.preparation import prepare_calls
 
 if TYPE_CHECKING:
     from validator.batch import PreparedCall

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from corpus import CorpusError
-lazy from corpus.models import Case, ScoringCase
+lazy from corpus.models import Case, CaseType
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Iterator
@@ -18,7 +18,7 @@ def selection_digest_entry(position: int, case_id: str) -> bytes:
     )
 
 
-type SelectedScoringCase = tuple[int, ScoringCase]
+type SelectedCase = tuple[int, Case]
 
 
 @dataclass(frozen=True)
@@ -41,7 +41,7 @@ class Selection:
             msg = "case_ids must not contain empty strings"
             raise ValueError(msg)
 
-    def matches(self, case: ScoringCase, selected: int) -> bool:
+    def matches(self, case: Case, selected: int) -> bool:
         return (
             (
                 self.player_count is None
@@ -55,8 +55,9 @@ class Selection:
 class SelectionScan:
     """Track one full scan and hash the selected cases."""
 
-    def __init__(self, selection: Selection) -> None:
+    def __init__(self, selection: Selection, case_type: CaseType) -> None:
         self.selection = selection
+        self.case_type = case_type
         self.scanned_count = 0
         self.selected_count = 0
         self._digest = hashlib.sha256()
@@ -65,10 +66,10 @@ class SelectionScan:
     def selection_sha256(self) -> str:
         return self._digest.hexdigest()
 
-    def select(self, cases: Iterable[Case]) -> Iterator[SelectedScoringCase]:
+    def select(self, cases: Iterable[Case]) -> Iterator[SelectedCase]:
         for self.scanned_count, case in enumerate(cases, start=1):
-            if case["case_type"] != "scoring":
-                msg = f"expected scoring, got {case['case_type']!r}"
+            if case["case_type"] != self.case_type:
+                msg = f"expected {self.case_type!r}, got {case['case_type']!r}"
                 field = "case_type"
                 raise CorpusError(field, msg)
             if self.selection.matches(case, self.selected_count):

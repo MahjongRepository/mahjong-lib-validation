@@ -15,7 +15,7 @@ from validator import (
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="mahjong-validator",
-        description="Validate mahjong against scoring corpus v1.",
+        description="Validate and measure mahjong using v1 corpus datasets.",
     )
     parser.add_argument(
         "--version", action="version", version=version("mahjong-validator")

@@ -1,5 +1,7 @@
 from typing import Literal, NotRequired, TypedDict
 
+lazy from corpus import CaseType
+
 type CaseStatus = Literal[
     "passed", "mismatch", "error", "unsupported", "skipped"
 ]
@@ -24,6 +26,7 @@ class CaseResult(TypedDict):
 
 
 class ValidationSummary(TypedDict):
+    case_type: CaseType
     counts: dict[CaseStatus, int]
     exit_code: int
     scanned_count: int
@@ -71,6 +74,7 @@ class BenchmarkStatistics(TypedDict):
 
 
 class BenchmarkSummary(TypedDict):
+    case_type: CaseType
     schema_version: Literal["v1"]
     purpose: Literal["benchmark"]
     complete: bool
@@ -98,13 +102,17 @@ class SamplingResult(TypedDict):
     sample_count: int
 
 
+type ProfileScope = Literal["scoring_batch", "agari_batch", "shanten_batch"]
+
+
 class ProfileSummary(TypedDict):
+    case_type: CaseType
     schema_version: Literal["v1"]
     purpose: Literal["profile"]
     complete: bool
     exit_code: int
     method: Literal["tracing", "sampling"]
-    scope: Literal["scoring_batch"]
+    scope: ProfileScope
     preflight: ValidationSummary
     settings: ProfileSettings
     case_count: int

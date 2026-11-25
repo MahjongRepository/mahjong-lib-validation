@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import Generator
 
     from validator.models import SamplingResult
-    from validator.selection import SelectedScoringCase
+    from validator.selection import SelectedCase
 
 
 @contextmanager
@@ -97,7 +97,7 @@ def _start_worker(worker: subprocess.Popen[str]) -> None:
 
 
 def collect_sampling(
-    selected: list[SelectedScoringCase],
+    selected: list[SelectedCase],
     output: Path,
     *,
     min_seconds: float,

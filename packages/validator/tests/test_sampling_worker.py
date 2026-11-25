@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
+from validator.preparation import prepare_calls
 from validator.sampling_worker import sample_batches, warm_and_check_inputs
-from validator.scoring_batch import prepare_calls
 
 if TYPE_CHECKING:
     from collections.abc import Callable
