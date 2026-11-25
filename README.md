@@ -46,9 +46,9 @@ uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing -
 
 ## Tools
 
-- [tenhou-converter](packages/tenhou-converter/README.md) describes supported logs and dataset targets.
-- [mahjong-validator](packages/validator/README.md) covers case selection, measurements, and reports.
-- [mahjong-corpus](packages/corpus/README.md) shows how to inspect and use datasets in Python.
+- [tenhou-converter](packages/tenhou-converter/) converts Tenhou logs into corpus datasets.
+- [mahjong-validator](packages/validator/) validates, benchmarks, and profiles mahjong calculations using corpus datasets.
+- [mahjong-corpus](packages/corpus/) provides Python APIs to read, write, and check corpus datasets.
 
 ## License
 
