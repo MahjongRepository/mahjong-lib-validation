@@ -7,11 +7,6 @@ The initial implementation milestone is to generate corpora from Tenhou logs and
 - Convert Mahjong Soul game logs to the shared corpus format.
 - Validate scoring calculations under Mahjong Soul rules.
 
-## CI
-
-- Run Ruff lint and formatting checks, ty, and pytest automatically in the locked uv workspace with Python 3.15.
-- Release and distribution automation are out of scope.
-
 ## Deferred and Out of Scope
 
 - SQLite input from `houou-logs` is deferred until requested.
