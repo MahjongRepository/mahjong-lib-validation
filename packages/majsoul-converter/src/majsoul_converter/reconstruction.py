@@ -161,7 +161,9 @@ class RoundState:
     ) -> tuple[dict[str, object], int | None]:
         player = self.players[win.seat]
         last = self.last
-        hand = player.hand.copy()
+        hand = list(win.hand)
+        # HuleInfo.hand omits the winning tile for both tsumo and ron.
+        recorded_hand = hand
         if win.zimo:
             if not (
                 (
@@ -175,11 +177,11 @@ class RoundState:
             ):
                 msg = "tsumo does not match the preceding draw"
                 raise ConversionError(msg)
-            hand.remove(win.hu_tile)
+            recorded_hand = [*hand, win.hu_tile]
             payer = None
         else:
             payer = self._ron_source(win.hu_tile)
-        if sorted(hand) != sorted(win.hand):
+        if sorted(player.hand) != sorted(recorded_hand):
             msg = "reconstructed hand differs from the win record"
             raise ConversionError(msg)
         first_draw = win.zimo and not self.interrupted and not player.discarded

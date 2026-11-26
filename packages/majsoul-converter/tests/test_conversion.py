@@ -211,7 +211,7 @@ def test_sanma_nuki_replacement_draw() -> None:
                 pb.HuleInfo(
                     seat=1,
                     zimo=True,
-                    hand=hand,
+                    hand=hand[::-1],
                     hu_tile="9s",
                     fans=[
                         pb.FanInfo(id=1, val=1),
@@ -238,6 +238,8 @@ def test_sanma_nuki_replacement_draw() -> None:
         data=detail,
     )
     [case] = convert_log(response.SerializeToString())
+    assert case["input"]["concealed_tiles"] == hand[::-1]
+    assert case["input"]["winning_tile"] == "9s"
     assert case["input"]["nuki_count"] == 1
     assert case["input"]["situation"]["rinshan"]
     assert case["expected"]["payments_by_seat"] == [4000, 0, 2000]
