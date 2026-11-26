@@ -8,9 +8,10 @@ This uv workspace uses expected results derived from game logs to validate and m
 | --- | --- |
 | `packages/corpus` | Shared case format, manifests, dataset reading and writing, and integrity checks |
 | `packages/tenhou-converter` | Reconstructing game states from Tenhou logs and generating corpora |
+| `packages/majsoul-converter` | Reconstructing game states from Mahjong Soul replays and generating scoring corpora |
 | `packages/validator` | Case validation, benchmarking, and profiling |
 
-The converter and validator both depend on the corpus package. The converter extracts expected results from game logs, and the validator calls `mahjong`.
+The converters and validator depend on the corpus package. The converters extract expected results from game logs, and the validator calls `mahjong`.
 See the [current specification](docs/reference.md) and [remaining work](docs/roadmap.md).
 User-facing commands are documented in the [README](README.md).
 

@@ -33,6 +33,14 @@ The converter accepts `.mjlog` and `.xml` files, including gzip-compressed
 uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
 ```
 
+### Convert Mahjong Soul replays
+
+Supply binary ranked replay files captured or downloaded separately.
+
+```sh
+uv run majsoul-converter logs/majsoul --output corpora/majsoul
+```
+
 ### Validate and measure
 
 Each command requires `--output` to point to a new directory. The validator
@@ -47,6 +55,7 @@ uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing -
 ## Tools
 
 - [tenhou-converter](packages/tenhou-converter/) converts Tenhou logs into corpus datasets.
+- [majsoul-converter](packages/majsoul-converter/) converts Mahjong Soul replays into scoring datasets.
 - [mahjong-validator](packages/validator/) validates, benchmarks, and profiles mahjong calculations using corpus datasets.
 - [mahjong-corpus](packages/corpus/) provides Python APIs to read, write, and check corpus datasets.
 

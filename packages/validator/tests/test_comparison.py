@@ -118,10 +118,10 @@ def test_yaku_order_and_compensating_han_errors(
     assert compare_result(case, actual)["yaku"]["status"] == "mismatched"
 
 
-def test_real_yakuman_and_kazoe_are_distinct(
+def test_majsoul_real_yakuman_and_kazoe_are_distinct(
     load_case: Callable[..., ScoringCase],
 ) -> None:
-    case = load_case()
+    case = load_case("majsoul-scoring")
     actual = deepcopy(case["expected"])
     actual["yaku"] = [
         {"id": "daisangen", "han": None, "yakuman_multiplier": 1},
@@ -139,6 +139,18 @@ def test_real_yakuman_and_kazoe_are_distinct(
         == "mismatched"
     )
     actual.update(title="kazoe_yakuman", han=26, yakuman_multiplier=0)
+    assert compare_result(case, actual)["title"]["status"] == "mismatched"
+
+
+def test_tenhou_compares_kazoe_title_directly(
+    load_case: Callable[..., ScoringCase],
+) -> None:
+    case = load_case()
+    case["expected"].update(title="kazoe_yakuman", han=13)
+    actual = deepcopy(case["expected"])
+    assert compare_result(case, actual)["title"]["status"] == "matched"
+
+    actual["title"] = "yakuman"
     assert compare_result(case, actual)["title"]["status"] == "mismatched"
 
 

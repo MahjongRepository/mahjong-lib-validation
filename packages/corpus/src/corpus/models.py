@@ -18,6 +18,11 @@ Title = Literal[
     "baiman",
     "sanbaiman",
     "yakuman",
+    "double_yakuman",
+    "triple_yakuman",
+    "quadruple_yakuman",
+    "quintuple_yakuman",
+    "sextuple_yakuman",
     "kazoe_yakuman",
 ]
 

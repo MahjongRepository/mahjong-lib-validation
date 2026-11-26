@@ -23,6 +23,20 @@ It reconstructs the course of play, including meld calls and north tile extracti
 For hand validation, the converter can output a complete hand containing the winning tile and a tenpai hand with that tile removed.
 The expected shanten values are −1 and 0, respectively. The expected win detection results are true and false, respectively.
 
+## Mahjong Soul Replay Conversion
+
+`majsoul-converter` accepts binary four-player and three-player ranked replays
+and emits one scoring case per winner. It reads legacy record lists and modern
+action lists. It reconstructs the seat and round winds, hand, calls, and win
+situation from the event stream. Expected yaku and point values come from each
+win record and its settlement.
+
+Scoring titles run from `below_mangan` to `sanbaiman`, then `yakuman` through
+`sextuple_yakuman` and `kazoe_yakuman`. The validator distinguishes these
+titles for Mahjong Soul. For Tenhou it uses `yakuman` for all true yakuman
+multipliers and `kazoe_yakuman` for counted yakuman. Han and yakuman multiplier
+are compared separately.
+
 ## Validation and Measurement
 
 The `validate`, `benchmark`, and `profile` commands in `mahjong-validator` support all three case types.

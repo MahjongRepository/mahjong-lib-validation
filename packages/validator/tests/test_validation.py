@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from corpus.models import ScoringCase
 
 
-@pytest.mark.parametrize("kind", ["unknown", "unsupported", "no_expectations"])
+@pytest.mark.parametrize("kind", ["unknown", "no_expectations"])
 def test_all_unvalidated_cases_do_not_pass(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
@@ -23,9 +23,7 @@ def test_all_unvalidated_cases_do_not_pass(
     kind: str,
 ) -> None:
     case = load_case()
-    if kind == "unsupported":
-        case = load_case("majsoul-scoring")
-    elif kind == "unknown":
+    if kind == "unknown":
         case["input"]["situation"]["riichi"] = None
         case["situation_provenance"]["unknown_fields"] = {
             "riichi": "missing events"
@@ -88,7 +86,7 @@ def test_calculation_failure_is_saved_and_next_case_runs(
     assert summary["exit_code"] == 1
 
 
-def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
+def test_unknown_input_is_skipped_and_majsoul_passes(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
@@ -104,10 +102,10 @@ def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
     )
     summary = validate_dataset(dataset, tmp_path / "result")
     assert summary["counts"] == {
-        "passed": 1,
+        "passed": 2,
         "mismatch": 0,
         "error": 0,
-        "unsupported": 1,
+        "unsupported": 0,
         "skipped": 1,
     }
     assert summary["exit_code"] == 1
