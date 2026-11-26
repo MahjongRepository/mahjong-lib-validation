@@ -42,7 +42,7 @@ def _response(payload: bytes) -> tuple[str | None, bytes]:
         response.head.HasField("config")
         and response.head.config.category != _RANKED_CATEGORY
     ):
-        msg = "only ranked replays are supported"
+        msg = "only ranked matches are supported"
         raise ConversionError(msg)
     if not response.data:
         msg = "response has no embedded replay data"

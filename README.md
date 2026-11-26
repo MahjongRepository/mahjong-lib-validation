@@ -35,7 +35,7 @@ uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
 
 ### Convert Mahjong Soul replays
 
-Supply ranked `fetchGameRecord` response frames saved as `.bin` files.
+Supply `fetchGameRecord` response frames for ranked matches, saved as `.bin` files.
 
 ```sh
 uv run majsoul-converter logs/majsoul --output corpora/majsoul

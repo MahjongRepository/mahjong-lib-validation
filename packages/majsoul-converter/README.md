@@ -1,7 +1,7 @@
 # majsoul-converter
 
-Convert supplied four-player and three-player Mahjong Soul ranked replays to
-v1 scoring datasets.
+Convert Mahjong Soul replays from four-player and three-player ranked
+matches to v1 scoring datasets.
 
 ```sh
 uv run majsoul-converter logs/majsoul --output corpora/majsoul
