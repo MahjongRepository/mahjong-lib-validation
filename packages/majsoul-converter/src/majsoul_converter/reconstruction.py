@@ -52,15 +52,11 @@ class RoundState:
         ):
             msg = "invalid player count, dealer or round wind"
             raise ConversionError(msg)
-        self.players = [
-            Player(list(tiles))
-            for tiles in (
-                event.tiles0,
-                event.tiles1,
-                event.tiles2,
-                event.tiles3,
-            )[: self.count]
-        ]
+        hands = (event.tiles0, event.tiles1, event.tiles2, event.tiles3)
+        if any(hands[self.count :]):
+            msg = "initial hand recorded for an inactive seat"
+            raise ConversionError(msg)
+        self.players = [Player(list(tiles)) for tiles in hands[: self.count]]
         self.sticks = event.liqibang
         self.last: Message = event
         self.interrupted = False

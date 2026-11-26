@@ -30,7 +30,8 @@ The expected shanten values are −1 and 0, respectively. The expected win detec
 case per winner and reads legacy record lists and modern action lists. It
 reconstructs the seat and round winds, hand, calls, and win situation from
 the event stream. Expected yaku and point values come from each win record
-and its settlement.
+and its settlement. Score arrays have one entry per active seat, so three-player
+replays produce three-entry settlement arrays.
 
 As with the Tenhou converter, the hand validation targets use the complete
 winning hand or the tenpai hand without the winning tile.

@@ -131,12 +131,15 @@ def expected_values(
     base = sum(base_payments)
 
     delta = list(event.delta_scores)
-    if len(delta) != count or len(event.old_scores) != count:
-        msg = (
-            "win record must have score deltas and old scores for every player"
-        )
+    final_scores = list(event.scores)
+    if (
+        len(delta) != count
+        or len(event.old_scores) != count
+        or (final_scores and len(final_scores) != count)
+    ):
+        msg = "win record score arrays must have one entry per active seat"
         raise ConversionError(msg)
-    if event.scores and list(event.scores) != [
+    if final_scores and final_scores != [
         old + change
         for old, change in zip(event.old_scores, delta, strict=True)
     ]:

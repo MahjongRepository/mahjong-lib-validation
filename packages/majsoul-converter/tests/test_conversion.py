@@ -237,12 +237,17 @@ def test_sanma_nuki_replacement_draw() -> None:
             ],
             old_scores=[35000] * 3,
             delta_scores=[-4000, 6000, -2000],
+            scores=[31000, 41000, 33000],
         ),
     ]
     data = response_frame(
         pb.GameDetailRecords(records=[wrap(event) for event in events])
     )
     [case] = convert_log(data, log_id="sanma")
+    assert case["player_count"] == 3
+    assert case["source"]["scoring_values"]["old_scores"] == [35000] * 3
+    assert case["source"]["scoring_values"]["scores"] == [31000, 41000, 33000]
+    assert case["expected"]["event_score_deltas"] == [-4000, 6000, -2000]
     assert case["input"]["concealed_tiles"] == hand[::-1]
     assert case["input"]["winning_tile"] == "9s"
     assert case["input"]["nuki_count"] == 1
@@ -352,3 +357,23 @@ def test_shape_dataset(
         2 if complete else 1
     )
     assert validate_case(case)["status"] == "passed"
+
+
+@pytest.mark.parametrize("fourth_hand", [False, True])
+def test_sanma_rejects_data_for_fourth_seat(*, fourth_hand: bool) -> None:
+    start = pb.RecordNewRound(scores=[35000] * 3, dora="5z")
+    if fourth_hand:
+        start.tiles3.append("1z")
+    events = [
+        start,
+        pb.RecordNoTile(),
+    ]
+    data = response_frame(
+        pb.GameDetailRecords(records=[wrap(event) for event in events])
+    )
+
+    if fourth_hand:
+        with pytest.raises(ConversionError, match="inactive seat"):
+            convert_log(data)
+    else:
+        assert convert_log(data) == []
