@@ -35,7 +35,9 @@ uv run tenhou-converter mjlog logs/tenhou --output corpora/scoring
 
 ### Convert Mahjong Soul replays
 
-Supply `fetchGameRecord` response frames for ranked matches, saved as `.bin` files.
+Put your Mahjong Soul replay files in `logs/majsoul/`, or use your own directory path.
+The converter accepts `.bin` files containing `fetchGameRecord` response frames
+for ranked matches.
 
 ```sh
 uv run majsoul-converter logs/majsoul --output corpora/majsoul
