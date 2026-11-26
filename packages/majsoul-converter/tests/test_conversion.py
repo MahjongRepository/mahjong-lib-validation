@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING
 import pytest
 from corpus import read_dataset
 from majsoul_converter import ConversionError
+from majsoul_converter.cli import main
 from majsoul_converter.conversion import convert_log
 from majsoul_converter.datasets import convert_files
 from majsoul_converter.liqi import liqi_pb2 as pb
@@ -317,3 +318,37 @@ def test_rejects_payload_without_response_frame(*, embedded: bool) -> None:
 
     with pytest.raises(ConversionError, match="response frame"):
         convert_log(payload)
+
+
+@pytest.mark.parametrize(
+    ("target", "case_type", "complete", "expected"),
+    [
+        ("agari-complete", "agari", True, {"is_agari": True}),
+        ("agari-tenpai", "agari", False, {"is_agari": False}),
+        ("shanten-agari", "shanten", True, {"shanten": -1}),
+        ("shanten-tenpai", "shanten", False, {"shanten": 0}),
+    ],
+)
+def test_shape_dataset(
+    tmp_path: Path,
+    target: str,
+    case_type: str,
+    expected: dict[str, bool | int],
+    *,
+    complete: bool,
+) -> None:
+    source = tmp_path / "game.bin"
+    source.write_bytes(replay(actions=True))
+    dataset = tmp_path / "corpus"
+    assert (
+        main([str(source), "--output", str(dataset), "--target", target]) == 0
+    )
+
+    [case] = read_dataset(dataset)
+    assert case["case_type"] == case_type
+    assert case["expected"] == expected
+    assert case["source"]["log_id"] == "test-replay"
+    assert case["input"]["concealed_tiles"].count("5p") == (
+        2 if complete else 1
+    )
+    assert validate_case(case)["status"] == "passed"

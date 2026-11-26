@@ -1,7 +1,7 @@
 # majsoul-converter
 
 Convert Mahjong Soul replays from four-player and three-player ranked
-matches to v1 scoring datasets.
+matches to v1 scoring, winning hand detection, and shanten datasets.
 
 ```sh
 uv run majsoul-converter logs/majsoul --output corpora/majsoul
@@ -19,5 +19,19 @@ Use `--log-id` to override it for a single file. `--cases-per-file` controls
 shard size and `--no-compress` writes plain JSONL. The output must be a new
 directory. A conversion failure aborts the write.
 
-The Python API exposes `convert_log(payload, log_id=...)` for in-memory scoring
-cases and `convert_files(input_path, output_directory)` for datasets.
+Use `--target` to select what to generate per winner.
+
+| Target | Hand | Expected result |
+| --- | --- | --- |
+| `scoring` (default) | Winning hand | Scoring values from the replay |
+| `agari-complete` | With the winning tile | `is_agari = true` |
+| `agari-tenpai` | Without the winning tile | `is_agari = false` |
+| `shanten-agari` | With the winning tile | `shanten = -1` |
+| `shanten-tenpai` | Without the winning tile | `shanten = 0` |
+
+```sh
+uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/majsoul-shanten
+```
+
+The Python APIs `convert_log(payload, log_id=...)` and
+`convert_files(input_path, output_directory)` accept the same `target` values.

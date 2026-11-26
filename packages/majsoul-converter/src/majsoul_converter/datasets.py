@@ -2,9 +2,9 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from corpus import Manifest, ScoringCase, write_dataset
+from corpus import Case, Manifest, write_dataset
 
-from majsoul_converter.conversion import convert_log
+from majsoul_converter.conversion import TARGETS, convert_log
 from majsoul_converter.decoder import ConversionError
 
 if TYPE_CHECKING:
@@ -12,16 +12,22 @@ if TYPE_CHECKING:
 
     from corpus.models import ConversionSummary
 
+    from majsoul_converter.conversion import Target
 
-def convert_files(
+
+def convert_files(  # noqa: PLR0913 -- explicit dataset options
     input_path: str | Path,
     output_directory: str | Path,
     *,
     log_id: str | None = None,
     cases_per_file: int = 100_000,
     compress: bool = True,
+    target: Target = "scoring",
 ) -> Manifest:
     """Publish a corpus from one replay or a directory of replays."""
+    if target not in TARGETS:
+        msg = f"unknown conversion target {target!r}"
+        raise ConversionError(msg)
     source, output = Path(input_path), Path(output_directory)
     if source.is_dir():
         if log_id is not None:
@@ -54,11 +60,14 @@ def convert_files(
         "excluded_by_reason": {},
     }
 
-    def cases() -> Iterator[ScoringCase]:
+    def cases() -> Iterator[Case]:
         for path in paths:
             try:
                 records = convert_log(
-                    path.read_bytes(), log_id=log_id, fallback_id=path.stem
+                    path.read_bytes(),
+                    log_id=log_id,
+                    fallback_id=path.stem,
+                    target=target,
                 )
             except ConversionError as e:
                 msg = f"{path}: {e}"
@@ -74,6 +83,7 @@ def convert_files(
             "name": "majsoul-converter",
             "version": version("majsoul-converter"),
             "settings": {
+                "target": target,
                 "ruleset": "majsoul-ranked-match",
                 "log_id_override": log_id,
                 "cases_per_file": cases_per_file,

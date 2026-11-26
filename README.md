@@ -55,7 +55,7 @@ uv run mahjong-validator profile corpora/scoring --limit 1000 --method tracing -
 ## Tools
 
 - [tenhou-converter](packages/tenhou-converter/) converts Tenhou logs into corpus datasets.
-- [majsoul-converter](packages/majsoul-converter/) converts Mahjong Soul replays into scoring datasets.
+- [majsoul-converter](packages/majsoul-converter/) converts Mahjong Soul replays into corpus datasets.
 - [mahjong-validator](packages/validator/) validates, benchmarks, and profiles mahjong calculations using corpus datasets.
 - [mahjong-corpus](packages/corpus/) provides Python APIs to read, write, and check corpus datasets.
 

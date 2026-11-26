@@ -27,9 +27,13 @@ The expected shanten values are −1 and 0, respectively. The expected win detec
 
 `majsoul-converter` accepts original `fetchGameRecord` response frames saved as
 `.bin` files for four-player and three-player ranked matches. It emits one
-scoring case per winner and reads legacy record lists and modern action lists. It reconstructs the seat and round winds, hand, calls, and win
-situation from the event stream. Expected yaku and point values come from each
-win record and its settlement.
+case per winner and reads legacy record lists and modern action lists. It
+reconstructs the seat and round winds, hand, calls, and win situation from
+the event stream. Expected yaku and point values come from each win record
+and its settlement.
+
+As with the Tenhou converter, the hand validation targets use the complete
+winning hand or the tenpai hand without the winning tile.
 
 Scoring titles run from `below_mangan` to `sanbaiman`, then `yakuman` through
 `sextuple_yakuman` and `kazoe_yakuman`. The validator distinguishes these
