@@ -1,39 +1,38 @@
-# 現行仕様
+# Current Specification
 
-## コーパス
+## Corpus
 
-データセットは `manifest.json`、`files.jsonl`、分割可能な JSONL（平文または gzip）で構成する。
-一つのデータセットに一つのケース種別を格納する。
+A dataset consists of `manifest.json`, `files.jsonl`, and JSONL data that can be split into multiple files. The files can be plain text or gzip-compressed.
+Each dataset contains cases of a single type.
 
-| `case_type` | 期待値 |
+| `case_type` | Expected results |
 | --- | --- |
-| `scoring` | 役・翻・符・役満倍率・点数など |
-| `agari` | 牌姿が和了形かどうか |
-| `shanten` | 通常形・七対子・国士無双の最小シャンテン数 |
+| `scoring` | Yaku, han, fu, yakuman multipliers, points, and related values |
+| `agari` | Whether the tile configuration forms a winning hand |
+| `shanten` | Minimum shanten across the standard hand, seven pairs, and thirteen orphans |
 
-型と検査規則は [corpus のモデル](../packages/corpus/src/corpus/models.py)と
-[データセット処理](../packages/corpus/src/corpus/datasets.py)を参照する。
+See the [corpus models](../packages/corpus/src/corpus/models.py) and
+[dataset processing code](../packages/corpus/src/corpus/datasets.py) for types and validation rules.
 
-## 天鳳牌譜の変換
+## Tenhou Log Conversion
 
-`tenhou-converter mjlog` は赤あり・喰いタンありの天鳳段位戦の四麻・三麻を扱う。
-XML／mjlog の単体ファイルやディレクトリを受け付け、gzip 入力にも対応する。
-副露・抜き北を含む進行を復元し、得点計算の期待値を和了記録から抽出する。
+`tenhou-converter mjlog` supports four-player and three-player Tenhou ranked matches with red fives and open tanyao enabled.
+It accepts individual XML or mjlog files, directories, and gzip-compressed input.
+It reconstructs the course of play, including meld calls and north tile extractions, and extracts expected scoring results from win records.
 
-和了形検証向けには和了牌を含む完成形と、和了牌を一枚除いた聴牌形を出力できる。
-シャンテン数の期待値はそれぞれ −1 と 0。和了判定の期待値はそれぞれ真と偽。
+For hand validation, the converter can output a complete hand containing the winning tile and a tenpai hand with that tile removed.
+The expected shanten values are −1 and 0, respectively. The expected win detection results are true and false, respectively.
 
-## 検証と計測
+## Validation and Measurement
 
-`mahjong-validator` の `validate`、`benchmark`、`profile` は三つのケース種別に対応する。
-種別は manifest から決める。検証は一部のケースを選んだ場合もデータセット全体の整合性を検査する。
-ベンチマークとプロファイルは選択したケースの事前検証に成功してから計測する。
+The `validate`, `benchmark`, and `profile` commands in `mahjong-validator` support all three case types.
+The commands determine the case type from the manifest. Validation checks the integrity of the entire dataset even when only a subset of cases is selected.
+Benchmarking and profiling begin only after the selected cases pass pre-validation.
 
-得点検証は和了一件ごとの計算結果を比較する。比較できる項目は期待値、ケースの比較条件、
-ライブラリの出力で決まる。ダブロンの本場・供託の個別配分、役満包による支払いの配分、
-和了イベント全体の点数移動は、この得点検証の対象外とする。
-牌譜から取得した記録と比較除外の理由はコーパスや診断に保持する。
+Scoring validation compares calculation results for each individual win. The expected results, the case's comparison conditions, and the library output determine which fields can be compared.
+Scoring validation excludes the allocation of honba and riichi deposits between winners in a double ron, the allocation of payments under yakuman liability (pao), and the point transfers for the win event as a whole.
+The corpus and diagnostics retain records extracted from the logs and the reasons for excluding fields from comparison.
 
-ベンチマークは計算バッチの生の計測値を `timings.json` に保存する。
-tracing は `profile.pstats`、sampling は Tachyon で収集した `profile.html` を出力する。
-コーパスの読み込みと事前検証は計測区間の外に置く。
+Benchmarking saves raw timing measurements for batches of calculations in `timings.json`.
+Tracing produces `profile.pstats`, and sampling uses Tachyon to produce `profile.html`.
+The measured interval excludes corpus loading and pre-validation.

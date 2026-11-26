@@ -1,23 +1,22 @@
-# 開発ガイド
+# Development Guide
 
-## 構成
+## Workspace Structure
 
-この uv workspace は、牌譜由来の期待値を使って `mahjong` の計算を検証・計測する。
+This uv workspace uses expected results derived from game logs to validate and measure calculations performed by `mahjong`.
 
-| パッケージ | 責務 |
+| Package | Responsibility |
 | --- | --- |
-| `packages/corpus` | 共通ケース形式、manifest、データセットの読み書きと整合性検査 |
-| `packages/tenhou-converter` | 天鳳牌譜からの局面復元とコーパス生成 |
-| `packages/validator` | ケースの検証、ベンチマーク、プロファイリング |
+| `packages/corpus` | Shared case format, manifests, dataset reading and writing, and integrity checks |
+| `packages/tenhou-converter` | Reconstructing game states from Tenhou logs and generating corpora |
+| `packages/validator` | Case validation, benchmarking, and profiling |
 
-変換器と validator は corpus に依存する。牌譜由来の期待値は変換器で抽出し、
-`mahjong` の呼び出しは validator で行う。
-[現行仕様](docs/reference.md)と[残課題](docs/roadmap.md)を参照する。
-利用者向けのコマンドは [README](README.md) に記載する。
+The converter and validator both depend on the corpus package. The converter extracts expected results from game logs, and the validator calls `mahjong`.
+See the [current specification](docs/reference.md) and [remaining work](docs/roadmap.md).
+User-facing commands are documented in the [README](README.md).
 
-## 開発と検証
+## Development and Verification
 
-ルートで Python 3.15 と uv を使う。
+Run these commands from the workspace root using Python 3.15 and uv.
 
 ```console
 uv sync --locked --all-packages --python 3.15
@@ -27,10 +26,10 @@ uv run --no-sync ty check
 uv run --no-sync python -m pytest
 ```
 
-- テストは各パッケージの `tests/` に置く。共有 fixture は `conftest.py` に置く。
-- 振る舞いを変更するときは、小さなテストで期待する結果を定め、Red → Green → Refactor で進める。
-- 期待値は仕様、牌譜、小さな手計算などから独立して求める。検証対象のライブラリの出力を期待値に流用しない。
-- 小さな fixture で変換と異常入力を確認し、パッケージをまたぐ変更は牌譜から検証結果までの経路も確認する。大規模な牌譜や計測速度に依存する確認は通常のテストから分離する。
-- API や保存形式の変更では、workspace 内の呼び出し元、テスト、文書を合わせて更新する。後方互換性の要件は個別のタスクに従う。
+- Put tests in each package's `tests/` directory and shared fixtures in `conftest.py`.
+- When changing behavior, define the expected result in a small test and follow Red → Green → Refactor.
+- Derive expected results independently from sources such as specifications, game logs, and small calculations done by hand. Do not use output from the library under test as the expected result.
+- Use small fixtures to check conversion and invalid inputs. For changes that span packages, also verify the full path from game logs to validation results. Keep checks that require large game logs or depend on benchmark speed separate from the regular tests.
+- When changing an API or storage format, update callers, tests, and documentation across the workspace. Follow the backward compatibility requirements of the specific task.
 
-初期実装時の設計、検証記録、テストリストは[アーカイブ](docs/archive/initial-implementation/README.md)を参照する。
+See the [archive](docs/archive/initial-implementation/README.md) for the initial design, verification records, and test list.

@@ -1,20 +1,18 @@
-# 残課題
+# Remaining Work
 
-天鳳牌譜からコーパスを生成し、得点計算・和了判定・シャンテン数を検証、計測、
-プロファイルできる状態を、最初の実装の区切りとする。
+The initial implementation milestone is to generate corpora from Tenhou logs and support validation, benchmarking, and profiling for scoring, win detection, and shanten calculations.
 
-## 最優先
+## Top Priorities
 
-- 雀魂牌譜から共通コーパスへの変換。
-- 雀魂ルールでの得点計算の検証。
+- Convert Mahjong Soul game logs to the shared corpus format.
+- Validate scoring calculations under Mahjong Soul rules.
 
 ## CI
 
-- Python 3.15 のロック済み uv workspace で、Ruff の lint・format、ty、pytest を自動実行する。
-- リリースや配布の自動化は対象外。
+- Run Ruff lint and formatting checks, ty, and pytest automatically in the locked uv workspace with Python 3.15.
+- Release and distribution automation are out of scope.
 
-## 凍結・対象外
+## Deferred and Out of Scope
 
-- `houou-logs` の SQLite 入力は、要望が出るまで凍結する。
-- ダブロンの本場・供託の帰属、役満包による支払いの配分など、和了一件の点数計算関数で
-  検証できない精算については、天鳳実牌譜での追加検証を対象外とする。
+- SQLite input from `houou-logs` is deferred until requested.
+- Further validation against real Tenhou logs is out of scope for settlements that cannot be checked by a scoring function for an individual win, such as the allocation of honba and riichi deposits in a double ron or the allocation of payments under yakuman liability (pao).
