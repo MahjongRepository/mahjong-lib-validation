@@ -11,7 +11,6 @@ mahjong-corpus = { workspace = true }
 [dependency-groups]
 dev = [
     { include-group = "hooks" },
-    { include-group = "test" },
 ]
 hooks = [
     "prek>=0.5.11,<0.6",
@@ -23,6 +22,7 @@ lint = [
 ]
 typing = [
     "ty>=0.0.108",
+    { include-group = "test" },  # ty checks package tests too.
 ]
 test = [
     "pytest>=9.2.0,<10",
