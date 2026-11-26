@@ -11,7 +11,11 @@ _RESPONSE_HEADER_SIZE = 3
 
 
 class ConversionError(ValueError):
-    pass
+    def __init__(
+        self, message: str, *, event_index: int | None = None
+    ) -> None:
+        self.event_index = event_index
+        super().__init__(message)
 
 
 def _unwrap(payload: bytes) -> Message:

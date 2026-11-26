@@ -1,10 +1,9 @@
 import argparse
 import json
+import sqlite3
 import sys
 from importlib.metadata import version
 from typing import TYPE_CHECKING
-
-from corpus import CorpusError
 
 from majsoul_converter.conversion import TARGETS
 from majsoul_converter.datasets import convert_files
@@ -27,6 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--log-id")
     parser.add_argument("--cases-per-file", type=int, default=100_000)
     parser.add_argument("--no-compress", action="store_true")
+    parser.add_argument("--report")
 
     args = parser.parse_args(argv)
 
@@ -35,11 +35,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.input,
             args.output,
             log_id=args.log_id,
-            target=args.target,
             cases_per_file=args.cases_per_file,
             compress=not args.no_compress,
+            report_path=args.report,
+            target=args.target,
         )
-    except (CorpusError, OSError, ValueError) as e:
+    except (OSError, ValueError, sqlite3.Error) as e:
         sys.stderr.write(f"{e}\n")
         return 1
 

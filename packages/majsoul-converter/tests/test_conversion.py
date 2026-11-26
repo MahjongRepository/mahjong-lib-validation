@@ -1,3 +1,4 @@
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -22,7 +23,7 @@ def wrap(message: Message) -> bytes:
     ).SerializeToString()
 
 
-def replay(*, actions: bool) -> bytes:
+def replay(*, actions: bool, uuid: str = "test-replay") -> bytes:
     hand = [
         "1z",
         "1z",
@@ -80,14 +81,14 @@ def replay(*, actions: bool) -> bytes:
         if actions
         else pb.GameDetailRecords(records=records)
     )
-    return response_frame(detail)
+    return response_frame(detail, uuid=uuid)
 
 
-def response_frame(detail: pb.GameDetailRecords) -> bytes:
+def response_frame(
+    detail: pb.GameDetailRecords, *, uuid: str = "test-replay"
+) -> bytes:
     response = pb.ResGameRecord(
-        head=pb.RecordGame(
-            uuid="test-replay", config=pb.GameConfig(category=2)
-        ),
+        head=pb.RecordGame(uuid=uuid, config=pb.GameConfig(category=2)),
         data=wrap(detail),
     )
     return (
@@ -377,3 +378,57 @@ def test_sanma_rejects_data_for_fourth_seat(*, fourth_hand: bool) -> None:
             convert_log(data)
     else:
         assert convert_log(data) == []
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_cli_writes_conversion_report(tmp_path: Path, *, valid: bool) -> None:
+    source = tmp_path / "game.bin"
+    source.write_bytes(replay(actions=True) if valid else b"invalid")
+    output = tmp_path / "corpus"
+    report_path = tmp_path / "reports" / "conversion.json"
+
+    status = main(
+        [
+            str(source),
+            "--output",
+            str(output),
+            "--report",
+            str(report_path),
+        ]
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert status == (0 if valid else 1)
+    assert report["dataset_published"] is valid
+    assert report["summary_complete"] is valid
+    assert report["conversion"]["input_count"] == 1
+    assert report["conversion"]["converted_count"] == (1 if valid else 0)
+    assert report["record_count"] == (1 if valid else 0)
+    assert output.is_dir() is valid
+    if valid:
+        assert report["error"] is None
+        assert report["diagnostics"] == []
+    else:
+        assert report["conversion"]["failed_by_reason"] == {
+            "conversion_error": 1
+        }
+        [diagnostic] = report["diagnostics"]
+        assert diagnostic["path"] == str(source)
+        assert "response frame" in diagnostic["message"]
+
+
+def test_directory_uses_relative_path_order(tmp_path: Path) -> None:
+    source = tmp_path / "logs"
+    nested = source / "a"
+    nested.mkdir(parents=True)
+    (source / "z.bin").write_bytes(replay(actions=True, uuid="first-id"))
+    (nested / "z.BIN").write_bytes(replay(actions=False, uuid="second-id"))
+    output = tmp_path / "corpus"
+
+    manifest = convert_files(source, output, cases_per_file=1)
+
+    assert manifest["conversion"]["converted_count"] == 2
+    assert [case["source"]["log_id"] for case in read_dataset(output)] == [
+        "second-id",
+        "first-id",
+    ]

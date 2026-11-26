@@ -30,6 +30,8 @@ Set `--output` to a new directory. A successful conversion writes `manifest.json
 an index, and case files. A failed conversion prevents dataset publication.
 The command prints the manifest or a diagnostic to stderr.
 
+- `--report PATH` saves conversion counts and diagnostics as JSON. By default,
+  no report file is written.
 - `--cases-per-file N` sets the maximum number of cases per file. Defaults to
   100,000.
 - `--no-compress` writes plain JSONL. Defaults to gzip-compressed JSONL when

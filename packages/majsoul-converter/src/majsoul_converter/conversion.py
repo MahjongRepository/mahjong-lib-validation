@@ -87,7 +87,7 @@ def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
                 state.event_indices.append(index)
         except (ValueError, IndexError, KeyError) as e:
             msg = f"event {index} ({type(event).__name__}): {e}"
-            raise ConversionError(msg) from e
+            raise ConversionError(msg, event_index=index) from e
     if not events or state is not None:
         msg = "replay must end with a completed round"
         raise ConversionError(msg)
