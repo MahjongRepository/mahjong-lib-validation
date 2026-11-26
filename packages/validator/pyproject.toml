@@ -19,7 +19,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "mahjong-corpus==0.1.0",
+    "mahjong-corpus>=0.1.0,<0.2",
     "mahjong>=2.3.0,<3.0",
 ]
 
