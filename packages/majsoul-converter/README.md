@@ -8,12 +8,11 @@ uv run majsoul-converter logs/majsoul --output corpora/majsoul
 uv run mahjong-validator validate corpora/majsoul --output results/majsoul
 ```
 
-Input can be one file or a directory of `.bin` and `.pb` files. The converter
-accepts binary `fetchGameRecord` response frames, serialized `ResGameRecord`
-messages with embedded data, and replay downloads wrapped as
-`GameDetailRecords`. Supply the downloaded replay file when the response only
-contains a data URL. A replay without match metadata is assumed to use ranked
-rules.
+Input can be a single `.bin` file or a directory of `.bin` files. Each
+file must contain the original binary `fetchGameRecord` response frame,
+including the response kind and two-byte request number. The response must
+contain embedded replay data. A replay without match metadata is assumed to
+use ranked rules.
 
 Case IDs use the response UUID when available and the filename stem otherwise.
 Use `--log-id` to override it for a single file. `--cases-per-file` controls

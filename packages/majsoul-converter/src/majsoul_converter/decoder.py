@@ -26,14 +26,15 @@ def _unwrap(payload: bytes) -> Message:
 
 
 def _response(payload: bytes) -> tuple[str | None, bytes]:
-    if payload[:1] == bytes([_RESPONSE_KIND]):
-        wrapper = pb.Wrapper.FromString(payload[_RESPONSE_HEADER_SIZE:])
-        if wrapper.name:
-            msg = "Response Wrapper must have an empty name"
-            raise ConversionError(msg)
-        payload = wrapper.data
+    if len(payload) < _RESPONSE_HEADER_SIZE or payload[0] != _RESPONSE_KIND:
+        msg = "expected a fetchGameRecord response frame"
+        raise ConversionError(msg)
+    wrapper = pb.Wrapper.FromString(payload[_RESPONSE_HEADER_SIZE:])
+    if wrapper.name:
+        msg = "Response Wrapper must have an empty name"
+        raise ConversionError(msg)
 
-    response = pb.ResGameRecord.FromString(payload)
+    response = pb.ResGameRecord.FromString(wrapper.data)
     if response.error.code:
         msg = f"fetchGameRecord returned error {response.error.code}"
         raise ConversionError(msg)
@@ -44,20 +45,15 @@ def _response(payload: bytes) -> tuple[str | None, bytes]:
         msg = "only ranked replays are supported"
         raise ConversionError(msg)
     if not response.data:
-        msg = "response has no embedded replay; supply the replay data"
+        msg = "response has no embedded replay data"
         raise ConversionError(msg)
     return response.head.uuid or None, response.data
 
 
 def decode(payload: bytes) -> tuple[str | None, list[tuple[int, Message]]]:
-    log_id = None
     try:
-        if (
-            payload[:1] == bytes([_RESPONSE_KIND])
-            or not pb.Wrapper.FromString(payload).name
-        ):
-            log_id, payload = _response(payload)
-        detail = _unwrap(payload)
+        log_id, replay = _response(payload)
+        detail = _unwrap(replay)
         if not isinstance(detail, pb.GameDetailRecords):
             msg = "expected a GameDetailRecords Wrapper"
             raise ConversionError(msg)

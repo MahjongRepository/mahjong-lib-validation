@@ -25,9 +25,9 @@ The expected shanten values are −1 and 0, respectively. The expected win detec
 
 ## Mahjong Soul Replay Conversion
 
-`majsoul-converter` accepts binary four-player and three-player ranked replays
-and emits one scoring case per winner. It reads legacy record lists and modern
-action lists. It reconstructs the seat and round winds, hand, calls, and win
+`majsoul-converter` accepts original `fetchGameRecord` response frames saved as
+`.bin` files for four-player and three-player ranked replays. It emits one
+scoring case per winner and reads legacy record lists and modern action lists. It reconstructs the seat and round winds, hand, calls, and win
 situation from the event stream. Expected yaku and point values come from each
 win record and its settlement.
 

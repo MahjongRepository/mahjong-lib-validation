@@ -34,14 +34,17 @@ def convert_files(
             (
                 path
                 for path in source.rglob("*")
-                if path.is_file() and path.suffix.lower() in {".bin", ".pb"}
+                if path.is_file() and path.suffix.lower() == ".bin"
             ),
             key=lambda path: path.relative_to(source).as_posix(),
         )
-    else:
+    elif source.suffix.lower() == ".bin":
         paths = [source]
+    else:
+        msg = f"replay input must have a .bin extension: {source}"
+        raise ConversionError(msg)
     if not paths:
-        msg = f"no .bin or .pb replays in {source}"
+        msg = f"no .bin replays in {source}"
         raise ConversionError(msg)
 
     summary: ConversionSummary = {

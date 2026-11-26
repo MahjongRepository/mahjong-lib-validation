@@ -79,6 +79,10 @@ def replay(*, actions: bool) -> bytes:
         if actions
         else pb.GameDetailRecords(records=records)
     )
+    return response_frame(detail)
+
+
+def response_frame(detail: pb.GameDetailRecords) -> bytes:
     response = pb.ResGameRecord(
         head=pb.RecordGame(
             uuid="test-replay", config=pb.GameConfig(category=2)
@@ -93,10 +97,14 @@ def replay(*, actions: bool) -> bytes:
 
 @pytest.mark.parametrize("actions", [False, True])
 def test_wind_yaku_and_dataset(tmp_path: Path, *, actions: bool) -> None:
-    source = tmp_path / "game.bin"
+    inputs = tmp_path / "logs"
+    inputs.mkdir()
+    source = inputs / "game.bin"
     source.write_bytes(replay(actions=actions))
+    (inputs / "ignored.pb").write_bytes(b"")
+    (inputs / "ignored.json").write_bytes(b"")
     dataset = tmp_path / "corpus"
-    manifest = convert_files(source, dataset)
+    manifest = convert_files(inputs, dataset)
     assert manifest["record_count"] == 1
     [case] = convert_log(source.read_bytes())
     assert list(read_dataset(dataset)) == [case]
@@ -158,7 +166,7 @@ def test_kokushi_title_and_fu_exclusion(
             delta_scores=[-points, points, 0, 0],
         ),
     ]
-    data = wrap(
+    data = response_frame(
         pb.GameDetailRecords(records=[wrap(event) for event in events])
     )
     [case] = convert_log(data, log_id="kokushi")
@@ -172,7 +180,7 @@ def test_kokushi_title_and_fu_exclusion(
     win_event = events[-1]
     assert isinstance(win_event, pb.RecordHule)
     win_event.hules[0].count = multiplier + 1
-    data = wrap(
+    data = response_frame(
         pb.GameDetailRecords(records=[wrap(event) for event in events])
     )
     with pytest.raises(ConversionError, match=r"expected\.yakuman_multiplier"):
@@ -230,14 +238,10 @@ def test_sanma_nuki_replacement_draw() -> None:
             delta_scores=[-4000, 6000, -2000],
         ),
     ]
-    detail = wrap(
+    data = response_frame(
         pb.GameDetailRecords(records=[wrap(event) for event in events])
     )
-    response = pb.ResGameRecord(
-        head=pb.RecordGame(uuid="sanma"),
-        data=detail,
-    )
-    [case] = convert_log(response.SerializeToString())
+    [case] = convert_log(data, log_id="sanma")
     assert case["input"]["concealed_tiles"] == hand[::-1]
     assert case["input"]["winning_tile"] == "9s"
     assert case["input"]["nuki_count"] == 1
@@ -277,7 +281,7 @@ def test_closed_kan_restores_red_five() -> None:
             delta_scores=[12000, -4000, -4000, -4000],
         ),
     ]
-    data = wrap(
+    data = response_frame(
         pb.GameDetailRecords(records=[wrap(event) for event in events])
     )
     [case] = convert_log(data, log_id="ankan")
@@ -291,3 +295,25 @@ def test_closed_kan_restores_red_five() -> None:
     ]
     assert case["input"]["dora_indicators"] == ["4m", "8s"]
     assert validate_case(case)["status"] == "passed"
+
+
+@pytest.mark.parametrize("suffix", [".pb", ".json"])
+def test_file_requires_bin_suffix(tmp_path: Path, suffix: str) -> None:
+    source = tmp_path / f"game{suffix}"
+    source.write_bytes(replay(actions=False))
+    with pytest.raises(ConversionError, match=r"\.bin"):
+        convert_files(source, tmp_path / "corpus")
+
+
+@pytest.mark.parametrize("embedded", [False, True])
+def test_rejects_payload_without_response_frame(*, embedded: bool) -> None:
+    frame = replay(actions=False)
+    serialized_response = pb.Wrapper.FromString(frame[3:]).data
+    payload = (
+        pb.ResGameRecord.FromString(serialized_response).data
+        if embedded
+        else serialized_response
+    )
+
+    with pytest.raises(ConversionError, match="response frame"):
+        convert_log(payload)
