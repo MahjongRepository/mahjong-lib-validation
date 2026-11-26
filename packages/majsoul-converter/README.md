@@ -1,37 +1,38 @@
 # majsoul-converter
 
-Convert Mahjong Soul replays from four-player and three-player ranked
-matches to v1 scoring, winning hand detection, and shanten datasets.
+Convert Mahjong Soul replays into datasets for scoring, winning hand detection,
+and shanten calculation. Follow the [workspace setup](../../README.md#quick-start)
+and run the commands from the repository root.
 
-```sh
-uv run majsoul-converter logs/majsoul --output corpora/majsoul
-uv run mahjong-validator validate corpora/majsoul --output results/majsoul
-```
+## Input and targets
 
-Input can be a single `.bin` file or a directory of `.bin` files. Each
-file must contain the original binary `fetchGameRecord` response frame,
-including the response kind and two-byte request number. The response must
-contain embedded replay data. A replay without match metadata is assumed to
-use ranked rules.
-
-Case IDs use the response UUID when available and the filename stem otherwise.
-Use `--log-id` to override it for a single file. `--cases-per-file` controls
-shard size and `--no-compress` writes plain JSONL. The output must be a new
-directory. A conversion failure aborts the write.
-
-Use `--target` to select what to generate per winner.
-
-| Target | Hand | Expected result |
-| --- | --- | --- |
-| `scoring` (default) | Winning hand | Scoring values from the replay |
-| `agari-complete` | With the winning tile | `is_agari = true` |
-| `agari-tenpai` | Without the winning tile | `is_agari = false` |
-| `shanten-agari` | With the winning tile | `shanten = -1` |
-| `shanten-tenpai` | Without the winning tile | `shanten = 0` |
+Pass one `.bin` file, or a directory of `.bin` files. Each file must contain
+the original binary `fetchGameRecord` response frame, including the response kind,
+two-byte request number, and embedded replay data. The converter handles
+four-player and three-player Mahjong Soul ranked matches. Replays without match
+metadata are assumed to use ranked rules.
 
 ```sh
 uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/majsoul-shanten
 ```
 
-The Python APIs `convert_log(payload, log_id=...)` and
-`convert_files(input_path, output_directory)` accept the same `target` values.
+| Target | Hand | Expected result |
+| --- | --- | --- |
+| `scoring` (default) | Winning hand | Scoring values from the win record |
+| `agari-complete` | With the winning tile | `is_agari = true` |
+| `agari-tenpai` | Without the winning tile | `is_agari = false` |
+| `shanten-agari` | With the winning tile | `shanten = -1` |
+| `shanten-tenpai` | Without the winning tile | `shanten = 0` |
+
+## Output and options
+
+Set `--output` to a new directory. A successful conversion writes `manifest.json`,
+an index, and case files. A failed conversion prevents dataset publication.
+The command prints the manifest or a diagnostic to stderr.
+
+- `--cases-per-file N` sets the maximum number of cases per file. Defaults to
+  100,000.
+- `--no-compress` writes plain JSONL. Defaults to gzip-compressed JSONL when
+  omitted.
+- `--log-id ID` overrides the ID for a single input file. Defaults to the
+  response UUID if available, or the input filename without its extension.
