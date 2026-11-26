@@ -48,6 +48,9 @@ The `validate`, `benchmark`, and `profile` commands in `mahjong-validator` suppo
 The commands determine the case type from the manifest. Validation checks the integrity of the entire dataset even when only a subset of cases is selected.
 Benchmarking and profiling begin only after the selected cases pass pre-validation.
 
+The result environment lists the rule versions of selected scoring cases in
+`rules_versions`. Hand validation results have an empty list.
+
 Scoring validation compares calculation results for each individual win. The expected results, the case's comparison conditions, and the library output determine which fields can be compared.
 Scoring validation excludes the allocation of honba and riichi deposits between winners in a double ron, the allocation of payments under yakuman liability (pao), and the point transfers for the win event as a whole.
 The corpus and diagnostics retain records extracted from the logs and the reasons for excluding fields from comparison.

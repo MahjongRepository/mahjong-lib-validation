@@ -12,7 +12,7 @@ import mahjong
 lazy from validator.models import Environment
 
 
-def environment_info() -> Environment:
+def environment_info(rulesets: set[str]) -> Environment:
     return {
         "validator_version": version("mahjong-validator"),
         "corpus_version": version("mahjong-corpus"),
@@ -24,7 +24,7 @@ def environment_info() -> Environment:
         "python_build": list(platform.python_build()),
         "platform": platform.platform(),
         "free_threaded": bool(sysconfig.get_config_var("Py_GIL_DISABLED")),
-        "rules_version": "tenhou-ranked-match-v1",
+        "rules_versions": [f"{ruleset}-v1" for ruleset in sorted(rulesets)],
     }
 
 
