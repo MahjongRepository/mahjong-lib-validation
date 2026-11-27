@@ -1,45 +1,25 @@
-import json
 import sqlite3
 import zlib
 from contextlib import closing
 from importlib.metadata import version
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 lazy from collections.abc import Generator
 
 from corpus import Case, CorpusError, Manifest, write_dataset
+from corpus.conversion_reports import (
+    new_report,
+    record_diagnostic,
+    write_report,
+)
 
 from tenhou_converter.conversion import TARGETS, Target, convert_log
 from tenhou_converter.errors import ConversionError, UnsupportedLogError
 from tenhou_converter.sources import discover, read_xml
 
 if TYPE_CHECKING:
-    from corpus.manifests import ConversionSummary, GeneratorInfo
-
-
-MAX_DIAGNOSTICS = 100
-
-
-class Diagnostic(TypedDict):
-    path: str
-    log_id: str
-    reason: str
-    message: str
-    event_index: int | None
-    field: str | None
-
-
-class Report(TypedDict):
-    generator: GeneratorInfo
-    input: str
-    output: str
-    conversion: ConversionSummary
-    record_count: int
-    summary_complete: bool
-    dataset_published: bool
-    diagnostics: list[Diagnostic]
-    omitted_diagnostic_count: int
-    error: str | None
+    from corpus.conversion_reports import Report
+    from corpus.manifests import GeneratorInfo
 
 
 class BatchConversionError(ValueError):
@@ -78,18 +58,8 @@ def _record_input_failure(
         event_index = error.event_index
         field = error.field
 
-    summary = report["conversion"]
-    if isinstance(error, UnsupportedLogError):
-        counts = summary["excluded_by_reason"]
-    else:
-        counts = summary["failed_by_reason"]
-    counts[reason] = counts.get(reason, 0) + 1
-
-    if len(report["diagnostics"]) >= MAX_DIAGNOSTICS:
-        report["omitted_diagnostic_count"] += 1
-        return
-
-    report["diagnostics"].append(
+    record_diagnostic(
+        report,
         {
             "path": str(path),
             "log_id": log_id,
@@ -97,7 +67,8 @@ def _record_input_failure(
             "message": str(error),
             "event_index": event_index,
             "field": field,
-        }
+        },
+        excluded=isinstance(error, UnsupportedLogError),
     )
 
 
@@ -124,12 +95,6 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
 
     report_file = Path(report_path) if report_path is not None else None
     _check_paths(source, output, report_file)
-    summary: ConversionSummary = {
-        "input_count": 0,
-        "converted_count": 0,
-        "failed_by_reason": {},
-        "excluded_by_reason": {},
-    }
     generator: GeneratorInfo = {
         "name": "tenhou-converter",
         "version": version("tenhou-converter"),
@@ -148,18 +113,8 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
             "reconstruction_version": "1",
         },
     }
-    report: Report = {
-        "generator": generator,
-        "input": str(source),
-        "output": str(output),
-        "conversion": summary,
-        "record_count": 0,
-        "summary_complete": False,
-        "dataset_published": False,
-        "diagnostics": [],
-        "omitted_diagnostic_count": 0,
-        "error": None,
-    }
+    report = new_report(source, output, generator=generator)
+    summary = report["conversion"]
 
     def cases() -> Generator[Case]:
         with closing(discover(source, log_id)) as inputs:
@@ -201,10 +156,7 @@ def convert_files(  # noqa: PLR0913 -- explicit output controls
 def save_report(path: Path | None, report: Report) -> None:
     if path is not None:
         try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with path.open("x", encoding="utf-8") as stream:
-                json.dump(report, stream, ensure_ascii=False, indent=2)
-                stream.write("\n")
+            write_report(path, report)
         except OSError as e:
             message = f"{report['error'] or ''}; report_io_error: {e}"
             report["error"] = message

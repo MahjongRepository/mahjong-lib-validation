@@ -95,6 +95,7 @@ def test_corrupt_gzip_is_a_reported_input_failure(tmp_path: Path) -> None:
 def test_encoding_error_reports_failure_and_continues_batch(
     tmp_path: Path,
     encoding: str,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     source = tmp_path / "input"
     source.mkdir()
@@ -122,6 +123,7 @@ def test_encoding_error_reports_failure_and_continues_batch(
     )
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert json.loads(capsys.readouterr().err) == report
     assert report["conversion"] == {
         "input_count": 2,
         "converted_count": 1,
@@ -210,7 +212,9 @@ def test_gzip_detection_and_id_suffixes(tmp_path: Path, name: str) -> None:
     assert (output / "scoring-000001.jsonl").exists()
 
 
-def test_cli_exit_codes_and_json_report(tmp_path: Path) -> None:
+def test_cli_exit_codes_and_json_report(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     output = tmp_path / "output"
     report = tmp_path / "report.json"
     assert (
@@ -231,10 +235,13 @@ def test_cli_exit_codes_and_json_report(tmp_path: Path) -> None:
     assert case["input"]["nuki_count"] == 3
     assert case["round"]["wind"] == "south"
     assert case["expected"]["honba_points"] == 600
-    assert (
-        json.loads(report.read_text(encoding="utf-8"))["dataset_published"]
-        is True
-    )
+    saved = json.loads(report.read_text(encoding="utf-8"))
+    assert saved["dataset_published"] is True
+    assert json.loads(capsys.readouterr().err) == {
+        "dataset_published": True,
+        "conversion": saved["conversion"],
+        "record_count": 1,
+    }
     assert (
         main(
             ["mjlog", str(FIXTURES / "four-ron.xml"), "--output", str(output)]
@@ -274,11 +281,19 @@ def test_known_unsupported_rules_are_counted_as_exclusions(
     )
     (source / "a.xml").write_bytes(unsupported)
     (source / "b.xml").write_bytes(xml)
-    manifest = convert_files(source, tmp_path / "output")
+    report_path = tmp_path / "report.json"
+    manifest = convert_files(
+        source, tmp_path / "output", report_path=report_path
+    )
     assert manifest["conversion"]["excluded_by_reason"] == {
         "unsupported_rules": 1
     }
     assert manifest["record_count"] == 1
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["conversion"] == manifest["conversion"]
+    assert report["record_count"] == manifest["record_count"]
+    assert report["summary_complete"] is True
+    assert report["dataset_published"] is True
 
 
 def test_duplicate_log_ids_are_rejected_before_output(tmp_path: Path) -> None:
