@@ -2,11 +2,11 @@
 
 ## バッチ変換とレポート
 
-- [ ] **個別の牌譜が失敗しても後続の入力を処理する。** 読み込み・デコード・局面復元の失敗を理由別に加算し、診断を記録して次のファイルに進む。入力一覧の取得やデータセットの書き込みに失敗した場合はその時点で停止し、走査の完了状況と実際の公開状態を報告する。この挙動を実装 PR で[入力・出力仕様](../../packages/majsoul-converter/README.md)にも反映する。[バッチ実装](../../packages/majsoul-converter/src/majsoul_converter/datasets.py)
-- [ ] **全件走査後の失敗を CLI から検証する。** 相対パス順に「正常・不正・正常」の 3 入力を置き、終了コード 1、入力 3・変換 2・失敗 1、`summary_complete=true`、`dataset_published=false`、出力ディレクトリ未作成を確認する。不正な入力にはイベント位置が分かる牌譜を使い、診断のパスと位置も照合する。[変換テスト](../../packages/majsoul-converter/tests/test_conversion.py)
-- [ ] [corpus の共通レポート](corpus.md)で型・初期化・件数更新・保存を揃える。同じ理由で複数回失敗したときも全件を加算する。天鳳と同じく診断の詳細は先頭 100 件とし、超過分は `omitted_diagnostic_count` で確認できるようにする。
-- [ ] ファイル探索・SQLite によるソートと、変換件数の集計を別々に読めるよう、`_find_files` と `_input_paths` を入力側にまとめる。相対 POSIX パス順、単一ファイルだけの ID 上書き、UUID → ファイル名のフォールバックは既存の契約。再帰探索のために全パスをメモリへ集める変更は避ける。[入力仕様](../../packages/majsoul-converter/README.md)
-- [ ] CLI は直下に入力を取り、成功時は manifest 全体の JSON、変換失敗時は診断文を stderr に出す。共通レポートの導入後も `--report` の有無でこの出力形式が変わらないことと、不正な `--cases-per-file 0` の終了コード 1 を確認する。天鳳と引数定義を共用する場合に後者が argparse エラーの 2 に変わり得る。[CLI](../../packages/majsoul-converter/src/majsoul_converter/cli.py)
+- [x] **個別の牌譜が失敗しても後続の入力を処理する。** 読み込み・デコード・局面復元の失敗を理由別に加算し、診断を記録して次のファイルに進む。入力一覧の取得やデータセットの書き込みに失敗した場合はその時点で停止し、走査の完了状況と実際の公開状態を報告する。この挙動を実装 PR で[入力・出力仕様](../../packages/majsoul-converter/README.md)にも反映する。[バッチ実装](../../packages/majsoul-converter/src/majsoul_converter/datasets.py)
+- [x] **全件走査後の失敗を CLI から検証する。** 相対パス順に「正常・不正・正常」の 3 入力を置き、終了コード 1、入力 3・変換 2・失敗 1、`summary_complete=true`、`dataset_published=false`、出力ディレクトリ未作成を確認する。不正な入力にはイベント位置が分かる牌譜を使い、診断のパスと位置も照合する。[変換テスト](../../packages/majsoul-converter/tests/test_conversion.py)
+- [x] [corpus の共通レポート](corpus.md)で型・初期化・件数更新・保存を揃える。同じ理由で複数回失敗したときも全件を加算する。天鳳と同じく診断の詳細は先頭 100 件とし、超過分は `omitted_diagnostic_count` で確認できるようにする。
+- [x] ファイル探索・SQLite によるソートと、変換件数の集計を別々に読めるよう、`_find_files` と `_input_paths` を入力側にまとめる。相対 POSIX パス順、単一ファイルだけの ID 上書き、UUID → ファイル名のフォールバックは既存の契約。再帰探索のために全パスをメモリへ集める変更は避ける。[入力仕様](../../packages/majsoul-converter/README.md)
+- [x] CLI は直下に入力を取り、成功時は manifest 全体の JSON、変換失敗時は診断文を stderr に出す。共通レポートの導入後も `--report` の有無でこの出力形式が変わらないことと、不正な `--cases-per-file 0` の終了コード 1 を確認する。天鳳と引数定義を共用する場合に後者が argparse エラーの 2 に変わり得る。[CLI](../../packages/majsoul-converter/src/majsoul_converter/cli.py)
 
 ## 局面変換
 

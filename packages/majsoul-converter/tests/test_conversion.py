@@ -381,31 +381,49 @@ def test_sanma_rejects_data_for_fourth_seat(*, fourth_hand: bool) -> None:
 
 
 @pytest.mark.parametrize("valid", [True, False])
-def test_cli_writes_conversion_report(tmp_path: Path, *, valid: bool) -> None:
+@pytest.mark.parametrize("save_report", [True, False])
+def test_cli_conversion_output(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    valid: bool,
+    save_report: bool,
+) -> None:
     source = tmp_path / "game.bin"
     source.write_bytes(replay(actions=True) if valid else b"invalid")
     output = tmp_path / "corpus"
     report_path = tmp_path / "reports" / "conversion.json"
 
-    status = main(
-        [
-            str(source),
-            "--output",
-            str(output),
-            "--report",
-            str(report_path),
-        ]
-    )
+    args = [str(source), "--output", str(output)]
+    if save_report:
+        args.extend(["--report", str(report_path)])
+    status = main(args)
+
+    assert status == (0 if valid else 1)
+    assert output.is_dir() is valid
+    stderr = capsys.readouterr().err
+    if valid:
+        manifest = json.loads(
+            (output / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert json.loads(stderr) == manifest
+    else:
+        assert (
+            stderr == f"{source}: expected a fetchGameRecord response frame\n"
+        )
+    assert report_path.exists() is save_report
+    if not save_report:
+        return
 
     report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert status == (0 if valid else 1)
     assert report["dataset_published"] is valid
-    assert report["summary_complete"] is valid
+    assert report["summary_complete"] is True
     assert report["conversion"]["input_count"] == 1
     assert report["conversion"]["converted_count"] == (1 if valid else 0)
     assert report["record_count"] == (1 if valid else 0)
-    assert output.is_dir() is valid
     if valid:
+        assert report["conversion"] == manifest["conversion"]
+        assert report["record_count"] == manifest["record_count"]
         assert report["error"] is None
         assert report["diagnostics"] == []
     else:
@@ -415,6 +433,153 @@ def test_cli_writes_conversion_report(tmp_path: Path, *, valid: bool) -> None:
         [diagnostic] = report["diagnostics"]
         assert diagnostic["path"] == str(source)
         assert "response frame" in diagnostic["message"]
+
+
+def test_cli_scans_past_invalid_event(tmp_path: Path) -> None:
+    source = tmp_path / "logs"
+    source.mkdir()
+    (source / "a.bin").write_bytes(replay(actions=True, uuid="first"))
+    invalid = source / "b.bin"
+    invalid.write_bytes(
+        response_frame(pb.GameDetailRecords(records=[wrap(pb.RecordNoTile())]))
+    )
+    (source / "c.bin").write_bytes(replay(actions=False, uuid="last"))
+    output = tmp_path / "corpus"
+    report_path = tmp_path / "report.json"
+
+    assert (
+        main(
+            [
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(report_path),
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["conversion"] == {
+        "input_count": 3,
+        "converted_count": 2,
+        "failed_by_reason": {"conversion_error": 1},
+        "excluded_by_reason": {},
+    }
+    assert report["record_count"] == 2
+    assert report["summary_complete"] is True
+    assert report["dataset_published"] is False
+    assert not output.exists()
+    assert not list(tmp_path.glob(".corpus-*"))
+    [diagnostic] = report["diagnostics"]
+    assert diagnostic["path"] == str(invalid)
+    assert diagnostic["event_index"] == 0
+    assert "RecordNoTile" in diagnostic["message"]
+
+
+def test_report_caps_diagnostics_but_counts_all_failures(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "logs"
+    source.mkdir()
+    for index in range(103):
+        (source / f"{index:03d}.bin").write_bytes(b"invalid")
+    output = tmp_path / "corpus"
+    report_path = tmp_path / "report.json"
+
+    assert (
+        main(
+            [
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(report_path),
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["conversion"]["failed_by_reason"] == {
+        "conversion_error": 103
+    }
+    assert [d["log_id"] for d in report["diagnostics"]] == [
+        f"{index:03d}" for index in range(100)
+    ]
+    assert report["omitted_diagnostic_count"] == 3
+
+
+def test_cli_invalid_shard_size_reports_incomplete_scan(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "game.bin"
+    source.write_bytes(replay(actions=True))
+    output = tmp_path / "corpus"
+    report_path = tmp_path / "report.json"
+
+    assert (
+        main(
+            [
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(report_path),
+                "--cases-per-file",
+                "0",
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["conversion"]["input_count"] == 0
+    assert report["summary_complete"] is False
+    assert report["dataset_published"] is False
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("directory", [False, True])
+def test_report_distinguishes_missing_file_from_empty_input_directory(
+    tmp_path: Path, *, directory: bool
+) -> None:
+    source = tmp_path / "missing.bin"
+    if directory:
+        source.mkdir()
+    output = tmp_path / "corpus"
+    report_path = tmp_path / "report.json"
+
+    assert (
+        main(
+            [
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(report_path),
+            ]
+        )
+        == 1
+    )
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert report["summary_complete"] is not directory
+    assert report["dataset_published"] is False
+    assert not output.exists()
+    if directory:
+        assert report["conversion"]["input_count"] == 0
+        assert report["diagnostics"] == []
+        assert "no .bin replays" in report["error"]
+    else:
+        assert report["conversion"]["input_count"] == 1
+        assert report["conversion"]["failed_by_reason"] == {
+            "input_io_error": 1
+        }
+        [diagnostic] = report["diagnostics"]
+        assert diagnostic["path"] == str(source)
+        assert diagnostic["event_index"] is None
 
 
 def test_directory_uses_relative_path_order(tmp_path: Path) -> None:

@@ -6,11 +6,9 @@ and run the commands from the repository root.
 
 ## Input and targets
 
-Pass one `.bin` file, or a directory of `.bin` files. Each file must contain
-the original binary `fetchGameRecord` response frame, including the response kind,
-two-byte request number, and embedded replay data. The converter handles
-four-player and three-player Mahjong Soul ranked matches. Replays without match
-metadata are assumed to use ranked rules.
+Pass one `.bin` file or a directory of replays saved as original
+`fetchGameRecord` response frames. The converter handles four-player and
+three-player Mahjong Soul ranked matches.
 
 ```sh
 uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/majsoul-shanten
@@ -27,8 +25,9 @@ uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/m
 ## Output and options
 
 Set `--output` to a new directory. A successful conversion writes `manifest.json`,
-an index, and case files. A failed conversion prevents dataset publication.
-The command prints the manifest or a diagnostic to stderr.
+an index, and case files. A failed replay prevents dataset publication, and the
+converter continues scanning the remaining inputs. The command prints the
+manifest or a diagnostic to stderr.
 
 - `--report PATH` saves conversion counts and diagnostics as JSON. By default,
   no report file is written.
