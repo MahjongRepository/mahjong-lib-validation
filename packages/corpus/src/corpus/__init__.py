@@ -9,12 +9,16 @@ from corpus.datasets import (
     write_dataset,
 )
 from corpus.errors import CorpusError
-from corpus.manifests import parse_manifest, read_manifest, write_manifest
+from corpus.manifests import (
+    Manifest,
+    parse_manifest,
+    read_manifest,
+    write_manifest,
+)
 from corpus.models import (
     AgariCase,
     Case,
     CaseType,
-    Manifest,
     ScoringCase,
     ShantenCase,
 )

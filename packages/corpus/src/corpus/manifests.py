@@ -3,13 +3,36 @@
 import json
 from pathlib import Path
 from re import fullmatch
+from typing import Literal, TypedDict
 
 from corpus._fileio import atomic_path, decode_json
 from corpus._validation import minimum, validate_json, validate_type
 from corpus.errors import CorpusError
-from corpus.models import ConversionSummary, Manifest
+lazy from corpus.models import CaseType
 
 MAX_MANIFEST_BYTES = 1024 * 1024
+
+
+class GeneratorInfo(TypedDict):
+    name: str
+    version: str
+    settings: dict[str, object]
+
+
+class ConversionSummary(TypedDict):
+    input_count: int
+    converted_count: int
+    failed_by_reason: dict[str, int]
+    excluded_by_reason: dict[str, int]
+
+
+class Manifest(TypedDict):
+    schema_version: Literal["v1"]
+    case_type: CaseType
+    generator: GeneratorInfo
+    conversion: ConversionSummary
+    record_count: int
+    files_sha256: str
 
 
 def parse_manifest(value: object) -> Manifest:

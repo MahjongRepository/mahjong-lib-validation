@@ -191,29 +191,13 @@ def _yaku_ids(yaku: list[Yaku]) -> None:
         seen.add(item["id"])
 
 
-def _yaku(expected: Expected) -> None:  # noqa: C901 -- distinguish missing han from invalid values
+def _yaku(expected: Expected) -> None:
     if expected["yaku"] is None:
         return
     _yaku_ids(expected["yaku"])
     for index, yaku in enumerate(expected["yaku"]):
         field = f"expected.yaku[{index}]"
-        multiplier = yaku["yakuman_multiplier"]
-        han = yaku["han"]
-        if multiplier < 0:
-            raise CorpusError(
-                field + ".yakuman_multiplier", "must not be negative"
-            )
-        if multiplier > 0:
-            if han is not None:
-                raise CorpusError(field + ".han", "yakuman has no han value")
-        elif han is None:
-            raise CorpusError(
-                field + ".han", "regular yaku needs a recorded han value"
-            )
-        elif han <= 0:
-            raise CorpusError(
-                field + ".han", "regular yaku needs positive han"
-            )
+        _yaku_values(yaku, field)
     total = sum(yaku["yakuman_multiplier"] for yaku in expected["yaku"])
     if (
         expected["yakuman_multiplier"] is not None
@@ -229,6 +213,24 @@ def _yaku(expected: Expected) -> None:  # noqa: C901 -- distinguish missing han 
         if expected["han"] != han:
             error_field = "expected.han"
             raise CorpusError(error_field, "does not equal the yaku han sum")
+
+
+def _yaku_values(yaku: Yaku, field: str) -> None:
+    multiplier = yaku["yakuman_multiplier"]
+    han = yaku["han"]
+    if multiplier < 0:
+        raise CorpusError(
+            field + ".yakuman_multiplier", "must not be negative"
+        )
+    if multiplier > 0:
+        if han is not None:
+            raise CorpusError(field + ".han", "yakuman has no han value")
+    elif han is None:
+        raise CorpusError(
+            field + ".han", "regular yaku needs a recorded han value"
+        )
+    elif han <= 0:
+        raise CorpusError(field + ".han", "regular yaku needs positive han")
 
 
 def _points(expected: Expected) -> None:

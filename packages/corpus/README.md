@@ -21,3 +21,9 @@ uv run python -c "from corpus import check_dataset; manifest = check_dataset('co
   and their metadata to a new dataset directory.
 - `read_cases(path)` and `write_cases(path, cases)` handle standalone JSONL
   case files.
+
+Converters can use `corpus.conversion_reports.new_report` to initialize a
+report and pass its mutable `conversion` summary to `write_dataset`. Update
+the summary as the case iterator runs. Use `record_diagnostic` to tally a
+failed or excluded input by reason and keep the first 100 diagnostics.
+`write_report` saves the final report as UTF-8 JSON at a new path.

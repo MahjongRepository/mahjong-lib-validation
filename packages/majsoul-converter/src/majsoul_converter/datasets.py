@@ -15,7 +15,7 @@ from majsoul_converter.decoder import ConversionError
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterator
 
-    from corpus.models import ConversionSummary, GeneratorInfo
+    from corpus.manifests import ConversionSummary, GeneratorInfo
 
     from majsoul_converter.conversion import Target
 

@@ -16,7 +16,7 @@ from corpus import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from corpus.models import ConversionSummary, GeneratorInfo
+    from corpus.manifests import ConversionSummary, GeneratorInfo
 
 
 GENERATOR: GeneratorInfo = {"name": "test", "version": "1", "settings": {}}

@@ -14,7 +14,7 @@ from tenhou_converter.errors import ConversionError, UnsupportedLogError
 from tenhou_converter.sources import discover, read_xml
 
 if TYPE_CHECKING:
-    from corpus.models import ConversionSummary, GeneratorInfo
+    from corpus.manifests import ConversionSummary, GeneratorInfo
 
 
 MAX_DIAGNOSTICS = 100
