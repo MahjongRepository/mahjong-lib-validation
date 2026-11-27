@@ -124,6 +124,7 @@ def _win_cases(
             f"majsoul:{quote(log_id, safe='')}:"
             f"{wind}:{number}:{start.ben}:{win_number}"
         )
+
         if target != "scoring":
             complete = target in ("agari-complete", "shanten-agari")
             tiles = [*win.hand, win.hu_tile] if complete else list(win.hand)
