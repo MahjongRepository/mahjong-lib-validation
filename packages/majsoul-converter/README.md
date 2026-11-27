@@ -25,9 +25,9 @@ uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/m
 ## Output and options
 
 Set `--output` to a new directory. A successful conversion writes `manifest.json`,
-an index, and case files. A failed replay prevents dataset publication, and the
-converter continues scanning the remaining inputs. The command prints the
-manifest or a diagnostic to stderr.
+an index, and case files. If an individual input fails, the converter continues
+processing the remaining inputs and does not publish the dataset.
+The command prints the manifest or a diagnostic to stderr.
 
 - `--report PATH` saves conversion counts and diagnostics as JSON. By default,
   no report file is written.

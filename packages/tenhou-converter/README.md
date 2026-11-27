@@ -25,7 +25,8 @@ uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpo
 ## Output and options
 
 Set `--output` to a new directory. A successful conversion writes `manifest.json`,
-an index, and case files. A failed conversion prevents dataset publication.
+an index, and case files. If an individual input fails, the converter continues
+processing the remaining inputs and does not publish the dataset.
 The command prints a summary or diagnostic to stderr.
 
 - `--report PATH` saves conversion counts and diagnostics as JSON. By default,
