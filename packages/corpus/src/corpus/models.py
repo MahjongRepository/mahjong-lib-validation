@@ -2,12 +2,6 @@
 
 from typing import Literal, TypedDict
 
-# Keep existing converter imports working during migration.
-from corpus import manifests
-
-ConversionSummary = manifests.ConversionSummary
-GeneratorInfo = manifests.GeneratorInfo
-
 CaseType = Literal["scoring", "agari", "shanten"]
 
 Tile = Literal[
