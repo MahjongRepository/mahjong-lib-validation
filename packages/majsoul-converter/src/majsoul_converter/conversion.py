@@ -60,34 +60,40 @@ def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
     if not identifier or not identifier.strip():
         msg = "log ID required when the replay has no UUID"
         raise ConversionError(msg)
+
     state: RoundState | None = None
     cases = []
     ids: set[str] = set()
     for index, event in events:
         try:
-            if isinstance(event, pb.RecordNewRound) and state is None:
+            if state is None:
+                if not isinstance(event, pb.RecordNewRound):
+                    msg = "expected a new round"
+                    raise ConversionError(msg)
                 state = RoundState(event, index)
-            elif state is None:
-                msg = "expected a new round"
-                raise ConversionError(msg)
-            elif isinstance(event, (pb.RecordNoTile, pb.RecordLiuJu)):
+                continue
+
+            if isinstance(event, (pb.RecordNoTile, pb.RecordLiuJu)):
                 state = None
-            elif isinstance(event, pb.RecordHule):
-                for case in _win_cases(
-                    event, state, identifier, index, target
-                ):
+                continue
+
+            if isinstance(event, pb.RecordHule):
+                wins = _win_cases(event, state, identifier, index, target)
+                for case in wins:
                     if case["case_id"] in ids:
                         msg = "duplicate case ID"
                         raise ConversionError(msg)
                     ids.add(case["case_id"])
                     cases.append(case)
                 state = None
-            else:
-                state.advance(event)
-                state.event_indices.append(index)
+                continue
+
+            state.advance(event)
+            state.event_indices.append(index)
         except (ValueError, IndexError, KeyError) as e:
             msg = f"event {index} ({type(event).__name__}): {e}"
             raise ConversionError(msg, event_index=index) from e
+
     if not events or state is not None:
         msg = "replay must end with a completed round"
         raise ConversionError(msg)

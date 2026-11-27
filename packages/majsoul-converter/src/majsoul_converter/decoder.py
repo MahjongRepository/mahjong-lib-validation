@@ -61,15 +61,14 @@ def decode(payload: bytes) -> tuple[str | None, list[tuple[int, Message]]]:
         if not isinstance(detail, pb.GameDetailRecords):
             msg = "expected a GameDetailRecords Wrapper"
             raise ConversionError(msg)
-        records = (
-            (
+        if detail.actions:
+            records = (
                 (index, action.result)
                 for index, action in enumerate(detail.actions)
                 if action.result
             )
-            if detail.actions
-            else enumerate(detail.records)
-        )
+        else:
+            records = enumerate(detail.records)
         events = [(index, _unwrap(record)) for index, record in records]
     except DecodeError as e:
         msg = f"invalid replay protobuf: {e}"

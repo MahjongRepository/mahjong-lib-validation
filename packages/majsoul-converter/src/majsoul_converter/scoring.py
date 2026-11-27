@@ -108,6 +108,27 @@ def _yaku(win: pb.HuleInfo, state: RoundState) -> list[Yaku]:
     ]
 
 
+def _score_deltas(event: pb.RecordHule, count: int) -> list[int]:
+    delta = list(event.delta_scores)
+    final_scores = list(event.scores)
+    size_error = "win record score arrays must have one entry per active seat"
+    if len(delta) != count or len(event.old_scores) != count:
+        raise ConversionError(size_error)
+    if not final_scores:
+        return delta
+    if len(final_scores) != count:
+        raise ConversionError(size_error)
+
+    scores_from_delta = [
+        old + change
+        for old, change in zip(event.old_scores, delta, strict=True)
+    ]
+    if final_scores != scores_from_delta:
+        msg = "win score deltas do not match final scores"
+        raise ConversionError(msg)
+    return delta
+
+
 def expected_values(
     win: pb.HuleInfo,
     event: pb.RecordHule,
@@ -120,45 +141,27 @@ def expected_values(
     base_payments = [0] * count
     if payer is None:
         for seat in range(count):
-            if seat != win.seat:
-                base_payments[seat] = (
-                    win.point_zimo_qin
-                    if seat == dealer
-                    else win.point_zimo_xian
-                )
+            if seat == win.seat:
+                continue
+            base_payments[seat] = (
+                win.point_zimo_qin if seat == dealer else win.point_zimo_xian
+            )
     else:
         base_payments[payer] = win.point_rong
     base = sum(base_payments)
 
-    delta = list(event.delta_scores)
-    final_scores = list(event.scores)
-    if (
-        len(delta) != count
-        or len(event.old_scores) != count
-        or (final_scores and len(final_scores) != count)
-    ):
-        msg = "win record score arrays must have one entry per active seat"
-        raise ConversionError(msg)
-    if final_scores and final_scores != [
-        old + change
-        for old, change in zip(event.old_scores, delta, strict=True)
-    ]:
-        msg = "win score deltas do not match final scores"
-        raise ConversionError(msg)
-
+    delta = _score_deltas(event, count)
     gain = delta[win.seat]
-    nearest = (
-        win.seat
-        if payer is None
-        else min(
+    nearest = win.seat
+    if payer is not None:
+        nearest = min(
             (hule.seat for hule in event.hules),
             key=lambda seat: (seat - payer) % count,
         )
-    )
     sticks = state.sticks * 1000 if win.seat == nearest else 0
     honba = gain - base - sticks
     exclusions: list[ExcludedField] = []
-    payments: list[int] | None = base_payments
+    payments: list[int] | None
     if event.baopai > 0 or win.baopai or win.baopai_seats:
         payments = None
         exclusions.append({"field": "payments_by_seat", "reason": "pao"})
@@ -168,6 +171,7 @@ def expected_values(
             for seat, change in enumerate(delta)
         ]
     else:
+        payments = base_payments
         payments[payer] += honba
 
     if any(

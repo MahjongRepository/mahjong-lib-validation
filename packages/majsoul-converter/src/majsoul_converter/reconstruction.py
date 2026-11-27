@@ -22,6 +22,24 @@ def _kind(tile: str) -> str:
     return "5" + tile[1:] if tile.startswith("0") else tile
 
 
+def _is_replacement_draw(previous: Message) -> bool:
+    match previous:
+        case pb.RecordAnGangAddGang() | pb.RecordBaBei():
+            return True
+        case pb.RecordChiPengGang():
+            return previous.type == _OPEN_KAN
+    return False
+
+
+def _matches_tsumo(previous: Message, win: pb.HuleInfo) -> bool:
+    match previous:
+        case pb.RecordDealTile():
+            return previous.seat == win.seat and previous.tile == win.hu_tile
+        case pb.RecordNewRound():
+            return previous.ju == win.seat
+    return False
+
+
 @dataclass
 class Meld:
     type: str
@@ -76,13 +94,15 @@ class RoundState:
             i for i, seat in enumerate(event.froms) if seat != event.seat
         )
         from_seat = event.froms[called]
-        if (
-            len(tiles) != len(event.froms)
-            or not isinstance(self.last, pb.RecordDiscardTile)
-            or (from_seat, tiles[called]) != (self.last.seat, self.last.tile)
-        ):
-            msg = "call does not match the preceding discard"
+        msg = "call does not match the preceding discard"
+        if len(tiles) != len(event.froms):
             raise ConversionError(msg)
+        discard = self.last
+        if not isinstance(discard, pb.RecordDiscardTile):
+            raise ConversionError(msg)
+        if (from_seat, tiles[called]) != (discard.seat, discard.tile):
+            raise ConversionError(msg)
+
         for index, tile in enumerate(tiles):
             if index != called:
                 player.hand.remove(tile)
@@ -117,12 +137,7 @@ class RoundState:
         match event:
             case pb.RecordDealTile():
                 self.players[event.seat].hand.append(event.tile)
-                self.rinshan = isinstance(
-                    self.last, (pb.RecordAnGangAddGang, pb.RecordBaBei)
-                ) or (
-                    isinstance(self.last, pb.RecordChiPengGang)
-                    and self.last.type == _OPEN_KAN
-                )
+                self.rinshan = _is_replacement_draw(self.last)
                 self.last_tile = event.left_tile_count == 0
             case pb.RecordDiscardTile():
                 player = self.players[event.seat]
@@ -159,27 +174,20 @@ class RoundState:
         last = self.last
         hand = list(win.hand)
         # HuleInfo.hand omits the winning tile for both tsumo and ron.
-        recorded_hand = hand
         if win.zimo:
-            if not (
-                (
-                    isinstance(last, pb.RecordDealTile)
-                    and last.seat == win.seat
-                    and last.tile == win.hu_tile
-                )
-                or (
-                    isinstance(last, pb.RecordNewRound) and win.seat == last.ju
-                )
-            ):
+            if not _matches_tsumo(last, win):
                 msg = "tsumo does not match the preceding draw"
                 raise ConversionError(msg)
             recorded_hand = [*hand, win.hu_tile]
             payer = None
         else:
             payer = self._ron_source(win.hu_tile)
+            recorded_hand = hand
+
         if sorted(player.hand) != sorted(recorded_hand):
             msg = "reconstructed hand differs from the win record"
             raise ConversionError(msg)
+
         first_draw = win.zimo and not self.interrupted and not player.discarded
         chankan = isinstance(last, pb.RecordAnGangAddGang)
         robbed_north = isinstance(last, pb.RecordBaBei)
