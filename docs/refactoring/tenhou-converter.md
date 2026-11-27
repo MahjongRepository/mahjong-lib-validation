@@ -1,0 +1,15 @@
+# tenhou-converter の整理チェックリスト
+
+## PR 1 — バッチ変換とレポート
+
+- [ ] [corpus の共通レポート](corpus.md)に `convert_files` と `_record_input_failure` を接続する。既知の非対応ルールは除外、壊れた入力は失敗として加算し、後続ファイルも処理する。診断は先頭 100 件を保持し、超過分は件数だけ記録する。失敗を含む全件走査では `summary_complete=true` と `dataset_published=false` が両立する。[バッチ実装](../../packages/tenhou-converter/src/tenhou_converter/datasets.py)
+- [ ] `tenhou-converter mjlog` の成功時は stderr に公開状態・変換集計・件数の JSON を出す。バッチ失敗時の JSON、引数エラーの終了コード 2、レポート保存失敗時に実際の公開状態を返す経路も維持する。既存出力・不正な shard サイズを入力走査前に拒否する順序を含め、既存テストで比較する。[CLI](../../packages/tenhou-converter/src/tenhou_converter/cli.py) · [バッチテスト](../../packages/tenhou-converter/tests/test_batch.py)
+
+## PR 2 — 牌譜復元と得点の C901（4 件）
+
+- [ ] **`convert_log`** は時系列のループを残し、AGARI のケース登録、ID 重複検査、勝者・終了状態の更新を一まとまりにする。連続 AGARI は同じ局の複数ロンになり得るため、終了済み局の一般的な拒否より先に扱う。ダブロン、流局後の和了、末尾の未完局で分岐順と最終精算の検査を確認する。[変換処理](../../packages/tenhou-converter/src/tenhou_converter/conversion.py)
+- [ ] **`decode_meld`** はビット形式の判定順（チー → ポン・加槓 → 抜き北 → その他の槓）を入口に残し、長いチーとポン・加槓の復号を形式別に切り出す。ビット配置のコメントを復号処理と一緒に移す。複数の意味を持つビット、鳴いた牌の添字、不正コードの理由とフィールド `m` を照合する。[復号処理](../../packages/tenhou-converter/src/tenhou_converter/melds.py) · [副露テスト](../../packages/tenhou-converter/tests/test_melds.py)
+- [ ] **`RoundState.consume_call`** は相手の捨て牌を使う副露と、自分のツモ後の操作で、検査条件と消費牌が異なる。前者の打牌元・現物・三麻制約の検査を切り出し、手牌から消費する処理は一か所に保つ。一発の中断、加槓で追加牌だけを消費すること、抜き北後の嶺上ツモを局面テストで確認する。[局面復元](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [局面テスト](../../packages/tenhou-converter/tests/test_situations.py)
+- [ ] **`expected_values`** は `ten`・`sc` 属性の検査、個別和了の支払い照合、共有精算時の比較除外に分ける。三麻の未使用席、国士の符、包と複数ロンが重なるときの除外理由の優先順を維持する。手計算または牌譜由来の期待値で金額・null・除外理由を比較する。[得点処理](../../packages/tenhou-converter/src/tenhou_converter/scoring.py) · [得点テスト](../../packages/tenhou-converter/tests/test_scoring.py) · [精算テスト](../../packages/tenhou-converter/tests/test_settlement.py)
+
+各関数で抑制を外して Ruff を実行し、併記された PLR0912・PLR0915 も再評価する。レビュー量が多ければ得点・精算を独立させる。XML フィクスチャから生成したケースは [validator の統合テスト](../../packages/validator/tests/test_integration.py)でも確認する。
