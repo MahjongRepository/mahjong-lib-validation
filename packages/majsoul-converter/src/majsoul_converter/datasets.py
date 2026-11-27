@@ -4,7 +4,7 @@ from importlib.metadata import version
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from corpus import Case, Manifest, write_dataset
+from corpus import Case, CorpusError, Manifest, write_dataset
 from corpus.conversion_reports import (
     new_report,
     record_diagnostic,
@@ -18,9 +18,16 @@ from majsoul_converter.sources import input_paths
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterator
 
+    from corpus.conversion_reports import Report
     from corpus.manifests import GeneratorInfo
 
     from majsoul_converter.conversion import Target
+
+
+class BatchConversionError(ConversionError):
+    def __init__(self, message: str, report: Report) -> None:
+        self.report = report
+        super().__init__(message)
 
 
 def _report_file(report_path: str | Path | None, output: Path) -> Path | None:
@@ -35,6 +42,16 @@ def _report_file(report_path: str | Path | None, output: Path) -> Path | None:
     return path
 
 
+def _save_report(path: Path | None, report: Report) -> None:
+    if path is not None:
+        try:
+            write_report(path, report)
+        except OSError as e:
+            message = f"{report['error'] or ''}; report_io_error: {e}"
+            report["error"] = message
+            raise BatchConversionError(message, report) from e
+
+
 def convert_files(  # noqa: PLR0913 -- explicit dataset options
     input_path: str | Path,
     output_directory: str | Path,
@@ -46,10 +63,16 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
     target: Target = "scoring",
 ) -> Manifest:
     """Publish a corpus from one replay or a directory of replays."""
+    source, output = Path(input_path), Path(output_directory)
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    if cases_per_file <= 0:
+        msg = "cases_per_file must be positive"
+        raise ValueError(msg)
     if target not in TARGETS:
         msg = f"unknown conversion target {target!r}"
-        raise ConversionError(msg)
-    source, output = Path(input_path), Path(output_directory)
+        raise ValueError(msg)
+
     report_file = _report_file(report_path, output)
     generator: GeneratorInfo = {
         "name": "majsoul-converter",
@@ -66,7 +89,6 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
     summary = report["conversion"]
 
     def cases(paths: Iterator[Path]) -> Generator[Case]:
-        first_failure: ConversionError | OSError | None = None
         for path in paths:
             summary["input_count"] += 1
             try:
@@ -96,22 +118,11 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
                     },
                     excluded=False,
                 )
-                if first_failure is None:
-                    first_failure = (
-                        ConversionError(
-                            f"{path}: {e}", event_index=event_index
-                        )
-                        if conversion_error
-                        else e
-                    )
                 continue
             summary["converted_count"] += 1
             report["record_count"] += len(records)
             yield from records
         report["summary_complete"] = True
-        # Report the first input error after scanning all replays.
-        if first_failure is not None:
-            raise first_failure
 
     try:
         with (
@@ -128,12 +139,10 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
                 compress=compress,
             )
             report["dataset_published"] = True
-    except (ValueError, OSError, sqlite3.Error) as e:
+    except (ConversionError, CorpusError, OSError, sqlite3.Error) as e:
         report["error"] = str(e)
-        if report_file is not None:
-            write_report(report_file, report)
-        raise
+        _save_report(report_file, report)
+        raise BatchConversionError(str(e), report) from e
 
-    if report_file is not None:
-        write_report(report_file, report)
+    _save_report(report_file, report)
     return manifest

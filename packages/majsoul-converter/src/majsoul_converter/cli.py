@@ -1,15 +1,22 @@
 import argparse
 import json
-import sqlite3
 import sys
 from importlib.metadata import version
 from typing import TYPE_CHECKING
 
 from majsoul_converter.conversion import TARGETS
-from majsoul_converter.datasets import convert_files
+from majsoul_converter.datasets import BatchConversionError, convert_files
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+
+def positive(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        msg = "must be a positive integer"
+        raise argparse.ArgumentTypeError(msg)
+    return number
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -24,7 +31,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--output", required=True)
     parser.add_argument("--target", choices=TARGETS, default="scoring")
     parser.add_argument("--log-id")
-    parser.add_argument("--cases-per-file", type=int, default=100_000)
+    parser.add_argument("--cases-per-file", type=positive, default=100_000)
     parser.add_argument("--no-compress", action="store_true")
     parser.add_argument("--report")
 
@@ -40,9 +47,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             report_path=args.report,
             target=args.target,
         )
-    except (OSError, ValueError, sqlite3.Error) as e:
+    except BatchConversionError as e:
+        sys.stderr.write(json.dumps(e.report, ensure_ascii=False) + "\n")
+        return 1
+    except OSError as e:
         sys.stderr.write(f"{e}\n")
         return 1
-
-    sys.stderr.write(json.dumps(manifest) + "\n")
-    return 0
+    except ValueError as e:
+        parser.error(str(e))
+    else:
+        sys.stderr.write(
+            json.dumps(
+                {
+                    "dataset_published": True,
+                    "conversion": manifest["conversion"],
+                    "record_count": manifest["record_count"],
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+        return 0

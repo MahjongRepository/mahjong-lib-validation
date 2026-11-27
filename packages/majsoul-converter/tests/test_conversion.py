@@ -401,16 +401,22 @@ def test_cli_conversion_output(
 
     assert status == (0 if valid else 1)
     assert output.is_dir() is valid
-    stderr = capsys.readouterr().err
+    stderr = json.loads(capsys.readouterr().err)
     if valid:
         manifest = json.loads(
             (output / "manifest.json").read_text(encoding="utf-8")
         )
-        assert json.loads(stderr) == manifest
+        assert stderr == {
+            "dataset_published": True,
+            "conversion": manifest["conversion"],
+            "record_count": manifest["record_count"],
+        }
     else:
-        assert (
-            stderr == f"{source}: expected a fetchGameRecord response frame\n"
-        )
+        assert stderr["dataset_published"] is False
+        assert stderr["summary_complete"] is True
+        [diagnostic] = stderr["diagnostics"]
+        assert diagnostic["path"] == str(source)
+        assert "response frame" in diagnostic["message"]
     assert report_path.exists() is save_report
     if not save_report:
         return
@@ -427,6 +433,7 @@ def test_cli_conversion_output(
         assert report["error"] is None
         assert report["diagnostics"] == []
     else:
+        assert report == stderr
         assert report["conversion"]["failed_by_reason"] == {
             "conversion_error": 1
         }
@@ -511,7 +518,7 @@ def test_report_caps_diagnostics_but_counts_all_failures(
     assert report["omitted_diagnostic_count"] == 3
 
 
-def test_cli_invalid_shard_size_reports_incomplete_scan(
+def test_cli_invalid_shard_size_is_an_argument_error(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "game.bin"
@@ -519,7 +526,7 @@ def test_cli_invalid_shard_size_reports_incomplete_scan(
     output = tmp_path / "corpus"
     report_path = tmp_path / "report.json"
 
-    assert (
+    with pytest.raises(SystemExit) as caught:
         main(
             [
                 str(source),
@@ -531,14 +538,41 @@ def test_cli_invalid_shard_size_reports_incomplete_scan(
                 "0",
             ]
         )
+    assert caught.value.code == 2
+    assert not report_path.exists()
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_cli_report_io_failure_retains_publication_state(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], *, valid: bool
+) -> None:
+    source = tmp_path / "game.bin"
+    source.write_bytes(replay(actions=True) if valid else b"invalid")
+    output = tmp_path / "corpus"
+    blocker = tmp_path / "blocked"
+    blocker.touch()
+
+    assert (
+        main(
+            [
+                str(source),
+                "--output",
+                str(output),
+                "--report",
+                str(blocker / "report.json"),
+            ]
+        )
         == 1
     )
-
-    report = json.loads(report_path.read_text(encoding="utf-8"))
-    assert report["conversion"]["input_count"] == 0
-    assert report["summary_complete"] is False
-    assert report["dataset_published"] is False
-    assert not output.exists()
+    report = json.loads(capsys.readouterr().err)
+    assert report["dataset_published"] is valid
+    assert output.is_dir() is valid
+    assert "report_io_error" in report["error"]
+    if not valid:
+        assert report["conversion"]["failed_by_reason"] == {
+            "conversion_error": 1
+        }
 
 
 @pytest.mark.parametrize("directory", [False, True])
