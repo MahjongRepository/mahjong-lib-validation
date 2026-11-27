@@ -2,6 +2,12 @@
 
 from typing import Literal, TypedDict
 
+# Keep existing converter imports working during migration.
+from corpus import manifests
+
+ConversionSummary = manifests.ConversionSummary
+GeneratorInfo = manifests.GeneratorInfo
+
 CaseType = Literal["scoring", "agari", "shanten"]
 
 Tile = Literal[
@@ -230,31 +236,3 @@ class ShantenCase(ShapeCase):
 
 
 type Case = ScoringCase | AgariCase | ShantenCase
-
-
-class GeneratorInfo(TypedDict):
-    name: str
-    version: str
-    settings: dict[str, object]
-
-
-class ConversionSummary(TypedDict):
-    input_count: int
-    converted_count: int
-    failed_by_reason: dict[str, int]
-    excluded_by_reason: dict[str, int]
-
-
-class DataFile(TypedDict):
-    path: str
-    record_count: int
-    sha256: str
-
-
-class Manifest(TypedDict):
-    schema_version: Literal["v1"]
-    case_type: CaseType
-    generator: GeneratorInfo
-    conversion: ConversionSummary
-    record_count: int
-    files_sha256: str

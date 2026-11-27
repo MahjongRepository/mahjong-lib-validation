@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import TypedDict
 
-lazy from corpus.models import ConversionSummary, GeneratorInfo
+lazy from corpus.manifests import ConversionSummary, GeneratorInfo
 
 MAX_DIAGNOSTICS = 100
 

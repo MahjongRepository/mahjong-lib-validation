@@ -8,7 +8,7 @@ from corpus.conversion_reports import (
     record_diagnostic,
     write_report,
 )
-lazy from corpus.models import GeneratorInfo
+lazy from corpus.manifests import GeneratorInfo
 
 
 def test_counts_include_omitted_diagnostics(tmp_path: Path) -> None:
