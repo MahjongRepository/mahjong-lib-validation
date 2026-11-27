@@ -355,16 +355,24 @@ def test_nullable_array_error_identifies_element(
 
 
 @pytest.mark.parametrize(
-    ("han", "multiplier"), [(0, 0), (-1, 0), (1, 1), (None, 0)]
+    ("han", "multiplier", "message"),
+    [
+        (0, 0, "regular yaku needs positive han"),
+        (-1, 0, "regular yaku needs positive han"),
+        (1, 1, "yakuman has no han value"),
+        (None, 0, "regular yaku needs a recorded han value"),
+    ],
 )
 def test_yaku_distinguishes_han_and_yakuman(
-    example: dict[str, Any], han: int | None, multiplier: int
+    example: dict[str, Any], han: int | None, multiplier: int, message: str
 ) -> None:
     example["expected"]["yaku"][0].update(
         han=han, yakuman_multiplier=multiplier
     )
-    with pytest.raises(CorpusError, match=r"expected\.yaku\[0\]"):
+    with pytest.raises(CorpusError) as error:
         parse_scoring_case(example)
+    assert error.value.field == "expected.yaku[0].han"
+    assert error.value.message == message
 
 
 def test_yakuman_total_matches_yaku_multipliers(

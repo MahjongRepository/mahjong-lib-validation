@@ -13,9 +13,14 @@ from corpus import (
     read_dataset,
     write_dataset,
 )
+from corpus.conversion_reports import (
+    new_report,
+    record_diagnostic,
+    write_report,
+)
 
 if TYPE_CHECKING:
-    from corpus.models import Case, ConversionSummary
+    from corpus.models import Case
 
 
 @pytest.fixture
@@ -318,52 +323,78 @@ def test_compressed_dataset_hashes_gzip_bytes(
     assert check_dataset(path)["record_count"] == 2
 
 
-def test_conversion_summary_can_be_finalized_while_streaming(
-    tmp_path: Path, example: dict[str, Any]
+@pytest.mark.parametrize("excluded", [True, False])
+def test_report_is_finalized_before_publication(
+    tmp_path: Path, example: dict[str, Any], *, excluded: bool
 ) -> None:
-    summary: ConversionSummary = {
-        "input_count": 1,
-        "converted_count": 0,
-        "failed_by_reason": {},
-        "excluded_by_reason": {},
-    }
-
-    def cases() -> Iterator[Case]:
-        yield parse_case(example)
-        summary["converted_count"] = 1
-
-    manifest = write_dataset(
-        tmp_path / "streamed",
-        cases(),
-        conversion=summary,
+    path = tmp_path / "dataset"
+    report = new_report(
+        tmp_path / "logs",
+        path,
         generator={"name": "test", "version": "1", "settings": {}},
     )
-    assert manifest["conversion"]["converted_count"] == 1
-
-
-def test_failure_reported_at_end_of_stream_prevents_publication(
-    tmp_path: Path, example: dict[str, Any]
-) -> None:
-    summary: ConversionSummary = {
-        "input_count": 1,
-        "converted_count": 1,
-        "failed_by_reason": {},
-        "excluded_by_reason": {},
-    }
+    summary = report["conversion"]
 
     def cases() -> Iterator[Case]:
+        summary["input_count"] += 1
+        summary["converted_count"] += 1
+        report["record_count"] += 1
         yield parse_case(example)
-        summary["input_count"] = 2
-        summary["failed_by_reason"] = {"invalid_log": 1}
 
-    with pytest.raises(CorpusError, match=r"conversion\.failed_by_reason"):
-        write_dataset(
-            tmp_path / "partial",
-            cases(),
-            conversion=summary,
-            generator={"name": "test", "version": "1", "settings": {}},
+        summary["input_count"] += 1
+        record_diagnostic(
+            report,
+            {
+                "path": "logs/second",
+                "log_id": "second",
+                "reason": "unsupported" if excluded else "invalid_log",
+                "message": "second input could not be converted",
+                "event_index": None,
+                "field": None,
+            },
+            excluded=excluded,
         )
-    assert list(tmp_path.iterdir()) == []
+
+        summary["input_count"] += 1
+        summary["converted_count"] += 1
+        report["record_count"] += 1
+        yield parse_case(example)
+        report["summary_complete"] = True
+
+    records = cases()
+    if excluded:
+        manifest = write_dataset(
+            path, records, conversion=summary, generator=report["generator"]
+        )
+        report["dataset_published"] = True
+        assert check_dataset(path) == manifest
+    else:
+        with pytest.raises(CorpusError, match=r"conversion\.failed_by_reason"):
+            write_dataset(
+                path,
+                records,
+                conversion=summary,
+                generator=report["generator"],
+            )
+        assert list(tmp_path.iterdir()) == []
+        manifest = None
+
+    report_path = tmp_path / "report.json"
+    write_report(report_path, report)
+    saved = json.loads(report_path.read_text(encoding="utf-8"))
+    assert saved["conversion"] == {
+        "input_count": 3,
+        "converted_count": 2,
+        "failed_by_reason": {} if excluded else {"invalid_log": 1},
+        "excluded_by_reason": {"unsupported": 1} if excluded else {},
+    }
+    assert saved["record_count"] == 2
+    assert [item["log_id"] for item in saved["diagnostics"]] == ["second"]
+    assert saved["summary_complete"] is True
+    assert saved["dataset_published"] is excluded
+    if manifest is not None:
+        assert saved["conversion"] == manifest["conversion"]
+        assert saved["record_count"] == manifest["record_count"]
 
 
 @pytest.mark.parametrize("limit", [0, -1])
@@ -422,7 +453,31 @@ def test_total_must_match_index(dataset: Path) -> None:
     manifest = _load_manifest(dataset)
     manifest["record_count"] += 1
     _save_manifest(dataset, manifest)
-    with pytest.raises(
-        CorpusError, match="does not equal the file record counts"
-    ):
-        check_dataset(dataset)
+    cases = read_dataset(dataset)
+    assert next(cases)["source"]["platform"] == "tenhou"
+    assert next(cases)["source"]["platform"] == "majsoul"
+    with pytest.raises(CorpusError) as error:
+        next(cases)
+    assert error.value.field == "record_count"
+    assert error.value.path == dataset / "files.jsonl"
+
+
+def test_invalid_second_index_row_is_reported_after_first_shard(
+    dataset: Path,
+) -> None:
+    path = dataset / "files.jsonl"
+    first, _ = path.read_bytes().splitlines(keepends=True)
+    content = first + b"{\n"
+    path.write_bytes(content)
+    manifest_path = dataset / "manifest.json"
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest["files_sha256"] = hashlib.sha256(content).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    cases = read_dataset(dataset)
+    assert next(cases)["source"]["platform"] == "tenhou"
+    with pytest.raises(CorpusError) as error:
+        next(cases)
+    assert error.value.field == "$"
+    assert error.value.path == path
+    assert error.value.line == 2

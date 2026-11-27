@@ -168,22 +168,7 @@ def _read_dataset(directory: Path, manifest: Manifest) -> Generator[Case]:
     with path.open("rb") as stream:
         lines = iter(lambda: stream.readline(MAX_INDEX_ROW_BYTES + 1), b"")
         for index, line in enumerate(lines):
-            field = f"files[{index}]"
-            if len(line) > MAX_INDEX_ROW_BYTES:
-                raise CorpusError(
-                    field, "file index row exceeds 4 KiB", path=path
-                )
-            value = decode_json(line, path, line=index + 1)
-            entry = validate_type(value, DataFile, field)
-            stem = f"{manifest['case_type']}-{index + 1:06d}"
-            if entry["path"] not in (stem + ".jsonl", stem + ".jsonl.gz"):
-                raise CorpusError(
-                    field + ".path",
-                    "expected sequential data file name",
-                    path=path,
-                )
-            minimum(entry["record_count"], 1, field + ".record_count")
-            validate_digest(entry["sha256"], field + ".sha256")
+            entry = _read_index_row(line, path, index, manifest["case_type"])
             yield from _read_file(
                 directory, entry, index, manifest["case_type"]
             )
@@ -193,6 +178,26 @@ def _read_dataset(directory: Path, manifest: Manifest) -> Generator[Case]:
         raise CorpusError(
             field, "does not equal the file record counts", path=path
         )
+
+
+def _read_index_row(
+    line: bytes, path: Path, index: int, case_type: CaseType
+) -> DataFile:
+    field = f"files[{index}]"
+    if len(line) > MAX_INDEX_ROW_BYTES:
+        raise CorpusError(field, "file index row exceeds 4 KiB", path=path)
+    value = decode_json(line, path, line=index + 1)
+    entry = validate_type(value, DataFile, field)
+    stem = f"{case_type}-{index + 1:06d}"
+    if entry["path"] not in (stem + ".jsonl", stem + ".jsonl.gz"):
+        raise CorpusError(
+            field + ".path",
+            "expected sequential data file name",
+            path=path,
+        )
+    minimum(entry["record_count"], 1, field + ".record_count")
+    validate_digest(entry["sha256"], field + ".sha256")
+    return entry
 
 
 def _read_file(
