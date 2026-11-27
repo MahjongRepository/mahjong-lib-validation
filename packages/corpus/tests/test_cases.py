@@ -75,7 +75,7 @@ def test_counted_yakuman_has_no_true_yakuman_multiplier(
     assert case["expected"]["han"] == 13
 
 
-@pytest.mark.parametrize("title", ["double_yakuman", "", 5])
+@pytest.mark.parametrize("title", ["7x yakuman", "", 5])
 def test_invalid_title(example: dict[str, Any], title: object) -> None:
     example["expected"]["title"] = title
     with pytest.raises(CorpusError) as error:

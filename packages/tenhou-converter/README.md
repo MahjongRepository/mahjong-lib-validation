@@ -14,13 +14,13 @@ matches with red fives and open tanyao.
 uv run tenhou-converter mjlog logs/tenhou --target shanten-tenpai --output corpora/shanten-tenpai
 ```
 
-| `--target` | Expected result |
-| --- | --- |
-| `scoring` (default) | Scoring values from the win record |
-| `agari-complete` | Winning hand with the winning tile included |
-| `agari-tenpai` | Incomplete hand with the winning tile removed |
-| `shanten-agari` | Shanten −1 for the winning hand |
-| `shanten-tenpai` | Shanten 0 with the winning tile removed |
+| Target | Hand | Expected result |
+| --- | --- | --- |
+| `scoring` (default) | Winning hand | Scoring values from the win record |
+| `agari-complete` | With the winning tile | `is_agari = true` |
+| `agari-tenpai` | Without the winning tile | `is_agari = false` |
+| `shanten-agari` | With the winning tile | `shanten = -1` |
+| `shanten-tenpai` | Without the winning tile | `shanten = 0` |
 
 ## Output and options
 

@@ -133,4 +133,4 @@ class Environment(TypedDict):
     python_build: list[str]
     platform: str
     free_threaded: bool
-    rules_version: str
+    rules_versions: list[str]

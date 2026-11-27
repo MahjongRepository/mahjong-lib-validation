@@ -67,6 +67,7 @@ def test_validate_14_tile_shape_with_ankan(
         },
     )
     summary = validate_dataset(dataset, tmp_path / "result")
+    assert summary["environment"]["rules_versions"] == []
     assert summary["case_type"] == "agari"
     assert summary["field_counts"] == {"is_agari": {"matched": 1}}
     assert summary["exit_code"] == 0

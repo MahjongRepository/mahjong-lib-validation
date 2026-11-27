@@ -8,6 +8,7 @@ from corpus import parse_scoring_case, write_dataset
 from mahjong.hand_calculating.hand_response import HandResponse
 from validator import validate_dataset
 from validator.adapter import calculate, prepare_hand
+from validator.selection import Selection
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
     from corpus.models import ScoringCase
 
 
-@pytest.mark.parametrize("kind", ["unknown", "unsupported", "no_expectations"])
+@pytest.mark.parametrize("kind", ["unknown", "no_expectations"])
 def test_all_unvalidated_cases_do_not_pass(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
@@ -23,9 +24,7 @@ def test_all_unvalidated_cases_do_not_pass(
     kind: str,
 ) -> None:
     case = load_case()
-    if kind == "unsupported":
-        case = load_case("majsoul-scoring")
-    elif kind == "unknown":
+    if kind == "unknown":
         case["input"]["situation"]["riichi"] = None
         case["situation_provenance"]["unknown_fields"] = {
             "riichi": "missing events"
@@ -88,7 +87,7 @@ def test_calculation_failure_is_saved_and_next_case_runs(
     assert summary["exit_code"] == 1
 
 
-def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
+def test_unknown_input_is_skipped_and_majsoul_passes(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
@@ -103,11 +102,15 @@ def test_unknown_input_is_skipped_and_majsoul_is_unsupported(
         [load_case(), unknown, load_case("majsoul-scoring")],
     )
     summary = validate_dataset(dataset, tmp_path / "result")
+    assert summary["environment"]["rules_versions"] == [
+        "majsoul-ranked-match-v1",
+        "tenhou-ranked-match-v1",
+    ]
     assert summary["counts"] == {
-        "passed": 1,
+        "passed": 2,
         "mismatch": 0,
         "error": 0,
-        "unsupported": 1,
+        "unsupported": 0,
         "skipped": 1,
     }
     assert summary["exit_code"] == 1
@@ -213,3 +216,25 @@ def test_validate_ron_from_corpus(tmp_path: Path) -> None:
         "actual": 40,
     }
     assert result["fields"]["winner_gain"]["actual"] == 3600
+
+
+@pytest.mark.parametrize("name", ["tenhou-scoring", "majsoul-scoring"])
+def test_environment_reports_selected_scoring_rules(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    name: str,
+) -> None:
+    selected = load_case(name)
+    dataset = save_dataset(
+        tmp_path / "corpus",
+        [load_case("tenhou-scoring"), load_case("majsoul-scoring")],
+    )
+    summary = validate_dataset(
+        dataset,
+        tmp_path / "result",
+        selection=Selection(case_ids=(selected["case_id"],)),
+    )
+    env = summary["environment"]
+    assert env["rules_versions"] == [f"{selected['ruleset']}-v1"]
+    assert "rules_version" not in env

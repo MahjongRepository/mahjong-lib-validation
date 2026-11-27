@@ -4,8 +4,7 @@ The initial implementation milestone is to generate corpora from Tenhou logs and
 
 ## Top Priorities
 
-- Convert Mahjong Soul game logs to the shared corpus format.
-- Validate scoring calculations under Mahjong Soul rules.
+- Identify a source of Mahjong Soul ranked replays for validation at scale.
 
 ## Deferred and Out of Scope
 

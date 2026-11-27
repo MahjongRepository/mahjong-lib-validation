@@ -44,6 +44,7 @@ YAKU_NAMES: dict[str, YakuId] = {
     _config.honitsu.name: "honitsu",
     _config.chinitsu.name: "chinitsu",
     _config.renhou.name: "renhou",
+    _config.renhou_yakuman.name: "renhou",
     _config.tenhou.name: "tenhou",
     _config.chiihou.name: "chiihou",
     _config.daisangen.name: "daisangen",

@@ -234,11 +234,14 @@ def _validate_dataset(
     }
     scan = SelectionScan(selection, case_type)
     field_counts: dict[str, dict[str, int]] = {}
+    rulesets: set[str] = set()
 
     with (output / "cases.jsonl").open("w", encoding="utf-8") as stream:
         for position, case in scan.select(read_dataset(dataset)):
             if selected_cases is not None:
                 selected_cases.append((position, case))
+            if case["case_type"] == "scoring":
+                rulesets.add(case["ruleset"])
             result = validate_case(case)
             result["position"] = position
             counts[result["status"]] += 1
@@ -265,7 +268,7 @@ def _validate_dataset(
             "limit": selection.limit,
         },
         "corpus": {"manifest_sha256": manifest_sha256},
-        "environment": environment_info(),
+        "environment": environment_info(rulesets),
         "comparison_policy": (
             "v1: yaku dora+nuki_dora combined; "
             "event_score_deltas unsupported; "

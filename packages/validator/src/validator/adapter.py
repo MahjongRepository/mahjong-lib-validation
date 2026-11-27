@@ -39,18 +39,23 @@ MELD_KINDS = {
     "ankan": Meld.KAN,
     "kakan": Meld.SHOUMINKAN,
 }
-TITLES: dict[str, Title] = {
+_MAJSOUL_TITLES: dict[str, Title] = {
     "": "below_mangan",
     "mangan": "mangan",
     "haneman": "haneman",
     "baiman": "baiman",
     "sanbaiman": "sanbaiman",
     "yakuman": "yakuman",
-    "2x yakuman": "yakuman",
-    "3x yakuman": "yakuman",
-    "4x yakuman": "yakuman",
-    "5x yakuman": "yakuman",
-    "6x yakuman": "yakuman",
+    "2x yakuman": "double_yakuman",
+    "3x yakuman": "triple_yakuman",
+    "4x yakuman": "quadruple_yakuman",
+    "5x yakuman": "quintuple_yakuman",
+    "6x yakuman": "sextuple_yakuman",
+}
+
+_TENHOU_TITLES: dict[str, Title] = {
+    label: "yakuman" if label.endswith("x yakuman") else title
+    for label, title in _MAJSOUL_TITLES.items()
 }
 
 
@@ -74,6 +79,7 @@ class PreparedHand:
     winner: int
     dealer: int
     discarder: int | None
+    ruleset: str
 
 
 def _tile_index(tile: str) -> int:
@@ -113,16 +119,18 @@ def prepare_shanten_call(case: ShantenCase) -> Callable[[], int]:
     )
 
 
-def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:
+def _ranked_rules(
+    *, is_three_player: bool, double_yakuman: bool, renhou_as_yakuman: bool
+) -> OptionalRules:
     return OptionalRules(
         has_open_tanyao=True,
         has_aka_dora=True,
-        has_double_yakuman=False,
+        has_double_yakuman=double_yakuman,
         kazoe_limit=HandConfig.KAZOE_LIMITED,
         kiriage=False,
         fu_for_open_pinfu=True,
         fu_for_pinfu_tsumo=False,
-        renhou_as_yakuman=False,
+        renhou_as_yakuman=renhou_as_yakuman,
         has_daisharin=False,
         has_daisharin_other_suits=False,
         has_sashikomi_yakuman=False,
@@ -133,10 +141,26 @@ def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:
     )
 
 
+def _tenhou_ranked_rules(*, is_three_player: bool) -> OptionalRules:
+    return _ranked_rules(
+        is_three_player=is_three_player,
+        double_yakuman=False,
+        renhou_as_yakuman=False,
+    )
+
+
+def _majsoul_ranked_rules(*, is_three_player: bool) -> OptionalRules:
+    return _ranked_rules(
+        is_three_player=is_three_player,
+        double_yakuman=True,
+        renhou_as_yakuman=True,
+    )
+
+
 def prepare_hand(
     hand: ScoringInput, round_: Round, player_count: int, ruleset: str
 ) -> PreparedHand:
-    if ruleset != "tenhou-ranked-match":
+    if ruleset not in {"tenhou-ranked-match", "majsoul-ranked-match"}:
         raise UnsupportedInputError(ruleset)
     unknown = [
         key for key, value in hand["situation"].items() if value is None
@@ -182,6 +206,11 @@ def prepare_hand(
             )
         )
     situation = hand["situation"]
+    ranked_rules = (
+        _majsoul_ranked_rules
+        if ruleset == "majsoul-ranked-match"
+        else _tenhou_ranked_rules
+    )
     config = HandConfig(
         is_tsumo=situation["tsumo"],
         is_riichi=situation["riichi"] == "riichi",
@@ -203,9 +232,7 @@ def prepare_hand(
         tsumi_number=round_["honba"],
         kyoutaku_number=round_["riichi_sticks"],
         num_nuki_dora=hand["nuki_count"],
-        options=_tenhou_ranked_rules(
-            is_three_player=player_count == SANMA_PLAYERS
-        ),
+        options=ranked_rules(is_three_player=player_count == SANMA_PLAYERS),
     )
 
     return PreparedHand(
@@ -219,6 +246,7 @@ def prepare_hand(
         hand["winner_seat"],
         round_["dealer_seat"],
         hand["discarder_seat"],
+        ruleset,
     )
 
 
@@ -259,6 +287,14 @@ def _payments(hand: PreparedHand, cost: ScoresResult) -> list[int]:
         elif seat == hand.discarder:
             payments[seat] = cost["main"] + cost["main_bonus"]
     return payments
+
+
+def _scoring_title(ruleset: str, level: str, *, is_kazoe: bool) -> Title:
+    if is_kazoe:
+        return "kazoe_yakuman"
+    if ruleset == "tenhou-ranked-match":
+        return _TENHOU_TITLES[level]
+    return _MAJSOUL_TITLES[level]
 
 
 def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
@@ -304,10 +340,10 @@ def normalize_result(hand: PreparedHand, raw: HandResponse) -> Expected:
 
     multiplier = sum(item["yakuman_multiplier"] for item in yaku)
     cost = raw.cost
-    title = (
-        "kazoe_yakuman"
-        if raw.han >= YAKUMAN_HAN and not multiplier
-        else TITLES[cost["yaku_level"]]
+    title = _scoring_title(
+        hand.ruleset,
+        cost["yaku_level"],
+        is_kazoe=raw.han >= YAKUMAN_HAN and not multiplier,
     )
     additional_count = hand.player_count - 2 if hand.config.is_tsumo else 0
     base_points = cost["main"] + additional_count * cost["additional"]

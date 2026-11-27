@@ -69,12 +69,15 @@ def test_normalize_rejects_invalid_han_for_hand_openness(
         normalize_result(hand, raw)
 
 
+@pytest.mark.parametrize(
+    "ruleset", ["tenhou-ranked-match", "majsoul-ranked-match"]
+)
 @pytest.mark.parametrize("kazoe", [False, True])
 def test_normalize_composite_yakuman_and_kazoe(
-    load_case: Callable[..., ScoringCase], *, kazoe: bool
+    load_case: Callable[..., ScoringCase], ruleset: str, *, kazoe: bool
 ) -> None:
     case = load_case()
-    hand = prepare_hand(case["input"], case["round"], 4, case["ruleset"])
+    hand = prepare_hand(case["input"], case["round"], 4, ruleset)
     config = YakuConfig()
     config.dora.han_closed = 6
     yaku = (
@@ -97,7 +100,12 @@ def test_normalize_composite_yakuman_and_kazoe(
         yaku=yaku,
     )
     actual = normalize_result(hand, raw)
-    assert actual["title"] == ("kazoe_yakuman" if kazoe else "yakuman")
+    expected_title = (
+        "double_yakuman" if ruleset == "majsoul-ranked-match" else "yakuman"
+    )
+    if kazoe:
+        expected_title = "kazoe_yakuman"
+    assert actual["title"] == expected_title
     assert actual["han"] == (13 if kazoe else None)
     assert actual["yakuman_multiplier"] == (0 if kazoe else 2)
 
@@ -227,3 +235,17 @@ def test_meld_tiles_and_call_metadata(
     assert set(meld.tiles).issubset(prepared.tiles)
     assert len(set(prepared.tiles)) == len(prepared.tiles)
     assert 52 in meld.tiles  # red 5p
+
+
+@pytest.mark.parametrize(
+    ("ruleset", "enabled"),
+    [("tenhou-ranked-match", False), ("majsoul-ranked-match", True)],
+)
+def test_ranked_yakuman_rules(
+    load_case: Callable[..., ScoringCase], ruleset: str, *, enabled: bool
+) -> None:
+    case = load_case()
+    hand = prepare_hand(case["input"], case["round"], 4, ruleset)
+
+    assert hand.config.options.has_double_yakuman is enabled
+    assert hand.config.options.renhou_as_yakuman is enabled

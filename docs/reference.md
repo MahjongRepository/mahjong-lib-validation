@@ -23,11 +23,33 @@ It reconstructs the course of play, including meld calls and north tile extracti
 For hand validation, the converter can output a complete hand containing the winning tile and a tenpai hand with that tile removed.
 The expected shanten values are −1 and 0, respectively. The expected win detection results are true and false, respectively.
 
+## Mahjong Soul Replay Conversion
+
+`majsoul-converter` accepts original `fetchGameRecord` response frames saved as
+`.bin` files for four-player and three-player ranked matches. It emits one
+case per winner and reads legacy record lists and modern action lists. It
+reconstructs the seat and round winds, hand, calls, and win situation from
+the event stream. Expected yaku and point values come from each win record
+and its settlement. Score arrays have one entry per active seat, so three-player
+replays produce three-entry settlement arrays.
+
+As with the Tenhou converter, the hand validation targets use the complete
+winning hand or the tenpai hand without the winning tile.
+
+Scoring titles run from `below_mangan` to `sanbaiman`, then `yakuman` through
+`sextuple_yakuman` and `kazoe_yakuman`. The validator distinguishes these
+titles for Mahjong Soul. For Tenhou it uses `yakuman` for all true yakuman
+multipliers and `kazoe_yakuman` for counted yakuman. Han and yakuman multiplier
+are compared separately.
+
 ## Validation and Measurement
 
 The `validate`, `benchmark`, and `profile` commands in `mahjong-validator` support all three case types.
 The commands determine the case type from the manifest. Validation checks the integrity of the entire dataset even when only a subset of cases is selected.
 Benchmarking and profiling begin only after the selected cases pass pre-validation.
+
+The result environment lists the rule versions of selected scoring cases in
+`rules_versions`. Hand validation results have an empty list.
 
 Scoring validation compares calculation results for each individual win. The expected results, the case's comparison conditions, and the library output determine which fields can be compared.
 Scoring validation excludes the allocation of honba and riichi deposits between winners in a double ron, the allocation of payments under yakuman liability (pao), and the point transfers for the win event as a whole.
