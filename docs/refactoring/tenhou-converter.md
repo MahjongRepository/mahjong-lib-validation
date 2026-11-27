@@ -2,8 +2,8 @@
 
 ## PR 1 — バッチ変換とレポート
 
-- [ ] [corpus の共通レポート](corpus.md)に `convert_files` と `_record_input_failure` を接続する。既知の非対応ルールは除外、壊れた入力は失敗として加算し、後続ファイルも処理する。診断は先頭 100 件を保持し、超過分は件数だけ記録する。失敗を含む全件走査では `summary_complete=true` と `dataset_published=false` が両立する。[バッチ実装](../../packages/tenhou-converter/src/tenhou_converter/datasets.py)
-- [ ] `tenhou-converter mjlog` の成功時は stderr に公開状態・変換集計・件数の JSON を出す。バッチ失敗時の JSON、引数エラーの終了コード 2、レポート保存失敗時に実際の公開状態を返す経路も維持する。既存出力・不正な shard サイズを入力走査前に拒否する順序を含め、既存テストで比較する。[CLI](../../packages/tenhou-converter/src/tenhou_converter/cli.py) · [バッチテスト](../../packages/tenhou-converter/tests/test_batch.py)
+- [x] [corpus の共通レポート](corpus.md)に `convert_files` と `_record_input_failure` を接続する。既知の非対応ルールは除外、壊れた入力は失敗として加算し、後続ファイルも処理する。診断は先頭 100 件を保持し、超過分は件数だけ記録する。失敗を含む全件走査では `summary_complete=true` と `dataset_published=false` が両立する。[バッチ実装](../../packages/tenhou-converter/src/tenhou_converter/datasets.py)
+- [x] `tenhou-converter mjlog` の成功時は stderr に公開状態・変換集計・件数の JSON を出す。バッチ失敗時の JSON、引数エラーの終了コード 2、レポート保存失敗時に実際の公開状態を返す経路も維持する。既存出力・不正な shard サイズを入力走査前に拒否する順序を含め、既存テストで比較する。[CLI](../../packages/tenhou-converter/src/tenhou_converter/cli.py) · [バッチテスト](../../packages/tenhou-converter/tests/test_batch.py)
 
 ## PR 2 — 牌譜復元と得点の C901（4 件）
 
