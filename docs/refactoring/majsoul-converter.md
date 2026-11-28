@@ -18,7 +18,7 @@
 ## 不正な牌譜の診断
 
 - [x] **副露牌の取得元を、添字を取り出す前に検証する。** `RoundState._open_meld` は `froms` のうち他家の席を指す位置を `(called,)` に展開する。他家の位置が 0 件または複数件なら、牌数との照合より先に Python のアンパック例外が起きる。`convert_log` はイベント位置を補うが、診断からはどのフィールドが不正か読み取れない。先に `tiles` と `froms` の長さを照合し、次に他家の位置がちょうど 1 件かを検査してから、直前の打牌と席・牌を照合する。長さ不一致、他家 0 件、他家 2 件を個別の入力にして、原因とイベント位置を確認する。[副露の復元](../../packages/majsoul-converter/src/majsoul_converter/reconstruction.py) · [イベント例外の処理](../../packages/majsoul-converter/src/majsoul_converter/conversion.py)
-- [ ] **局開始時の人数・親の席・場風に個別のエラーを返す。** `RoundState.__init__` は 3 条件を `or` で結び、どれが外れても同じメッセージを返す。人数、人数に依存する親の席、場風の順で検証し、エラーに該当する値を含める。例えば 2 人、三麻で `ju=3`、四麻で `chang=4` の各入力で、同じ局開始イベントから別々の原因を特定できるようにする。[局の初期化](../../packages/majsoul-converter/src/majsoul_converter/reconstruction.py)
+- [x] **局開始時の人数・親の席・場風に個別のエラーを返す。** `RoundState.__init__` は 3 条件を `or` で結び、どれが外れても同じメッセージを返す。人数、人数に依存する親の席、場風の順で検証し、エラーに該当する値を含める。例えば 2 人、三麻で `ju=3`、四麻で `chang=4` の各入力で、同じ局開始イベントから別々の原因を特定できるようにする。[局の初期化](../../packages/majsoul-converter/src/majsoul_converter/reconstruction.py)
 
 ## スタイル提案
 

@@ -63,12 +63,16 @@ class RoundState:
         self.start = event
         self.event_indices = [index]
         self.count = len(event.scores)
-        if (
-            self.count not in (3, 4)
-            or event.ju >= self.count
-            or event.chang >= _WIND_COUNT
-        ):
-            msg = "invalid player count, dealer or round wind"
+        if self.count not in (3, 4):
+            msg = f"invalid player count: {self.count}"
+            raise ConversionError(msg)
+        if event.ju >= self.count:
+            msg = (
+                f"invalid dealer seat: ju={event.ju} for {self.count} players"
+            )
+            raise ConversionError(msg)
+        if event.chang >= _WIND_COUNT:
+            msg = f"invalid round wind: chang={event.chang}"
             raise ConversionError(msg)
         hands = (event.tiles0, event.tiles1, event.tiles2, event.tiles3)
         if any(hands[self.count :]):

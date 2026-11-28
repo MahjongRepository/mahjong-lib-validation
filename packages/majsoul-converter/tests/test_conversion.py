@@ -487,6 +487,31 @@ def test_shape_dataset(
     assert validate_case(case)["status"] == "passed"
 
 
+@pytest.mark.parametrize(
+    ("player_count", "dealer", "wind", "field", "invalid_value"),
+    [
+        (2, 0, 0, "player count", "2"),
+        (3, 3, 0, "dealer seat", "ju=3"),
+        (4, 0, 4, "round wind", "chang=4"),
+    ],
+    ids=["player-count", "dealer-seat", "round-wind"],
+)
+def test_new_round_reports_invalid_metadata(
+    player_count: int, dealer: int, wind: int, field: str, invalid_value: str
+) -> None:
+    start = pb.RecordNewRound(
+        scores=[25000] * player_count, ju=dealer, chang=wind
+    )
+    data = response_frame(pb.GameDetailRecords(records=[wrap(start)]))
+
+    with pytest.raises(ConversionError) as error:
+        convert_log(data)
+
+    assert error.value.event_index == 0
+    assert field in str(error.value)
+    assert invalid_value in str(error.value)
+
+
 @pytest.mark.parametrize("fourth_hand", [False, True])
 def test_sanma_rejects_data_for_fourth_seat(*, fourth_hand: bool) -> None:
     start = pb.RecordNewRound(scores=[35000] * 3, dora="5z")
