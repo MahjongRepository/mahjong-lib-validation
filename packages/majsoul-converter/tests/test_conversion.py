@@ -23,7 +23,7 @@ def wrap(message: Message) -> bytes:
     ).SerializeToString()
 
 
-def replay(*, actions: bool, uuid: str = "test-replay") -> bytes:
+def replay_events() -> list[Message]:
     hand = [
         "1z",
         "1z",
@@ -39,7 +39,7 @@ def replay(*, actions: bool, uuid: str = "test-replay") -> bytes:
         "3s",
         "5p",
     ]
-    events = [
+    return [
         pb.RecordNewRound(scores=[25000] * 4, tiles0=[*hand, "9m"], dora="8s"),
         pb.RecordDiscardTile(seat=0, tile="9m"),
         pb.RecordDealTile(seat=1, tile="5p", left_tile_count=68),
@@ -69,7 +69,10 @@ def replay(*, actions: bool, uuid: str = "test-replay") -> bytes:
             scores=[37000, 13000, 25000, 25000],
         ),
     ]
-    records = [wrap(event) for event in events]
+
+
+def replay(*, actions: bool, uuid: str = "test-replay") -> bytes:
+    records = [wrap(event) for event in replay_events()]
     detail = (
         pb.GameDetailRecords(
             version=210715,
@@ -117,7 +120,90 @@ def test_wind_yaku_and_dataset(tmp_path: Path, *, actions: bool) -> None:
         {"id": "sanshoku_doujun", "han": 2, "yakuman_multiplier": 0},
     ]
     assert case["input"]["discarder_seat"] == 1
+    assert case["source"]["event_index"] == (5 if actions else 4)
+    assert case["situation_provenance"]["event_indices"] == (
+        [1, 2, 3, 4, 5] if actions else [0, 1, 2, 3, 4]
+    )
     assert validate_case(case)["status"] == "passed"
+
+
+@pytest.mark.parametrize(
+    ("uuid", "log_id", "identifier"),
+    [
+        ("recorded", "explicit", "explicit"),
+        ("recorded", None, "recorded"),
+        ("", None, "fallback"),
+    ],
+)
+def test_log_identifier_precedence(
+    uuid: str, log_id: str | None, identifier: str
+) -> None:
+    [case] = convert_log(
+        replay(actions=False, uuid=uuid),
+        log_id=log_id,
+        fallback_id="fallback",
+    )
+    assert case["source"]["log_id"] == identifier
+
+
+@pytest.mark.parametrize("event_count", [0, 4])
+def test_replay_requires_a_completed_round(event_count: int) -> None:
+    events = replay_events()[:event_count]
+    data = response_frame(
+        pb.GameDetailRecords(records=[wrap(event) for event in events])
+    )
+
+    with pytest.raises(
+        ConversionError, match="must end with a completed round"
+    ):
+        convert_log(data)
+
+
+def test_double_ron_registers_wins_in_recorded_order() -> None:
+    events = replay_events()
+    start = events[0]
+    win = events[-1]
+    assert isinstance(start, pb.RecordNewRound)
+    assert isinstance(win, pb.RecordHule)
+    second_hand = ["2z"] * 3 + [
+        "4m",
+        "5m",
+        "6m",
+        "4p",
+        "5p",
+        "6p",
+        "4s",
+        "5s",
+        "6s",
+        "5p",
+    ]
+    start.tiles2.extend(second_hand)
+    win.hules.insert(0, pb.HuleInfo(seat=2, hand=second_hand, hu_tile="5p"))
+    data = response_frame(
+        pb.GameDetailRecords(records=[wrap(event) for event in events])
+    )
+
+    cases = convert_log(data, target="agari-complete")
+
+    assert [case["case_id"] for case in cases] == [
+        "majsoul:test-replay:east:1:0:1:agari-complete",
+        "majsoul:test-replay:east:1:0:2:agari-complete",
+    ]
+    assert [case["source"]["event_index"] for case in cases] == [4, 4]
+    assert cases[0]["input"]["concealed_tiles"] == [*second_hand, "5p"]
+    assert cases[1]["input"]["concealed_tiles"] == [*win.hules[1].hand, "5p"]
+    assert [validate_case(case)["status"] for case in cases] == ["passed"] * 2
+
+
+def test_repeated_round_reports_duplicate_case_at_the_second_win() -> None:
+    records = [wrap(event) for event in replay_events()]
+    data = response_frame(pb.GameDetailRecords(records=records * 2))
+
+    with pytest.raises(
+        ConversionError, match=r"event 9 \(RecordHule\): duplicate case ID"
+    ) as error:
+        convert_log(data)
+    assert error.value.event_index == 9
 
 
 @pytest.mark.parametrize(
@@ -198,7 +284,7 @@ def test_sanma_nuki_replacement_draw() -> None:
         "2p",
         "3p",
         "4p",
-        "5p",
+        "0p",
         "6p",
         "1s",
         "2s",
@@ -227,9 +313,10 @@ def test_sanma_nuki_replacement_draw() -> None:
                         pb.FanInfo(id=1, val=1),
                         pb.FanInfo(id=4, val=1),
                         pb.FanInfo(id=11, val=1),
+                        pb.FanInfo(id=32, val=1),
                         pb.FanInfo(id=34, val=1),
                     ],
-                    count=4,
+                    count=5,
                     fu=40,
                     title_id=1,
                     point_zimo_qin=4000,
@@ -255,6 +342,13 @@ def test_sanma_nuki_replacement_draw() -> None:
     assert case["input"]["situation"]["rinshan"]
     assert case["expected"]["payments_by_seat"] == [4000, 0, 2000]
     assert validate_case(case)["status"] == "passed"
+
+    [shape] = convert_log(data, target="agari-complete")
+    assert shape["player_count"] == 3
+    assert shape["input"]["concealed_tiles"] == [*hand[::-1], "9s"]
+    assert shape["input"]["melds"] == []
+    assert shape["source"]["event_index"] == 5
+    assert validate_case(shape)["status"] == "passed"
 
 
 def test_closed_kan_restores_red_five() -> None:
@@ -303,6 +397,11 @@ def test_closed_kan_restores_red_five() -> None:
     assert case["input"]["dora_indicators"] == ["4m", "8s"]
     assert validate_case(case)["status"] == "passed"
 
+    [shape] = convert_log(data, target="shanten-tenpai")
+    assert shape["input"]["concealed_tiles"] == hand
+    assert shape["input"]["melds"] == case["input"]["melds"]
+    assert validate_case(shape)["status"] == "passed"
+
 
 @pytest.mark.parametrize("suffix", [".pb", ".json"])
 def test_file_requires_bin_suffix(tmp_path: Path, suffix: str) -> None:
@@ -326,23 +425,11 @@ def test_rejects_payload_without_response_frame(*, embedded: bool) -> None:
         convert_log(payload)
 
 
-@pytest.mark.parametrize(
-    ("target", "case_type", "complete", "expected"),
-    [
-        ("agari-complete", "agari", True, {"is_agari": True}),
-        ("agari-tenpai", "agari", False, {"is_agari": False}),
-        ("shanten-agari", "shanten", True, {"shanten": -1}),
-        ("shanten-tenpai", "shanten", False, {"shanten": 0}),
-    ],
-)
 def test_shape_dataset(
     tmp_path: Path,
-    target: str,
-    case_type: str,
-    expected: dict[str, bool | int],
-    *,
-    complete: bool,
+    shape_target: tuple[str, str, bool, dict[str, bool | int]],
 ) -> None:
+    target, case_type, complete, expected = shape_target
     source = tmp_path / "game.bin"
     source.write_bytes(replay(actions=True))
     dataset = tmp_path / "corpus"
@@ -353,6 +440,9 @@ def test_shape_dataset(
     [case] = read_dataset(dataset)
     assert case["case_type"] == case_type
     assert case["expected"] == expected
+    assert type(next(iter(case["expected"].values()))) is type(
+        next(iter(expected.values()))
+    )
     assert case["source"]["log_id"] == "test-replay"
     assert case["input"]["concealed_tiles"].count("5p") == (
         2 if complete else 1

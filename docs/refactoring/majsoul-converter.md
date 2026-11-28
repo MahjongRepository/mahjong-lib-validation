@@ -10,7 +10,7 @@
 
 ## 局面変換
 
-- [ ] **C901 の対象 `convert_log`** では ID 決定（明示値、記録 UUID、フォールバックの順）をイベントループの外で独立させ、`RecordHule` の全和了ケースの重複検査と登録をまとめる。局開始待ち・局進行中の区別、流局・和了による局終了、末尾の完局検査はループから追える形に保つ。抑制を外して Ruff を実行し、空ログ、未完局、和了内の複数勝者、重複ケース ID、イベント例外の位置と型名を確認する。[変換処理](../../packages/majsoul-converter/src/majsoul_converter/conversion.py)
-- [ ] `_win_cases` 内の形判定ターゲットは天鳳と同じ 4 種類である。両者で「和了牌を含むか」「期待値が真偽値か向聴数か」の対応を同じ表で検証する。雀魂の和了牌の取り出し方、連続イベントの位置、三麻の抜き北と赤牌の復元は protobuf のフィクスチャで検証する。[変換テスト](../../packages/majsoul-converter/tests/test_conversion.py) · [天鳳の形判定テスト](../../packages/tenhou-converter/tests/test_shape_conversion.py)
+- [x] **C901 の対象 `convert_log`** では ID 決定（明示値、記録 UUID、フォールバックの順）をイベントループの外で独立させ、`RecordHule` の全和了ケースの重複検査と登録をまとめる。局開始待ち・局進行中の区別、流局・和了による局終了、末尾の完局検査はループから追える形に保つ。抑制を外して Ruff を実行し、空ログ、未完局、和了内の複数勝者、重複ケース ID、イベント例外の位置と型名を確認する。[変換処理](../../packages/majsoul-converter/src/majsoul_converter/conversion.py)
+- [x] `_win_cases` 内の形判定ターゲットは天鳳と同じ 4 種類である。両者で「和了牌を含むか」「期待値が真偽値か向聴数か」の対応を同じ表で検証する。雀魂の和了牌の取り出し方、連続イベントの位置、三麻の抜き北と赤牌の復元は protobuf のフィクスチャで検証する。[共通のテスト表](../../packages/test-data/shape-targets.json) · [変換テスト](../../packages/majsoul-converter/tests/test_conversion.py) · [天鳳の形判定テスト](../../packages/tenhou-converter/tests/test_shape_conversion.py)
 
 バッチ処理と局面変換は別 PR にできる。どちらも小さな response frame から dataset を作り、対象ケースの期待値と validator の結果を確認する。
