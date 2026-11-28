@@ -109,16 +109,11 @@ def convert_log(
 ) -> Sequence[Case]: ...
 
 
-def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
+def convert_log(
     xml: bytes, *, log_id: str, target: Target = "scoring"
 ) -> Sequence[Case]:
     """Convert completed rounds with positioned conversion errors."""
-    if not log_id.strip():
-        message = "log_id must not be empty"
-        raise ValueError(message)
-    if target not in TARGETS:
-        message = f"unknown conversion target {target!r}"
-        raise ValueError(message)
+    _validate_request(log_id, target)
 
     events = parse_xml(xml)
     go = _header(events)
@@ -140,6 +135,7 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
         if state is None:
             reason = "inconsistent_events"
             raise event.error(reason, "INIT required before play")
+        # Consecutive AGARI can belong to the same round.
         if event.tag == "AGARI":
             case = _extract_win(
                 event,
@@ -149,13 +145,7 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
                 target,
                 shared_scores=event.index in shared_scores,
             )
-            if case["case_id"] in ids:
-                reason = "inconsistent_events"
-                raise event.error(reason, "duplicate case ID")
-            ids.add(case["case_id"])
-            cases.append(case)
-            state.winners.add(event.integer("who"))
-            state.finished = True
+            _register_win(event, state, case, cases, ids)
         elif state.finished:
             reason = "inconsistent_events"
             raise event.error(reason, "action after round ended")
@@ -169,6 +159,31 @@ def convert_log(  # noqa: C901 -- chronological dispatch and completion checks
         raise ConversionError(reason, "log must end after a completed round")
     state.check_settlement()
     return cases
+
+
+def _validate_request(log_id: str, target: Target) -> None:
+    if not log_id.strip():
+        message = "log_id must not be empty"
+        raise ValueError(message)
+    if target not in TARGETS:
+        message = f"unknown conversion target {target!r}"
+        raise ValueError(message)
+
+
+def _register_win(
+    event: Event,
+    state: RoundState,
+    case: Case,
+    cases: list[Case],
+    ids: set[str],
+) -> None:
+    if case["case_id"] in ids:
+        reason = "inconsistent_events"
+        raise event.error(reason, "duplicate case ID")
+    ids.add(case["case_id"])
+    cases.append(case)
+    state.winners.add(event.integer("who"))
+    state.finished = True
 
 
 def _extract_win(  # noqa: PLR0913 -- input and round context plus conversion target

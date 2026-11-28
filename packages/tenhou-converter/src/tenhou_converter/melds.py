@@ -2,6 +2,7 @@
 # ruff: noqa: PLR2004
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal, NoReturn, cast
+lazy from collections.abc import Callable
 
 lazy from tenhou_converter.parser import Event
 
@@ -37,7 +38,7 @@ class DecodedMeld:
         }
 
 
-def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901, PLR0912 -- ordered protocol layouts with distinct diagnostics
+def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:
     def invalid(message: str) -> NoReturn:
         reason = "unknown_meld_code"
         raise event.error(reason, f"invalid meld code {code}: {message}", "m")
@@ -55,83 +56,106 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
 
     # Bit 2 (0x0004): chii. Decode this layout before the other flags.
     if code & 4:
-        # Bits 10-15: sequence index * 3 + called tile's index in the
-        # sequence.
-        pattern = code >> 10
-        # There are 3 suits * 7 sequences * 3 called positions = 63
-        # patterns.
-        # Chii must come from the previous seat; bit 9 (0x0200) is
-        # unused.
-        if pattern >= 63:
-            invalid("chii pattern outside supported range")
-        if relative != 3:
-            invalid("chii source must be the previous seat")
-        if code & 0x0200:
-            invalid("unused chii bit is set")
-        sequence = pattern // 3
-        # Map the suit and sequence start to the first physical tile ID.
-        base = (sequence // 7 * 9 + sequence % 7) * 4
-        # Bits 3-4: copy index (0-3) of the sequence's first tile.
-        # Bits 5-6: copy index (0-3) of the sequence's second tile.
-        # Bits 7-8: copy index (0-3) of the sequence's third tile.
-        tiles = [
-            base + offset * 4 + ((code >> (3 + 2 * offset)) & 3)
-            for offset in range(3)
-        ]
-        return DecodedMeld("chii", tiles, pattern % 3, source)
+        return _decode_chii(code, relative, source, invalid)
 
     # Bit 3 (0x0008): pon.
     # Bit 4 (0x0010): kakan.
     # These flags take precedence over bit 5, which is tile data in this
     # layout.
     if code & 0x18:
-        # Bits 9-15: tile kind * 3 + called tile's index in the original
-        # pon.
-        pattern = code >> 9
-        # Require one of 34 * 3 patterns and a source other than self.
-        # Bits 7-8 (0x0180) are unused; pon and kakan flags are mutually
-        # exclusive.
-        if pattern >= 102:
-            invalid("pon or added-kan pattern outside supported range")
-        if not relative:
-            invalid("pon or added-kan source must not be self")
-        if code & 0x180:
-            invalid("unused pon or added-kan bits are set")
-        if code & 0x18 == 0x18:
-            invalid("pon and added-kan flags are both set")
-        # Bits 5-6: copy index omitted from the original pon (added for
-        # kakan).
-        omitted = (code >> 5) & 3
-        base = pattern // 3 * 4
-        # Keep copies in wire order so pattern % 3 identifies the called
-        # tile.
-        tiles = [base + offset for offset in range(4) if offset != omitted]
-        kind: MeldKind = "pon" if code & 8 else "kakan"
-        if kind == "kakan":
-            # Append the added tile without changing the original pon's
-            # indices.
-            tiles.append(base + omitted)
-        return DecodedMeld(kind, tiles, pattern % 3, source)
+        return _decode_pon_or_kakan(code, relative, source, invalid)
 
     # Bit 5 (0x0020): north extraction when no chii/pon/kakan flag
     # matched.
     if code & 0x20:
-        # Bits 0-7 must contain only the extraction flag.
-        # Bits 8-15 contain the physical tile ID, restricted to north
-        # (120-123).
-        if code & 0xFF != 0x20:
-            invalid("north extraction lower bits must contain only its flag")
-        if code >> 8 not in range(120, 124):
-            invalid("north extraction tile must be north")
-        return DecodedMeld("nuki", [code >> 8], None, None)
+        return _decode_nuki(code, invalid)
 
     # With no preceding flag, the layout represents ankan or daiminkan.
-    # Bits 8-15 contain a physical tile ID of the kan's tile kind.
-    # For daiminkan, this is the called tile; for ankan, it has no
-    # called role.
-    called = code >> 8
-    # Physical tile IDs range from 0 to 135; bits 2-7 (0x00FC) are
+    return _decode_kan(code, relative, source, invalid)
+
+
+def _decode_chii(
+    code: int, relative: int, source: int, invalid: Callable[[str], NoReturn]
+) -> DecodedMeld:
+    # Bits 10-15: sequence index * 3 + called tile's index in the
+    # sequence.
+    pattern = code >> 10
+    # There are 3 suits * 7 sequences * 3 called positions = 63
+    # patterns.
+    # Chii must come from the previous seat; bit 9 (0x0200) is
     # unused.
+    if pattern >= 63:
+        invalid("chii pattern outside supported range")
+    if relative != 3:
+        invalid("chii source must be the previous seat")
+    if code & 0x0200:
+        invalid("unused chii bit is set")
+    sequence = pattern // 3
+    # Map the suit and sequence start to the first physical tile ID.
+    base = (sequence // 7 * 9 + sequence % 7) * 4
+    # Bits 3-4: copy index (0-3) of the sequence's first tile.
+    # Bits 5-6: copy index (0-3) of the sequence's second tile.
+    # Bits 7-8: copy index (0-3) of the sequence's third tile.
+    tiles = [
+        base + offset * 4 + ((code >> (3 + 2 * offset)) & 3)
+        for offset in range(3)
+    ]
+    return DecodedMeld("chii", tiles, pattern % 3, source)
+
+
+def _decode_pon_or_kakan(
+    code: int, relative: int, source: int, invalid: Callable[[str], NoReturn]
+) -> DecodedMeld:
+    # Bits 9-15: tile kind * 3 + called tile's index in the original
+    # pon.
+    pattern = code >> 9
+    # Require one of 34 * 3 patterns and a source other than self.
+    # Bits 7-8 (0x0180) are unused; pon and kakan flags are mutually
+    # exclusive.
+    if pattern >= 102:
+        invalid("pon or added-kan pattern outside supported range")
+    if not relative:
+        invalid("pon or added-kan source must not be self")
+    if code & 0x180:
+        invalid("unused pon or added-kan bits are set")
+    if code & 0x18 == 0x18:
+        invalid("pon and added-kan flags are both set")
+    # Bits 5-6: copy index omitted from the original pon (added for
+    # kakan).
+    omitted = (code >> 5) & 3
+    base = pattern // 3 * 4
+    # Keep copies in wire order so pattern % 3 identifies the called
+    # tile.
+    tiles = [base + offset for offset in range(4) if offset != omitted]
+    kind: MeldKind = "pon" if code & 8 else "kakan"
+    if kind == "kakan":
+        # Append the added tile without changing the original pon's
+        # indices.
+        tiles.append(base + omitted)
+    return DecodedMeld(kind, tiles, pattern % 3, source)
+
+
+def _decode_nuki(code: int, invalid: Callable[[str], NoReturn]) -> DecodedMeld:
+    # Bits 0-7 must contain only the extraction flag.
+    # Bits 8-15 contain the physical tile ID, restricted to north
+    # (120-123).
+    if code & 0xFF != 0x20:
+        invalid("north extraction lower bits must contain only its flag")
+    north = code >> 8
+    if north not in range(120, 124):
+        invalid("north extraction tile must be north")
+    return DecodedMeld("nuki", [north], None, None)
+
+
+def _decode_kan(
+    code: int, relative: int, source: int, invalid: Callable[[str], NoReturn]
+) -> DecodedMeld:
+    # Bits 8-15 contain a physical tile ID of the kan's tile kind.
+    # For daiminkan, this is the called tile.
+    # For ankan, it has no called role.
+    called = code >> 8
+    # Physical tile IDs range from 0 to 135.
+    # Bits 2-7 (0x00FC) are unused.
     if called >= 136:
         invalid("kan tile ID outside 136-tile range")
     if code & 0xFC:
@@ -139,10 +163,7 @@ def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:  # noqa: C901
     # All four physical copies belong to the kan, in ascending ID order.
     tile_id = called // 4 * 4
     tiles = list(range(tile_id, tile_id + 4))
-    # A nonzero relative source means daiminkan; self means ankan.
-    return DecodedMeld(
-        "daiminkan" if relative else "ankan",
-        tiles,
-        called % 4 if relative else None,
-        source if relative else None,
-    )
+    # A nonzero relative source means daiminkan. Zero means ankan.
+    if relative:
+        return DecodedMeld("daiminkan", tiles, called % 4, source)
+    return DecodedMeld("ankan", tiles, None, None)
