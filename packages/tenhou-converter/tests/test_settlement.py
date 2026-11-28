@@ -102,9 +102,30 @@ def test_next_round_checks_final_balances_once(*, shared: bool) -> None:
             sc="221,0,276,0,263,0,250,0",
         )
     )
-    assert (
-        len(convert_log(ET.tostring(root), log_id="synthetic-next-round")) == 2
-    )
+    cases = convert_log(ET.tostring(root), log_id="synthetic-next-round")
+    assert len(cases) == 2
+    if shared:
+        for case in cases:
+            assert case["expected"]["honba_points"] is None
+            assert case["expected"]["riichi_stick_points"] is None
+            assert {
+                item["field"]: item["reason"]
+                for item in case["comparison"]["excluded_fields"]
+            } == dict.fromkeys(
+                (
+                    "honba_points",
+                    "riichi_stick_points",
+                    "winner_gain",
+                    "payments_by_seat",
+                ),
+                "multiple_ron_allocation_unknown",
+            )
+    else:
+        assert [case["expected"]["honba_points"] for case in cases] == [300, 0]
+        assert [case["expected"]["riichi_stick_points"] for case in cases] == [
+            1000,
+            0,
+        ]
 
     following.set("ten", "222,276,263,250")
     with pytest.raises(ConversionError, match="balance") as caught:

@@ -16,7 +16,7 @@
 
 ## PR 3 — 共有精算の判定を局末まで引き継ぐ
 
-- [ ] `convert_log` は同じ局の AGARI の `sc` を比較して共有精算を識別するが、`RoundState.check_settlement` は最初のケースの `riichi_stick_points is None` から同じ判定を復元している。このため、供託点の比較除外を変更する際に、局末の残高検査で選ばれる計算経路まで考慮する必要がある。最初の得点ケースの登録時に判定済みの `shared_scores` を局状態に保持し、精算にもその値を使う。個別精算と共有精算のダブロンで次局の開始残高を照合し、共有時の本場・供託の出力と除外理由も維持する。[変換処理](../../packages/tenhou-converter/src/tenhou_converter/conversion.py) · [局末の検査](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [精算テスト](../../packages/tenhou-converter/tests/test_settlement.py)
+- [x] `convert_log` は同じ局の AGARI の `sc` を比較して共有精算を識別するが、`RoundState.check_settlement` は最初のケースの `riichi_stick_points is None` から同じ判定を復元している。このため、供託点の比較除外を変更する際に、局末の残高検査で選ばれる計算経路まで考慮する必要がある。最初の得点ケースの登録時に判定済みの `shared_scores` を局状態に保持し、精算にもその値を使う。個別精算と共有精算のダブロンで次局の開始残高を照合し、共有時の本場・供託の出力と除外理由も維持する。[変換処理](../../packages/tenhou-converter/src/tenhou_converter/conversion.py) · [局末の検査](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [精算テスト](../../packages/tenhou-converter/tests/test_settlement.py)
 
 ## PR 4 — AGARI の副露属性の読み取りを共通化する
 

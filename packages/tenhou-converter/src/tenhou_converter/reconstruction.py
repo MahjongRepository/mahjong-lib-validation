@@ -52,6 +52,7 @@ class RoundState:
     indicator_due: int = 0
     results: list[Expected] = field(default_factory=list)
     win_events: list[Event] = field(default_factory=list)
+    shared_scores: bool = False
 
     def check_settlement(self) -> list[int] | None:
         if not self.results:
@@ -64,11 +65,7 @@ class RoundState:
                 for seat, delta in enumerate(deltas)
             ):
                 self.fail(self.init, "score gain belongs to a nonwinner")
-            # Unknown individual sticks mark shared win-group deltas.
-            if (
-                result["riichi_stick_points"] is None
-                and sum(deltas) != self.sticks * 1000
-            ):
+            if self.shared_scores and sum(deltas) != self.sticks * 1000:
                 self.fail(
                     self.init,
                     "shared deltas conflict with available riichi sticks",
@@ -92,8 +89,7 @@ class RoundState:
         ):
             self.fail(self.init, "score components conflict with honba")
 
-        shared_scores = self.results[0]["riichi_stick_points"] is None
-        if shared_scores:
+        if self.shared_scores:
             check_shared_payments(
                 self.win_events,
                 len(self.players),
@@ -109,7 +105,7 @@ class RoundState:
         return check_win_balances(
             self.win_events,
             starting,
-            shared_scores=shared_scores,
+            shared_scores=self.shared_scores,
         )
 
     @classmethod
