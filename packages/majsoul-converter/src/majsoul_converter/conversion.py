@@ -44,7 +44,7 @@ def convert_log(
 ) -> Sequence[Case]: ...
 
 
-def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
+def convert_log(
     payload: bytes,
     *,
     log_id: str | None = None,
@@ -56,13 +56,10 @@ def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
         raise ConversionError(msg)
 
     recorded_id, events = decode(payload)
-    identifier = (recorded_id or fallback_id) if log_id is None else log_id
-    if not identifier or not identifier.strip():
-        msg = "log ID required when the replay has no UUID"
-        raise ConversionError(msg)
+    identifier = _resolve_log_id(log_id, recorded_id, fallback_id)
 
     state: RoundState | None = None
-    cases = []
+    cases: list[Case] = []
     ids: set[str] = set()
     for index, event in events:
         try:
@@ -79,12 +76,7 @@ def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
 
             if isinstance(event, pb.RecordHule):
                 wins = _win_cases(event, state, identifier, index, target)
-                for case in wins:
-                    if case["case_id"] in ids:
-                        msg = "duplicate case ID"
-                        raise ConversionError(msg)
-                    ids.add(case["case_id"])
-                    cases.append(case)
+                _register_wins(wins, cases, ids)
                 state = None
                 continue
 
@@ -98,6 +90,26 @@ def convert_log(  # noqa: C901 -- validates the sequence of round boundaries
         msg = "replay must end with a completed round"
         raise ConversionError(msg)
     return cases
+
+
+def _resolve_log_id(
+    log_id: str | None, recorded_id: str | None, fallback_id: str | None
+) -> str:
+    identifier = (recorded_id or fallback_id) if log_id is None else log_id
+    if not identifier or not identifier.strip():
+        msg = "log ID required when the replay has no UUID"
+        raise ConversionError(msg)
+    return identifier
+
+
+def _register_wins(wins: list[Case], cases: list[Case], ids: set[str]) -> None:
+    for case in wins:
+        case_id = case["case_id"]
+        if case_id in ids:
+            msg = "duplicate case ID"
+            raise ConversionError(msg)
+        ids.add(case_id)
+        cases.append(case)
 
 
 def _win_cases(
@@ -129,6 +141,11 @@ def _win_cases(
             complete = target in ("agari-complete", "shanten-agari")
             tiles = [*win.hand, win.hu_tile] if complete else list(win.hand)
             case_type = "agari" if target.startswith("agari-") else "shanten"
+            if case_type == "agari":
+                shape_expected = {"is_agari": complete}
+            else:
+                shape_expected = {"shanten": -1 if complete else 0}
+
             cases.append(
                 parse_case(
                     {
@@ -141,11 +158,7 @@ def _win_cases(
                             "concealed_tiles": tiles,
                             "melds": hand["melds"],
                         },
-                        "expected": (
-                            {"is_agari": complete}
-                            if case_type == "agari"
-                            else {"shanten": -1 if complete else 0}
-                        ),
+                        "expected": shape_expected,
                     }
                 )
             )

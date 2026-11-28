@@ -8,22 +8,11 @@ from tenhou_converter.cli import main
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-@pytest.mark.parametrize(
-    ("target", "case_type", "expected", "tile_count"),
-    [
-        ("shanten-tenpai", "shanten", {"shanten": 0}, 13),
-        ("shanten-agari", "shanten", {"shanten": -1}, 14),
-        ("agari-complete", "agari", {"is_agari": True}, 14),
-        ("agari-tenpai", "agari", {"is_agari": False}, 13),
-    ],
-)
 def test_cli_generates_shape_dataset(
     tmp_path: Path,
-    target: str,
-    case_type: str,
-    expected: dict[str, object],
-    tile_count: int,
+    shape_target: tuple[str, str, bool, dict[str, bool | int]],
 ) -> None:
+    target, case_type, complete, expected = shape_target
     output = tmp_path / target
     assert (
         main(
@@ -42,7 +31,10 @@ def test_cli_generates_shape_dataset(
     (case,) = read_dataset(output)
     assert case["case_type"] == case_type
     assert case["expected"] == expected
-    assert len(case["input"]["concealed_tiles"]) == tile_count
+    assert type(next(iter(case["expected"].values()))) is type(
+        next(iter(expected.values()))
+    )
+    assert len(case["input"]["concealed_tiles"]) == (14 if complete else 13)
     manifest = read_manifest(output / "manifest.json")
     assert manifest["case_type"] == case_type
     assert manifest["generator"]["settings"]["target"] == target

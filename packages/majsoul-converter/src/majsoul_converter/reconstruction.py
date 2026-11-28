@@ -63,12 +63,16 @@ class RoundState:
         self.start = event
         self.event_indices = [index]
         self.count = len(event.scores)
-        if (
-            self.count not in (3, 4)
-            or event.ju >= self.count
-            or event.chang >= _WIND_COUNT
-        ):
-            msg = "invalid player count, dealer or round wind"
+        if self.count not in (3, 4):
+            msg = f"invalid player count: {self.count}"
+            raise ConversionError(msg)
+        if event.ju >= self.count:
+            msg = (
+                f"invalid dealer seat: ju={event.ju} for {self.count} players"
+            )
+            raise ConversionError(msg)
+        if event.chang >= _WIND_COUNT:
+            msg = f"invalid round wind: chang={event.chang}"
             raise ConversionError(msg)
         hands = (event.tiles0, event.tiles1, event.tiles2, event.tiles3)
         if any(hands[self.count :]):
@@ -90,14 +94,24 @@ class RoundState:
     def _open_meld(self, event: pb.RecordChiPengGang, player: Player) -> None:
         kind = _MELD_TYPES[event.type]
         tiles = list(event.tiles)
-        (called,) = (
-            i for i, seat in enumerate(event.froms) if seat != event.seat
-        )
-        from_seat = event.froms[called]
-        msg = "call does not match the preceding discard"
         if len(tiles) != len(event.froms):
+            msg = "tiles and froms must have the same length"
             raise ConversionError(msg)
+
+        called_indices = [
+            i for i, seat in enumerate(event.froms) if seat != event.seat
+        ]
+        if len(called_indices) != 1:
+            msg = (
+                "froms must identify exactly one tile from another seat "
+                f"(found {len(called_indices)})"
+            )
+            raise ConversionError(msg)
+        called = called_indices[0]
+        from_seat = event.froms[called]
+
         discard = self.last
+        msg = "call does not match the preceding discard"
         if not isinstance(discard, pb.RecordDiscardTile):
             raise ConversionError(msg)
         if (from_seat, tiles[called]) != (discard.seat, discard.tile):
@@ -191,6 +205,10 @@ class RoundState:
         first_draw = win.zimo and not self.interrupted and not player.discarded
         chankan = isinstance(last, pb.RecordAnGangAddGang)
         robbed_north = isinstance(last, pb.RecordBaBei)
+        haitei = win.zimo and self.last_tile and not self.rinshan
+        houtei = (
+            not win.zimo and self.last_tile and not (chankan or robbed_north)
+        )
         return {
             "winner_seat": win.seat,
             "discarder_seat": payer,
@@ -214,10 +232,8 @@ class RoundState:
                 "ippatsu": player.ippatsu,
                 "rinshan": win.zimo and self.rinshan,
                 "chankan": chankan,
-                "haitei": win.zimo and self.last_tile and not self.rinshan,
-                "houtei": not win.zimo
-                and self.last_tile
-                and not (chankan or robbed_north),
+                "haitei": haitei,
+                "houtei": houtei,
                 "tenhou": first_draw and win.seat == self.start.ju,
                 "chiihou": first_draw and win.seat != self.start.ju,
                 "renhou": False,

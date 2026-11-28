@@ -1,0 +1,6 @@
+[
+  ["agari-complete", "agari", true, {"is_agari": true}],
+  ["agari-tenpai", "agari", false, {"is_agari": false}],
+  ["shanten-agari", "shanten", true, {"shanten": -1}],
+  ["shanten-tenpai", "shanten", false, {"shanten": 0}]
+]
