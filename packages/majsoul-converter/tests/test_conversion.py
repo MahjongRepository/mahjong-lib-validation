@@ -8,6 +8,7 @@ from majsoul_converter.cli import main
 from majsoul_converter.conversion import convert_log
 from majsoul_converter.datasets import convert_files
 from majsoul_converter.liqi import liqi_pb2 as pb
+from majsoul_converter.reconstruction import RoundState
 from validator.validation import validate_case
 
 if TYPE_CHECKING:
@@ -388,13 +389,71 @@ def test_open_meld_rejects_invalid_tile_sources(
     assert str(error.value) == f"event 2 (RecordChiPengGang): {message}"
 
 
+@pytest.mark.parametrize(
+    ("last_action", "expected"),
+    [
+        pytest.param(None, (True, False), id="last-draw"),
+        pytest.param(
+            pb.RecordDiscardTile(seat=1, tile="4z"),
+            (False, True),
+            id="last-discard",
+        ),
+        pytest.param(
+            pb.RecordAnGangAddGang(seat=1, type=3, tiles="4z"),
+            (False, False),
+            id="robbed-kan",
+        ),
+        pytest.param(
+            pb.RecordBaBei(seat=1), (False, False), id="robbed-north"
+        ),
+    ],
+)
+def test_last_tile_yaku(
+    last_action: Message | None, expected: tuple[bool, bool]
+) -> None:
+    hand = [
+        "1m",
+        "9m",
+        "1p",
+        "9p",
+        "1s",
+        "9s",
+        "1z",
+        "1z",
+        "2z",
+        "3z",
+        "5z",
+        "6z",
+        "7z",
+    ]
+    state = RoundState(
+        pb.RecordNewRound(scores=[35000] * 3, tiles0=hand, tiles1=["4z"] * 3),
+        index=0,
+    )
+    tsumo = last_action is None
+    state.advance(
+        pb.RecordDealTile(seat=0 if tsumo else 1, tile="4z", left_tile_count=0)
+    )
+    if last_action is not None:
+        state.advance(last_action)
+
+    result = pb.RecordHule(
+        hules=[pb.HuleInfo(seat=0, zimo=tsumo, hand=hand, hu_tile="4z")]
+    )
+    hand_input, _ = state.win_input(result.hules[0], result)
+
+    situation = hand_input["situation"]
+    assert isinstance(situation, dict)
+    assert (situation["haitei"], situation["houtei"]) == expected
+
+
 def test_closed_kan_restores_red_five() -> None:
     hand = ["1m", "2m", "3m", "1s", "2s", "3s", "5z", "5z", "5z", "2p"]
     kan = ["0p", "5p", "5p", "5p"]
     events = [
         pb.RecordNewRound(scores=[25000] * 4, tiles0=hand + kan, dora="4m"),
         pb.RecordAnGangAddGang(seat=0, type=3, tiles="5p", doras=["4m", "8s"]),
-        pb.RecordDealTile(seat=0, tile="2p", left_tile_count=68),
+        pb.RecordDealTile(seat=0, tile="2p", left_tile_count=0),
         pb.RecordHule(
             hules=[
                 pb.HuleInfo(
@@ -432,6 +491,9 @@ def test_closed_kan_restores_red_five() -> None:
         },
     ]
     assert case["input"]["dora_indicators"] == ["4m", "8s"]
+    assert case["input"]["situation"]["rinshan"]
+    assert not case["input"]["situation"]["haitei"]
+    assert not case["input"]["situation"]["houtei"]
     assert validate_case(case)["status"] == "passed"
 
     [shape] = convert_log(data, target="shanten-tenpai")

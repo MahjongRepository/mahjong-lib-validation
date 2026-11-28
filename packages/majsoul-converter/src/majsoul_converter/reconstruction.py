@@ -205,6 +205,10 @@ class RoundState:
         first_draw = win.zimo and not self.interrupted and not player.discarded
         chankan = isinstance(last, pb.RecordAnGangAddGang)
         robbed_north = isinstance(last, pb.RecordBaBei)
+        haitei = win.zimo and self.last_tile and not self.rinshan
+        houtei = (
+            not win.zimo and self.last_tile and not (chankan or robbed_north)
+        )
         return {
             "winner_seat": win.seat,
             "discarder_seat": payer,
@@ -228,10 +232,8 @@ class RoundState:
                 "ippatsu": player.ippatsu,
                 "rinshan": win.zimo and self.rinshan,
                 "chankan": chankan,
-                "haitei": win.zimo and self.last_tile and not self.rinshan,
-                "houtei": not win.zimo
-                and self.last_tile
-                and not (chankan or robbed_north),
+                "haitei": haitei,
+                "houtei": houtei,
                 "tenhou": first_draw and win.seat == self.start.ju,
                 "chiihou": first_draw and win.seat != self.start.ju,
                 "renhou": False,
