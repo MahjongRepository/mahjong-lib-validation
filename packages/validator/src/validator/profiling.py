@@ -71,7 +71,7 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
         exit_code = preflight["exit_code"]
         elapsed_ns = None
         repetitions = 0
-        sample_count = 0
+        sample_count = None
 
         settings: ProfileSettings
         if method == "tracing":
@@ -81,6 +81,13 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
                 "cache": "preserved_after_preflight",
                 "gc_enabled": gc.isenabled(),
             }
+            if not exit_code:
+                calls = prepare_calls(selected)
+                settings["gc_enabled"] = gc.isenabled()
+                elapsed_ns = _collect_tracing(
+                    calls, staging / "profile.pstats"
+                )
+                repetitions = 1
         else:
             settings = {
                 "warmup_batches": 2,
@@ -91,16 +98,8 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
                 "sampling_rate_hz": rate,
                 "synchronization_frames": ["wait_for_sampling"],
             }
-
-        if not exit_code:
-            if method == "tracing":
-                calls = prepare_calls(selected)
-                settings["gc_enabled"] = gc.isenabled()
-                elapsed_ns = _collect_tracing(
-                    calls, staging / "profile.pstats"
-                )
-                repetitions = 1
-            else:
+            sample_count = 0
+            if not exit_code:
                 sample = collect_sampling(
                     selected,
                     staging / "profile.html",
@@ -126,7 +125,7 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
             "processed_count": repetitions * len(selected),
             "elapsed_ns": elapsed_ns,
         }
-        if method == "sampling":
+        if sample_count is not None:
             summary["sample_count"] = sample_count
         (staging / "summary.json").write_text(
             json.dumps(summary, ensure_ascii=False), encoding="utf-8"
