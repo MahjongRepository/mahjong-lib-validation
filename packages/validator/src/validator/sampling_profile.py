@@ -62,7 +62,7 @@ def _wait_for_log(
 
 
 def _check_exit(
-    process: subprocess.Popen[str], log: Path, timeout: float
+    process: subprocess.Popen[str], log: Path, timeout: float | None = None
 ) -> str:
     code = process.wait(timeout=timeout)
     diagnostic = log.read_text(encoding="utf-8", errors="replace").strip()
@@ -141,9 +141,8 @@ def collect_sampling(
                         profiler, profiler_log, r"\bN=[1-9][0-9]*", 30
                     )
                     _start_worker(worker)
-                    worker_output = _check_exit(
-                        worker, worker_log, min_seconds + 30
-                    )
+                    # The worker checks min_seconds at batch boundaries.
+                    worker_output = _check_exit(worker, worker_log)
                     profiler_output = _check_exit(profiler, profiler_log, 30)
 
             result: SamplingResult = json.loads(worker_output.splitlines()[-1])

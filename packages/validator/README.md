@@ -48,7 +48,8 @@ Profiling shows where calculation time is spent.
   `sampling` to write an interactive `profile.html`. Sampling requires
   permission for Tachyon to attach to the worker.
 - `--min-seconds SECONDS` sets the minimum sampling duration. Defaults to 3
-  seconds. Available only with `sampling`.
+  seconds. Sampling finishes at a batch boundary, so a long batch can
+  extend the run beyond this duration. Available only with `sampling`.
 - `--sampling-rate HZ` sets the requested sampling frequency. Defaults to
   1,000 Hz. Available only with `sampling`.
 

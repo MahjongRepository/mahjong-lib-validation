@@ -1,18 +1,20 @@
 import gc
 import json
+import subprocess
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 from profiling.tracing import Profile
 from pstats import Stats
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
 import pytest
-from validator import sampling_profile
+from validator import sampling_profile, sampling_worker
 from validator.cli import main
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from contextlib import AbstractContextManager
+    from collections.abc import Callable, Generator
     from subprocess import Popen
 
     from corpus.models import ScoringCase
@@ -234,6 +236,90 @@ def test_unavailable_method_is_reported_without_publication(
     assert not output.exists()
 
 
+def test_sampling_waits_for_a_batch_longer_than_attach_timeout(
+    load_case: Callable[..., ScoringCase],
+    save_dataset: Callable[[Path, list[ScoringCase]], Path],
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dataset = save_dataset(tmp_path / "corpus", [load_case()])
+    output = tmp_path / "result"
+    now_ns = 0
+
+    def long_calculation() -> None:
+        nonlocal now_ns
+        now_ns += 35_000_000_000
+
+    monkeypatch.setattr(sampling_worker, "perf_counter_ns", lambda: now_ns)
+
+    @contextmanager
+    def spawn(
+        command: list[str], log: Path, *, send_start: bool = False
+    ) -> Generator[Popen[str]]:
+        process = Mock(spec=subprocess.Popen)
+        process.poll.return_value = None
+        if send_start:
+            process.stdin = Mock()
+            log.write_text("ready 123\n", encoding="utf-8")
+
+            def wait(timeout: float | None = None) -> int:
+                process.stdin.write.assert_called_once_with("start\n")
+                repetitions, elapsed_ns = sampling_worker.sample_batches(
+                    [(1, "case", long_calculation)], 3.0
+                )
+                if (
+                    timeout is not None
+                    and elapsed_ns / 1_000_000_000 > timeout
+                ):
+                    raise subprocess.TimeoutExpired(command, timeout)
+                log.write_text(
+                    json.dumps(
+                        {
+                            "repetitions": repetitions,
+                            "elapsed_ns": elapsed_ns,
+                            "gc_enabled": True,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+                return 0
+
+            process.wait.side_effect = wait
+        else:
+            log.write_text(
+                "N=1\nFlamegraph data: 1 root function, 1 total sample,\n",
+                encoding="utf-8",
+            )
+            Path(command[-1]).write_text("sample_batches", encoding="utf-8")
+            process.wait.return_value = 0
+        yield process
+
+    monkeypatch.setattr(sampling_profile, "_process", spawn)
+    assert (
+        main(
+            [
+                "profile",
+                str(dataset),
+                "--limit",
+                "1",
+                "--method",
+                "sampling",
+                "--min-seconds",
+                "3",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    summary = json.loads((output / "summary.json").read_bytes())
+    assert summary["complete"] is True
+    assert summary["repetitions"] == 1
+    assert summary["elapsed_ns"] == 35_000_000_000
+    assert summary["sample_count"] == 1
+    assert (output / "profile.html").is_file()
+
+
 def test_sampling_attach_failure_does_not_publish(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
@@ -244,17 +330,21 @@ def test_sampling_attach_failure_does_not_publish(
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
     output = tmp_path / "result"
     spawn = sampling_profile._process  # noqa: SLF001 -- simulate Tachyon denial
+    processes = []
 
+    @contextmanager
     def fail_attach(
         command: list[str], log: Path, *, send_start: bool = False
-    ) -> AbstractContextManager[Popen[str]]:
+    ) -> Generator[Popen[str]]:
         if "profiling.sampling" in command:
             command = [
                 sys.executable,
                 "-c",
                 "raise SystemExit('attach denied')",
             ]
-        return spawn(command, log, send_start=send_start)
+        with spawn(command, log, send_start=send_start) as process:
+            processes.append(process)
+            yield process
 
     monkeypatch.setattr(sampling_profile, "_process", fail_attach)
     assert (
@@ -278,6 +368,9 @@ def test_sampling_attach_failure_does_not_publish(
     assert "attach denied" in diagnostic
     assert "--method tracing" in diagnostic
     assert not output.exists()
+    assert len(processes) == 2
+    assert all(process.poll() is not None for process in processes)
+    assert not list(tmp_path.glob(".validator-*"))
 
 
 def test_failed_collection_write_does_not_publish(

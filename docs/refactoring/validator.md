@@ -12,7 +12,7 @@ validator の実装には `noqa: C901` がない。レビューの単位は、�
 
 ### 動作上の問題
 
-- [ ] **sampling が正常な長時間バッチをタイムアウト扱いする。** worker はバッチを完走してから `min_seconds` に達したかを調べる。一方、親は開始通知から `min_seconds + 30` 秒で待機を打ち切る。例えば下限が 3 秒で 1 バッチが 35 秒なら、worker は設計どおり計算中でも収集失敗となり、HTML は公開されない。接続待ちの期限と計算中の停止判定を分ける。修正時は時計とプロセス待機を差し替え、長い最終バッチの完走と接続失敗時の後始末をそれぞれ検証する。[親の待機処理](../../packages/validator/src/validator/sampling_profile.py#L144) · [worker の終了条件](../../packages/validator/src/validator/sampling_worker.py#L36) · [既存のバッチ境界テスト](../../packages/validator/tests/test_sampling_worker.py)
+- [x] **sampling が正常な長時間バッチをタイムアウト扱いする。** worker はバッチを完走してから `min_seconds` に達したかを調べる。一方、親は開始通知から `min_seconds + 30` 秒で待機を打ち切る。例えば下限が 3 秒で 1 バッチが 35 秒なら、worker は設計どおり計算中でも収集失敗となり、HTML は公開されない。接続待ちの期限と計算中の停止判定を分ける。修正時は時計とプロセス待機を差し替え、長い最終バッチの完走と接続失敗時の後始末をそれぞれ検証する。[親の待機処理](../../packages/validator/src/validator/sampling_profile.py#L144) · [worker の終了条件](../../packages/validator/src/validator/sampling_worker.py#L36) · [既存のバッチ境界テスト](../../packages/validator/tests/test_sampling_worker.py)
 
 ### 既存処理の整理
 
