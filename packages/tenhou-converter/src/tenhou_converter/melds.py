@@ -38,6 +38,13 @@ class DecodedMeld:
         }
 
 
+def decode_agari_melds(event: Event, who: int) -> list[DecodedMeld]:
+    """Decode the optional AGARI meld list in log order."""
+    if "m" not in event.attributes:
+        return []
+    return [decode_meld(code, who, event) for code in event.numbers("m")]
+
+
 def decode_meld(code: int, who: int, event: Event) -> DecodedMeld:
     def invalid(message: str) -> NoReturn:
         reason = "unknown_meld_code"

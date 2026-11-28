@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal, NamedTuple, NoReturn
 
-from tenhou_converter.melds import DecodedMeld, decode_meld
+from tenhou_converter.melds import DecodedMeld, decode_agari_melds, decode_meld
 from tenhou_converter.settlement import (
     check_shared_payments,
     check_win_balances,
@@ -530,11 +530,7 @@ class RoundState:
         if set(hand) != actual:
             self.fail(event, "AGARI hand differs from reconstructed hand")
 
-        melds = (
-            [decode_meld(code, who, event) for code in event.numbers("m")]
-            if "m" in event.attributes
-            else []
-        )
+        melds = decode_agari_melds(event, who)
         norths = [meld.tiles[0] for meld in melds if meld.kind == "nuki"]
         regular = [meld for meld in melds if meld.kind != "nuki"]
         if len(set(norths)) != len(norths):
