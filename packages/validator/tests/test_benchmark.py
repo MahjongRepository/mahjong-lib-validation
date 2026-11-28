@@ -42,7 +42,22 @@ def test_empty_selection_stops_before_worker(
         )
         == 1
     )
+    assert {path.name for path in output.iterdir()} == {
+        "cases.jsonl",
+        "summary.json",
+        "timings.json",
+    }
     assert (output / "cases.jsonl").read_text(encoding="utf-8") == ""
+    assert json.loads((output / "timings.json").read_bytes()) == {
+        "samples": []
+    }
+    summary = json.loads((output / "summary.json").read_bytes())
+    assert summary["exit_code"] == 1
+    assert summary["complete"] is False
+    assert summary["preflight"]["exit_code"] == 1
+    assert summary["preflight"]["selected_count"] == 0
+    assert summary["sample_count"] == 0
+    assert summary["statistics"] is None
 
 
 def test_benchmark_saves_samples_from_workers(
@@ -118,11 +133,31 @@ def test_failed_sample_stops_run_without_statistics(
         "validator.benchmark._run_sample", lambda *_: next(worker)
     )
 
-    summary = benchmark_dataset(
-        dataset, output, selection=Selection(limit=1), samples=3
+    assert (
+        main(
+            [
+                "benchmark",
+                str(dataset),
+                "--output",
+                str(output),
+                "--limit",
+                "1",
+                "--samples",
+                "3",
+            ]
+        )
+        == 1
     )
+    assert {path.name for path in output.iterdir()} == {
+        "cases.jsonl",
+        "summary.json",
+        "timings.json",
+    }
+    summary = json.loads((output / "summary.json").read_bytes())
     assert summary["exit_code"] == 1
     assert summary["complete"] is False
+    assert summary["preflight"]["exit_code"] == 0
+    assert summary["sample_count"] == 2
     assert summary["statistics"] is None
     timings = json.loads((output / "timings.json").read_text(encoding="utf-8"))
     assert timings["samples"] == samples

@@ -5,7 +5,8 @@ from profiling.tracing import Profile
 from pstats import Stats
 from typing import TYPE_CHECKING
 
-from validator import Selection, profile_dataset, sampling_profile
+import pytest
+from validator import sampling_profile
 from validator.cli import main
 
 if TYPE_CHECKING:
@@ -13,17 +14,29 @@ if TYPE_CHECKING:
     from contextlib import AbstractContextManager
     from subprocess import Popen
 
-    import pytest
     from corpus.models import ScoringCase
 
 
+@pytest.mark.parametrize("method", ["tracing", "sampling"])
 def test_empty_selection_publishes_only_preflight_diagnostics(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    method: str,
 ) -> None:
     dataset = save_dataset(tmp_path / "corpus", [load_case()])
     output = tmp_path / "result"
+
+    def unexpected_collection(*_args: object, **_kwargs: object) -> None:
+        pytest.fail("empty selection must not start collection")
+
+    monkeypatch.setattr(
+        "validator.profiling._collect_tracing", unexpected_collection
+    )
+    monkeypatch.setattr(
+        "validator.profiling.collect_sampling", unexpected_collection
+    )
     assert (
         main(
             [
@@ -32,7 +45,7 @@ def test_empty_selection_publishes_only_preflight_diagnostics(
                 "--limit",
                 "1",
                 "--method",
-                "tracing",
+                method,
                 "--case-id",
                 "missing",
                 "--output",
@@ -46,7 +59,11 @@ def test_empty_selection_publishes_only_preflight_diagnostics(
         "cases.jsonl",
     }
     summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    assert (output / "cases.jsonl").read_bytes() == b""
+    assert summary["method"] == method
+    assert summary["exit_code"] == 1
     assert summary["complete"] is False
+    assert summary["preflight"]["exit_code"] == 1
     assert summary["preflight"]["selected_count"] == 0
     assert summary["processed_count"] == 0
 
@@ -120,25 +137,6 @@ def test_unavailable_method_is_reported_without_publication(
     assert not output.exists()
 
 
-def test_sampling_empty_selection_stops_before_worker(
-    load_case: Callable[..., ScoringCase],
-    save_dataset: Callable[[Path, list[ScoringCase]], Path],
-    tmp_path: Path,
-) -> None:
-    dataset = save_dataset(tmp_path / "corpus", [load_case()])
-    output = tmp_path / "result"
-    summary = profile_dataset(
-        dataset,
-        output,
-        selection=Selection(case_ids=("missing",), limit=1),
-        method="sampling",
-    )
-    assert summary["exit_code"] == 1
-    assert summary["method"] == "sampling"
-    assert summary["processed_count"] == 0
-    assert not (output / "profile.html").exists()
-
-
 def test_sampling_attach_failure_does_not_publish(
     load_case: Callable[..., ScoringCase],
     save_dataset: Callable[[Path, list[ScoringCase]], Path],
@@ -177,7 +175,9 @@ def test_sampling_attach_failure_does_not_publish(
         )
         == 2
     )
-    diagnostic = capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    diagnostic = captured.err
     assert "attach denied" in diagnostic
     assert "--method tracing" in diagnostic
     assert not output.exists()
@@ -214,5 +214,7 @@ def test_failed_collection_write_does_not_publish(
         )
         == 2
     )
-    assert "simulated dump failure" in capsys.readouterr().err
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "simulated dump failure" in captured.err
     assert not output.exists()
