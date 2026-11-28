@@ -141,6 +141,11 @@ def _win_cases(
             complete = target in ("agari-complete", "shanten-agari")
             tiles = [*win.hand, win.hu_tile] if complete else list(win.hand)
             case_type = "agari" if target.startswith("agari-") else "shanten"
+            if case_type == "agari":
+                shape_expected = {"is_agari": complete}
+            else:
+                shape_expected = {"shanten": -1 if complete else 0}
+
             cases.append(
                 parse_case(
                     {
@@ -153,11 +158,7 @@ def _win_cases(
                             "concealed_tiles": tiles,
                             "melds": hand["melds"],
                         },
-                        "expected": (
-                            {"is_agari": complete}
-                            if case_type == "agari"
-                            else {"shanten": -1 if complete else 0}
-                        ),
+                        "expected": shape_expected,
                     }
                 )
             )

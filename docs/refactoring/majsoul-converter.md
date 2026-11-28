@@ -22,5 +22,5 @@
 
 ## スタイル提案
 
-- [ ] **形判定の期待値をケース構築の前に決める。** `_win_cases` では `cases.append(parse_case(...))` の辞書内に条件式が二重に入り、和了形かどうかと、期待値を真偽値・向聴数のどちらで表すかを同時に読む必要がある。`case_type` を決めた直後に agari と shanten の分岐で `expected` を組み立て、辞書にはその値を渡す。4 ターゲットの和了牌の有無と期待値は既存のテスト表で照合できる。[ケース構築](../../packages/majsoul-converter/src/majsoul_converter/conversion.py) · [形判定のテスト表](../../packages/test-data/shape-targets.json)
+- [x] **形判定の期待値をケース構築の前に決める。** `_win_cases` では `cases.append(parse_case(...))` の辞書内に条件式が二重に入り、和了形かどうかと、期待値を真偽値・向聴数のどちらで表すかを同時に読む必要がある。`case_type` を決めた直後に agari と shanten の分岐で `expected` を組み立て、辞書にはその値を渡す。4 ターゲットの和了牌の有無と期待値は既存のテスト表で照合できる。[ケース構築](../../packages/majsoul-converter/src/majsoul_converter/conversion.py) · [形判定のテスト表](../../packages/test-data/shape-targets.json)
 - [ ] **海底・河底の成立条件を並べて読めるようにする。** `RoundState.win_input` の `houtei` は辞書内で複数行にまたがり、対になる `haitei` と除外条件が異なる。辞書の直前で `haitei` と `houtei` を並べて計算すると、最終牌でのツモは嶺上を除き、ロンは槍槓と抜き北へのロンを除くという現在の条件を見比べやすい。変更時は通常の最終ツモ・最終打牌に加え、それぞれの除外条件でも出力を照合する。[和了状況の復元](../../packages/majsoul-converter/src/majsoul_converter/reconstruction.py)
