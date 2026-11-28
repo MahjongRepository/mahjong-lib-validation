@@ -323,6 +323,7 @@ class RoundState:
             self.fail(event, "discard at an invalid phase or seat")
         if tile136 not in player.hand:
             self.fail(event, "discard tile is absent from hand")
+
         player.hand.remove(tile136)
         player.discards += 1
         player.ippatsu = False
