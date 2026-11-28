@@ -13,3 +13,11 @@
 - [x] **`expected_values`** は `ten`・`sc` 属性の検査、個別和了の支払い照合、共有精算時の比較除外に分ける。三麻の未使用席、国士の符、包と複数ロンが重なるときの除外理由の優先順を維持する。手計算または牌譜由来の期待値で金額・null・除外理由を比較する。[得点処理](../../packages/tenhou-converter/src/tenhou_converter/scoring.py) · [得点テスト](../../packages/tenhou-converter/tests/test_scoring.py) · [精算テスト](../../packages/tenhou-converter/tests/test_settlement.py)
 
 各関数で抑制を外して Ruff を実行し、併記された PLR0912・PLR0915 も再評価する。レビュー量が多ければ得点・精算を独立させる。XML フィクスチャから生成したケースは [validator の統合テスト](../../packages/validator/tests/test_integration.py)でも確認する。
+
+## PR 3 — 共有精算の判定を局末まで引き継ぐ
+
+- [ ] `convert_log` は同じ局の AGARI の `sc` を比較して共有精算を識別するが、`RoundState.check_settlement` は最初のケースの `riichi_stick_points is None` から同じ判定を復元している。このため、供託点の比較除外を変更する際に、局末の残高検査で選ばれる計算経路まで考慮する必要がある。最初の得点ケースの登録時に判定済みの `shared_scores` を局状態に保持し、精算にもその値を使う。個別精算と共有精算のダブロンで次局の開始残高を照合し、共有時の本場・供託の出力と除外理由も維持する。[変換処理](../../packages/tenhou-converter/src/tenhou_converter/conversion.py) · [局末の検査](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [精算テスト](../../packages/tenhou-converter/tests/test_settlement.py)
+
+## PR 4 — AGARI の副露属性の読み取りを共通化する
+
+- [ ] `RoundState._check_agari_tiles` と得点ケースを組み立てる `extract` は、どちらも任意属性 `m` を読み、各値を同じ勝者の席で `decode_meld` に渡す。属性がなければ空リスト、あれば記録順に復号する処理を小さな関数にまとめる。局面との照合では副露をソートして比較する一方、得点ケースでは牌譜順を出力している。複数の副露を復元順と異なる順序で AGARI に記録したケースで出力順を確認し、三麻の抜き北は引き続き通常の副露から除く。[局面との照合](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [得点ケースの生成](../../packages/tenhou-converter/src/tenhou_converter/conversion.py)
