@@ -21,3 +21,8 @@
 ## PR 4 — AGARI の副露属性の読み取りを共通化する
 
 - [ ] `RoundState._check_agari_tiles` と得点ケースを組み立てる `extract` は、どちらも任意属性 `m` を読み、各値を同じ勝者の席で `decode_meld` に渡す。属性がなければ空リスト、あれば記録順に復号する処理を小さな関数にまとめる。局面との照合では副露をソートして比較する一方、得点ケースでは牌譜順を出力している。複数の副露を復元順と異なる順序で AGARI に記録したケースで出力順を確認し、三麻の抜き北は引き続き通常の副露から除く。[局面との照合](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py) · [得点ケースの生成](../../packages/tenhou-converter/src/tenhou_converter/conversion.py)
+
+## スタイル提案（任意）
+
+- [ ] **`_extract_shape` の期待値をケースの組み立て前に決める。** 現在は `expected` の値の中で、ケース種別と手牌が完成形かどうかの二段階で条件式を読んでいる。`case_type` を決めた直後に `if` / `else` で期待値の辞書を用意すると、和了判定は真偽値、向聴数は完成形で −1・聴牌形で 0 という対応を一か所で読める。[手牌形のケース生成](../../packages/tenhou-converter/src/tenhou_converter/conversion.py#L332)
+- [ ] **`RoundState.discard` の検査と状態更新を空行で区切る。** `player.hand.remove(tile136)` の直前に空行を置く。そこまでで手番と打牌の所在の検査が終わり、その行から手牌・打牌数・局の進行状態を更新すると分かる。[打牌処理](../../packages/tenhou-converter/src/tenhou_converter/reconstruction.py#L324)
