@@ -6,11 +6,9 @@ and run the commands from the repository root.
 
 ## Input and targets
 
-Pass one `.bin` file, or a directory of `.bin` files. Each file must contain
-the original binary `fetchGameRecord` response frame, including the response kind,
-two-byte request number, and embedded replay data. The converter handles
-four-player and three-player Mahjong Soul ranked matches. Replays without match
-metadata are assumed to use ranked rules.
+Pass one `.bin` file or a directory of replays saved as original
+`fetchGameRecord` response frames. The converter handles four-player and
+three-player Mahjong Soul ranked matches.
 
 ```sh
 uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/majsoul-shanten
@@ -24,11 +22,25 @@ uv run majsoul-converter logs/majsoul --target shanten-tenpai --output corpora/m
 | `shanten-agari` | With the winning tile | `shanten = -1` |
 | `shanten-tenpai` | Without the winning tile | `shanten = 0` |
 
-## Output and options
+## Output
 
-Set `--output` to a new directory. A successful conversion writes `manifest.json`,
-an index, and case files. A failed conversion prevents dataset publication.
-The command prints the manifest or a diagnostic to stderr.
+Set `--output` to a new directory. On success, the converter writes the
+following files.
+
+- `manifest.json` with dataset metadata and conversion counts
+- `files.jsonl` with an index of the case files
+- Case files in plain or gzip-compressed JSONL
+
+If an individual input fails, the converter continues processing the remaining
+inputs and does not publish the dataset.
+
+| Exit code | Result | stderr |
+| --- | --- | --- |
+| `0` | Success | Conversion summary as JSON |
+| `1` | Conversion or I/O error | Batch diagnostic report as JSON, or a plain-text error for I/O failures before the batch starts |
+| `2` | Command-line argument error | Argument error message |
+
+## Options
 
 - `--report PATH` saves conversion counts and diagnostics as JSON. By default,
   no report file is written.

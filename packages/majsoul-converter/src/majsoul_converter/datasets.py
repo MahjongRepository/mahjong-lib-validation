@@ -1,45 +1,33 @@
-import json
 import sqlite3
-from contextlib import closing, contextmanager
+from contextlib import closing
 from importlib.metadata import version
-from os import scandir
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING
 
-from corpus import Case, Manifest, write_dataset
+from corpus import Case, CorpusError, Manifest, write_dataset
+from corpus.conversion_reports import (
+    new_report,
+    record_diagnostic,
+    write_report,
+)
 
 from majsoul_converter.conversion import TARGETS, convert_log
 from majsoul_converter.decoder import ConversionError
+from majsoul_converter.sources import input_paths
 
 if TYPE_CHECKING:
     from collections.abc import Generator, Iterator
 
-    from corpus.manifests import ConversionSummary, GeneratorInfo
+    from corpus.conversion_reports import Report
+    from corpus.manifests import GeneratorInfo
 
     from majsoul_converter.conversion import Target
 
 
-class Diagnostic(TypedDict):
-    path: str
-    log_id: str
-    reason: str
-    message: str
-    event_index: int | None
-    field: str | None
-
-
-class Report(TypedDict):
-    generator: GeneratorInfo
-    input: str
-    output: str
-    conversion: ConversionSummary
-    record_count: int
-    summary_complete: bool
-    dataset_published: bool
-    diagnostics: list[Diagnostic]
-    omitted_diagnostic_count: int
-    error: str | None
+class BatchConversionError(ConversionError):
+    def __init__(self, message: str, report: Report) -> None:
+        self.report = report
+        super().__init__(message)
 
 
 def _report_file(report_path: str | Path | None, output: Path) -> Path | None:
@@ -56,58 +44,12 @@ def _report_file(report_path: str | Path | None, output: Path) -> Path | None:
 
 def _save_report(path: Path | None, report: Report) -> None:
     if path is not None:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("x", encoding="utf-8") as stream:
-            json.dump(report, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-
-
-def _find_files(directory: Path) -> Iterator[Path]:
-    with scandir(directory) as entries:
-        for entry in entries:
-            if entry.is_dir(follow_symlinks=False) and not entry.is_junction():
-                yield from _find_files(Path(entry.path))
-            elif entry.name.lower().endswith(".bin") and entry.is_file():
-                yield Path(entry.path)
-
-
-@contextmanager
-def _input_paths(
-    source: Path, output: Path, log_id: str | None
-) -> Generator[Iterator[Path]]:
-    if not source.is_dir():
-        if source.suffix.lower() != ".bin":
-            msg = f"replay input must have a .bin extension: {source}"
-            raise ConversionError(msg)
-        yield iter((source,))
-        return
-
-    if log_id is not None:
-        msg = "log ID override requires a single replay file"
-        raise ValueError(msg)
-    if output.resolve().is_relative_to(source.resolve()):
-        msg = "output must be outside the input directory"
-        raise ValueError(msg)
-
-    with (
-        TemporaryDirectory(prefix="majsoul-inputs-") as temporary,
-        closing(sqlite3.connect(Path(temporary) / "inputs.db")) as index,
-    ):
-        index.execute(
-            "CREATE TABLE inputs (path TEXT PRIMARY KEY) WITHOUT ROWID"
-        )
-        inserted = index.executemany(
-            "INSERT INTO inputs VALUES (?)",
-            (
-                (path.relative_to(source).as_posix(),)
-                for path in _find_files(source)
-            ),
-        )
-        if inserted.rowcount == 0:
-            msg = f"no .bin replays in {source}"
-            raise ConversionError(msg)
-        rows = index.execute("SELECT path FROM inputs ORDER BY path")
-        yield (source / relative_path for (relative_path,) in rows)
+        try:
+            write_report(path, report)
+        except OSError as e:
+            message = f"{report['error'] or ''}; report_io_error: {e}"
+            report["error"] = message
+            raise BatchConversionError(message, report) from e
 
 
 def convert_files(  # noqa: PLR0913 -- explicit dataset options
@@ -121,18 +63,17 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
     target: Target = "scoring",
 ) -> Manifest:
     """Publish a corpus from one replay or a directory of replays."""
+    source, output = Path(input_path), Path(output_directory)
+    if output.exists() or output.is_symlink():
+        raise FileExistsError(output)
+    if cases_per_file <= 0:
+        msg = "cases_per_file must be positive"
+        raise ValueError(msg)
     if target not in TARGETS:
         msg = f"unknown conversion target {target!r}"
-        raise ConversionError(msg)
-    source, output = Path(input_path), Path(output_directory)
-    report_file = _report_file(report_path, output)
-    summary: ConversionSummary = {
-        "input_count": 0,
-        "converted_count": 0,
-        "failed_by_reason": {},
-        "excluded_by_reason": {},
-    }
+        raise ValueError(msg)
 
+    report_file = _report_file(report_path, output)
     generator: GeneratorInfo = {
         "name": "majsoul-converter",
         "version": version("majsoul-converter"),
@@ -144,18 +85,8 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
             "compress": compress,
         },
     }
-    report: Report = {
-        "generator": generator,
-        "input": str(source),
-        "output": str(output),
-        "conversion": summary,
-        "record_count": 0,
-        "summary_complete": False,
-        "dataset_published": False,
-        "diagnostics": [],
-        "omitted_diagnostic_count": 0,
-        "error": None,
-    }
+    report = new_report(source, output, generator=generator)
+    summary = report["conversion"]
 
     def cases(paths: Iterator[Path]) -> Generator[Case]:
         for path in paths:
@@ -175,8 +106,8 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
                     else "input_io_error"
                 )
                 event_index = e.event_index if conversion_error else None
-                summary["failed_by_reason"][reason] = 1
-                report["diagnostics"].append(
+                record_diagnostic(
+                    report,
                     {
                         "path": str(path),
                         "log_id": log_id if log_id is not None else path.stem,
@@ -184,12 +115,10 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
                         "message": str(e),
                         "event_index": event_index,
                         "field": None,
-                    }
+                    },
+                    excluded=False,
                 )
-                if conversion_error:
-                    msg = f"{path}: {e}"
-                    raise ConversionError(msg, event_index=event_index) from e
-                raise
+                continue
             summary["converted_count"] += 1
             report["record_count"] += len(records)
             yield from records
@@ -197,7 +126,7 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
 
     try:
         with (
-            _input_paths(source, output, log_id) as paths,
+            input_paths(source, output, log_id) as paths,
             closing(cases(paths)) as records,
         ):
             output.parent.mkdir(parents=True, exist_ok=True)
@@ -209,11 +138,11 @@ def convert_files(  # noqa: PLR0913 -- explicit dataset options
                 cases_per_file=cases_per_file,
                 compress=compress,
             )
-    except (ValueError, OSError, sqlite3.Error) as e:
+            report["dataset_published"] = True
+    except (ConversionError, CorpusError, OSError, sqlite3.Error) as e:
         report["error"] = str(e)
         _save_report(report_file, report)
-        raise
+        raise BatchConversionError(str(e), report) from e
 
-    report["dataset_published"] = True
     _save_report(report_file, report)
     return manifest
