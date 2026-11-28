@@ -90,14 +90,24 @@ class RoundState:
     def _open_meld(self, event: pb.RecordChiPengGang, player: Player) -> None:
         kind = _MELD_TYPES[event.type]
         tiles = list(event.tiles)
-        (called,) = (
-            i for i, seat in enumerate(event.froms) if seat != event.seat
-        )
-        from_seat = event.froms[called]
-        msg = "call does not match the preceding discard"
         if len(tiles) != len(event.froms):
+            msg = "tiles and froms must have the same length"
             raise ConversionError(msg)
+
+        called_indices = [
+            i for i, seat in enumerate(event.froms) if seat != event.seat
+        ]
+        if len(called_indices) != 1:
+            msg = (
+                "froms must identify exactly one tile from another seat "
+                f"(found {len(called_indices)})"
+            )
+            raise ConversionError(msg)
+        called = called_indices[0]
+        from_seat = event.froms[called]
+
         discard = self.last
+        msg = "call does not match the preceding discard"
         if not isinstance(discard, pb.RecordDiscardTile):
             raise ConversionError(msg)
         if (from_seat, tiles[called]) != (discard.seat, discard.tile):

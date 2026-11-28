@@ -351,6 +351,43 @@ def test_sanma_nuki_replacement_draw() -> None:
     assert validate_case(shape)["status"] == "passed"
 
 
+@pytest.mark.parametrize(
+    ("froms", "message"),
+    [
+        ([1, 1], "tiles and froms must have the same length"),
+        (
+            [1, 1, 1],
+            "froms must identify exactly one tile from another seat (found 0)",
+        ),
+        (
+            [0, 1, 0],
+            "froms must identify exactly one tile from another seat (found 2)",
+        ),
+    ],
+    ids=["length-mismatch", "no-other-seat", "two-other-seats"],
+)
+def test_open_meld_rejects_invalid_tile_sources(
+    froms: list[int], message: str
+) -> None:
+    events = [
+        pb.RecordNewRound(
+            scores=[25000] * 4, tiles0=["5p"], tiles1=["5p", "5p"]
+        ),
+        pb.RecordDiscardTile(seat=0, tile="5p"),
+        pb.RecordChiPengGang(seat=1, type=1, tiles=["5p"] * 3, froms=froms),
+        pb.RecordNoTile(),
+    ]
+    data = response_frame(
+        pb.GameDetailRecords(records=[wrap(event) for event in events])
+    )
+
+    with pytest.raises(ConversionError) as error:
+        convert_log(data)
+
+    assert error.value.event_index == 2
+    assert str(error.value) == f"event 2 (RecordChiPengGang): {message}"
+
+
 def test_closed_kan_restores_red_five() -> None:
     hand = ["1m", "2m", "3m", "1s", "2s", "3s", "5z", "5z", "5z", "2p"]
     kan = ["0p", "5p", "5p", "5p"]
