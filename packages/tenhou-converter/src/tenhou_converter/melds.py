@@ -164,9 +164,6 @@ def _decode_kan(
     tile_id = called // 4 * 4
     tiles = list(range(tile_id, tile_id + 4))
     # A nonzero relative source means daiminkan. Zero means ankan.
-    return DecodedMeld(
-        "daiminkan" if relative else "ankan",
-        tiles,
-        called % 4 if relative else None,
-        source if relative else None,
-    )
+    if relative:
+        return DecodedMeld("daiminkan", tiles, called % 4, source)
+    return DecodedMeld("ankan", tiles, None, None)
