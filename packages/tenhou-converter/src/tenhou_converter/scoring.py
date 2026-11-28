@@ -137,33 +137,11 @@ def _score_title(event: Event, rank: int, multiplier: int, han: int) -> Title:
     return title
 
 
-def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with distinct diagnostics
+def expected_values(
     event: Event, players: int, *, shared_scores: bool = False
 ) -> tuple[Expected, list[ExcludedField]]:
     yaku = yaku_values(event)
-    ten = event.numbers("ten")
-    sc = event.numbers("sc")
-    if len(ten) != 3:
-        reason = "invalid_attribute"
-        raise event.error(
-            reason, "score tuple must contain three values", "ten"
-        )
-    if not 0 <= ten[2] < len(TITLES):
-        reason = "invalid_attribute"
-        raise event.error(
-            reason, "score title rank outside supported range", "ten"
-        )
-    if min(ten[:2]) < 0:
-        reason = "invalid_attribute"
-        raise event.error(reason, "negative fu or base points", "ten")
-    if len(sc) != 8:
-        reason = "invalid_attribute"
-        raise event.error(
-            reason, "seat scores must contain eight values", "sc"
-        )
-    if players == 3 and sc[6:] != [0, 0]:
-        reason = "invalid_attribute"
-        raise event.error(reason, "unused sanma seat has score or delta", "sc")
+    ten, sc = _score_attributes(event, players)
     who = event.integer("who")
     deltas = [value * 100 for value in sc[1 : players * 2 : 2]]
     multiplier = sum(value["yakuman_multiplier"] for value in yaku)
@@ -175,31 +153,9 @@ def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with d
     gain = deltas[who]
     honba = total_paid - ten[1]
     sticks = gain - total_paid
-    other_gains = any(
-        value > 0 for seat, value in enumerate(deltas) if seat != who
-    )
-    # Shared deltas describe several wins, so individual gains cannot be
-    # reconciled with the total paid by all payers.
-    if not shared_scores and honba < 0:
-        reason = "inconsistent_events"
-        raise event.error(
-            reason,
-            "payments are less than base points",
-            "sc",
-        )
-    if not shared_scores and payments[who]:
-        reason = "inconsistent_events"
-        raise event.error(reason, "winner must not pay their own win", "sc")
-    if not shared_scores and sticks < 0:
-        reason = "inconsistent_events"
-        raise event.error(
-            reason, "winner gain is less than total payments", "sc"
-        )
-    if not shared_scores and other_gains:
-        reason = "inconsistent_events"
-        raise event.error(
-            reason, "individual win credits another player", "sc"
-        )
+    # Shared deltas combine several wins.
+    if not shared_scores:
+        _check_individual_payment(event, who, deltas, honba, sticks)
 
     exclusions: list[ExcludedField] = []
     if any(
@@ -231,20 +187,83 @@ def expected_values(  # noqa: C901, PLR0912, PLR0915 -- sequential checks with d
         "event_score_deltas": deltas,
     }
     if shared_scores:
-        result["honba_points"] = None
-        result["riichi_stick_points"] = None
-        result["payments_by_seat"] = None
-        result["winner_gain"] = None
-        excluded_fields = {item["field"] for item in exclusions}
-        for field in (
-            "honba_points",
-            "riichi_stick_points",
-            "winner_gain",
-            "payments_by_seat",
-        ):
-            if field in excluded_fields:
-                continue
-            exclusions.append(
-                {"field": field, "reason": "multiple_ron_allocation_unknown"}
-            )
+        _exclude_shared_allocation(result, exclusions)
     return result, exclusions
+
+
+def _score_attributes(
+    event: Event, players: int
+) -> tuple[list[int], list[int]]:
+    ten = event.numbers("ten")
+    sc = event.numbers("sc")
+    if len(ten) != 3:
+        reason = "invalid_attribute"
+        raise event.error(
+            reason, "score tuple must contain three values", "ten"
+        )
+    if not 0 <= ten[2] < len(TITLES):
+        reason = "invalid_attribute"
+        raise event.error(
+            reason, "score title rank outside supported range", "ten"
+        )
+    if min(ten[:2]) < 0:
+        reason = "invalid_attribute"
+        raise event.error(reason, "negative fu or base points", "ten")
+    if len(sc) != 8:
+        reason = "invalid_attribute"
+        raise event.error(
+            reason, "seat scores must contain eight values", "sc"
+        )
+    if players == 3 and sc[6:] != [0, 0]:
+        reason = "invalid_attribute"
+        raise event.error(reason, "unused sanma seat has score or delta", "sc")
+    return ten, sc
+
+
+def _check_individual_payment(
+    event: Event, who: int, deltas: list[int], honba: int, sticks: int
+) -> None:
+    other_gains = any(
+        value > 0 for seat, value in enumerate(deltas) if seat != who
+    )
+    if honba < 0:
+        reason = "inconsistent_events"
+        raise event.error(
+            reason,
+            "payments are less than base points",
+            "sc",
+        )
+    if deltas[who] < 0:
+        reason = "inconsistent_events"
+        raise event.error(reason, "winner must not pay their own win", "sc")
+    if sticks < 0:
+        reason = "inconsistent_events"
+        raise event.error(
+            reason, "winner gain is less than total payments", "sc"
+        )
+    if other_gains:
+        reason = "inconsistent_events"
+        raise event.error(
+            reason, "individual win credits another player", "sc"
+        )
+
+
+def _exclude_shared_allocation(
+    result: Expected, exclusions: list[ExcludedField]
+) -> None:
+    result["honba_points"] = None
+    result["riichi_stick_points"] = None
+    result["payments_by_seat"] = None
+    result["winner_gain"] = None
+    excluded_fields = {item["field"] for item in exclusions}
+    for field in (
+        "honba_points",
+        "riichi_stick_points",
+        "winner_gain",
+        "payments_by_seat",
+    ):
+        if field in excluded_fields:
+            continue
+        exclusions.append(
+            {"field": field, "reason": "multiple_ron_allocation_unknown"}
+        )

@@ -408,30 +408,10 @@ class RoundState:
             tile=meld.tiles[-1] if meld.kind == "kakan" else meld.tiles[0],
         )
 
-    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:  # noqa: C901 -- distinct diagnostics for call mismatches
+    def consume_call(self, meld: DecodedMeld, who: int, event: Event) -> None:
         player = self.player(who, event)
         if meld.kind in ("chii", "pon", "daiminkan"):
-            if (
-                self.last is None
-                or self.last.kind != "discard"
-                or self.phase != "response"
-            ):
-                self.fail(event, "call without a pending discard")
-            if meld.called is None:
-                self.fail(event, "open call has no called tile index")
-            if self.last.seat != meld.source:
-                self.fail(event, "call source differs from discarder")
-            if self.last.tile != meld.tiles[meld.called]:
-                self.fail(event, "called tile differs from discarded tile")
-            if len(self.players) == 3 and meld.kind == "chii":
-                self.fail(event, "sanma does not allow chii")
-            if len(self.players) == 3 and meld.source == 3:
-                self.fail(event, "sanma call source is a nonexistent seat")
-            consumed = [
-                value
-                for index, value in enumerate(meld.tiles)
-                if index != meld.called
-            ]
+            consumed = self._discard_call_tiles(meld, event)
             self.interrupt()
         else:
             if self.phase != "discard" or self.next_seat != who:
@@ -449,6 +429,31 @@ class RoundState:
         if not set(consumed) <= player.hand:
             self.fail(event, "call consumes tiles absent from hand")
         player.hand.difference_update(consumed)
+
+    def _discard_call_tiles(
+        self, meld: DecodedMeld, event: Event
+    ) -> list[int]:
+        if (
+            self.last is None
+            or self.last.kind != "discard"
+            or self.phase != "response"
+        ):
+            self.fail(event, "call without a pending discard")
+        if meld.called is None:
+            self.fail(event, "open call has no called tile index")
+        if self.last.seat != meld.source:
+            self.fail(event, "call source differs from discarder")
+        if self.last.tile != meld.tiles[meld.called]:
+            self.fail(event, "called tile differs from discarded tile")
+        if len(self.players) == 3 and meld.kind == "chii":
+            self.fail(event, "sanma does not allow chii")
+        if len(self.players) == 3 and meld.source == 3:
+            self.fail(event, "sanma call source is a nonexistent seat")
+        return [
+            value
+            for index, value in enumerate(meld.tiles)
+            if index != meld.called
+        ]
 
     def dora(self, event: Event) -> None:
         value = event.integer("hai")
