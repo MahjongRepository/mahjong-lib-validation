@@ -14,7 +14,7 @@ from corpus import (
 )
 
 from tenhou_converter.errors import ConversionError
-from tenhou_converter.melds import decode_meld, tile
+from tenhou_converter.melds import decode_agari_melds, tile
 from tenhou_converter.parser import Event, parse_xml
 from tenhou_converter.reconstruction import RoundState
 from tenhou_converter.rules import player_count
@@ -264,11 +264,7 @@ def extract(
     expected, exclusions = expected_values(
         event, players, shared_scores=shared_scores
     )
-    melds = (
-        [decode_meld(code, who, event) for code in event.numbers("m")]
-        if "m" in event.attributes
-        else []
-    )
+    melds = decode_agari_melds(event, who)
     ura = (
         event.numbers("doraHaiUra") if "doraHaiUra" in event.attributes else []
     )

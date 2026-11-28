@@ -939,6 +939,7 @@ def test_agari_rejects_duplicate_or_different_calls(
 
 def test_agari_accepts_melds_in_different_order() -> None:
     root = ET.parse(FIXTURES / "four-melds.xml").getroot()
+    # The fixture lists the winning melds in reverse call order.
     (original,) = convert_log(ET.tostring(root), log_id="synthetic-meld-order")
     root[-1].set("m", ",".join(reversed(root[-1].attrib["m"].split(","))))
 
@@ -947,6 +948,24 @@ def test_agari_accepts_melds_in_different_order() -> None:
     )
 
     assert reordered["input"]["melds"] == original["input"]["melds"][::-1]
+
+
+@pytest.mark.parametrize(
+    ("melds", "reason"),
+    [("", "invalid_attribute"), ("65536", "unknown_meld_code")],
+)
+def test_agari_invalid_meld_attribute_keeps_positioned_error(
+    melds: str, reason: str
+) -> None:
+    root = ET.parse(FIXTURES / "four-ron.xml").getroot()
+    root[-1].set("m", melds)
+
+    with pytest.raises(ConversionError) as caught:
+        convert_log(ET.tostring(root), log_id="synthetic-invalid-meld")
+
+    assert caught.value.reason == reason
+    assert caught.value.field == "m"
+    assert caught.value.event_index == len(root) - 1
 
 
 def test_kokushi_preserves_recorded_zero_fu_and_excludes_comparison() -> None:
