@@ -337,6 +337,11 @@ def _extract_shape(
     if not complete:
         hand.remove(event.integer("machi"))
     case_type = "agari" if target.startswith("agari-") else "shanten"
+    if case_type == "agari":
+        expected = {"is_agari": complete}
+    else:
+        expected = {"shanten": -1 if complete else 0}
+
     shape = "complete" if complete else "tenpai"
     escaped_id = quote(log_id, safe="")
     data = {
@@ -355,11 +360,7 @@ def _extract_shape(
                 meld.corpus_value() for meld in state.players[who].melds
             ],
         },
-        "expected": (
-            {"is_agari": complete}
-            if case_type == "agari"
-            else {"shanten": -1 if complete else 0}
-        ),
+        "expected": expected,
     }
     try:
         return parse_case(data)
