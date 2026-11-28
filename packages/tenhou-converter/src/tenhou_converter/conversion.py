@@ -202,6 +202,8 @@ def _extract_win(  # noqa: PLR0913 -- input and round context plus conversion ta
         return _extract_shape(event, state, log_id, target)
 
     case = extract(event, state, go, log_id, shared_scores=shared_scores)
+    if not state.results:
+        state.shared_scores = shared_scores
     state.results.append(case["expected"])
     state.win_events.append(event)
     return case
