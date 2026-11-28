@@ -212,16 +212,22 @@ def validate_dataset(
 ) -> ValidationSummary:
     selection = selection or Selection()
     with result_directory(Path(output)) as staging:
-        return _validate_dataset(dataset, staging, selection)
+        summary = collect_validation_results(dataset, staging, selection)
+        (staging / "summary.json").write_text(
+            json.dumps(summary), encoding="utf-8"
+        )
+
+    return summary
 
 
-def _validate_dataset(
+def collect_validation_results(
     dataset: str | Path,
     output: Path,
     selection: Selection,
     *,
     selected_cases: list[SelectedCase] | None = None,
 ) -> ValidationSummary:
+    """Write case diagnostics and return the validation summary."""
     manifest_path = Path(dataset) / "manifest.json"
     manifest_sha256 = file_sha256(manifest_path)
     case_type = read_manifest(manifest_path)["case_type"]
@@ -283,5 +289,4 @@ def _validate_dataset(
             )
         ),
     }
-    (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     return summary

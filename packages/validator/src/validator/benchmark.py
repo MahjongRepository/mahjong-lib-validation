@@ -6,7 +6,7 @@ from statistics import median, stdev
 from typing import TYPE_CHECKING
 
 from validator.reporting import result_directory
-from validator.validation import _validate_dataset
+from validator.validation import collect_validation_results
 
 if TYPE_CHECKING:
     from validator.models import (
@@ -58,7 +58,7 @@ def benchmark_dataset(
         raise ValueError(msg)
 
     with result_directory(Path(output)) as staging:
-        preflight = _validate_dataset(dataset, staging, selection)
+        preflight = collect_validation_results(dataset, staging, selection)
         timings: list[BenchmarkSample] = []
         exit_code = preflight["exit_code"]
         if not exit_code:

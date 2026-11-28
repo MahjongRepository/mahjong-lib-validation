@@ -10,7 +10,7 @@ from validator.batch import run_batch
 from validator.preparation import prepare_calls
 from validator.reporting import result_directory
 from validator.sampling_profile import collect_sampling
-from validator.validation import _validate_dataset
+from validator.validation import collect_validation_results
 
 if TYPE_CHECKING:
     from validator.batch import PreparedCall
@@ -65,7 +65,7 @@ def profile_dataset(  # noqa: PLR0913 -- dataset, selection and collection setti
 
     with result_directory(Path(output)) as staging:
         selected: list[SelectedCase] = []
-        preflight = _validate_dataset(
+        preflight = collect_validation_results(
             dataset, staging, selection, selected_cases=selected
         )
         exit_code = preflight["exit_code"]
